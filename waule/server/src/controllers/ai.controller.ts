@@ -8,7 +8,7 @@ import * as soraService from '../services/ai/sora.service';
 import * as viduService from '../services/ai/vidu.service';
 import * as minimaxiService from '../services/ai/minimaxi.service';
 import * as minimaxiImageService from '../services/ai/minimaxi.image.service';
-import midjourneyService from '../services/midjourney.service';
+import { getMidjourneyService } from '../services/midjourney.service';
 import * as aliyunService from '../services/ai/aliyun.service';
 import cosyvoiceService from '../services/ai/cosyvoice.service';
 import minimaxiAudioService from '../services/ai/minimaxi.audio.service';
@@ -171,7 +171,7 @@ export const generateImage = asyncHandler(async (req: Request, res: Response) =>
         console.log('📝 完整提示词:', fullPrompt);
 
         // 提交 imagine 任务
-        const imagineResponse = await midjourneyService.imagine({
+        const imagineResponse = await getMidjourneyService().imagine({
           prompt: fullPrompt,
           base64Array: referenceImages || undefined,
         });
@@ -185,7 +185,7 @@ export const generateImage = asyncHandler(async (req: Request, res: Response) =>
 
         // 轮询等待任务完成
         console.log('⏳ 等待 Midjourney 生成...');
-        const taskResult = await midjourneyService.pollTask(taskId!);
+        const taskResult = await getMidjourneyService().pollTask(taskId!);
 
         console.log('📊 [Midjourney] Task Result:', JSON.stringify(taskResult, null, 2));
 

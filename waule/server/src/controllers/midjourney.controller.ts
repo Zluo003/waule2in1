@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import midjourneyService from '../services/midjourney.service';
+import { getMidjourneyService } from '../services/midjourney.service';
 import axios from 'axios';
 import { prisma } from '../index';
 import { userLevelService } from '../services/user-level.service';
@@ -65,8 +65,8 @@ export const imagine = async (req: Request, res: Response) => {
     console.log('📤 [Midjourney Controller] 提交 Imagine 任务:', { prompt, nodeId, userId, isFree: permissionResult.isFree });
 
     // 提交任务到 Midjourney Proxy
-    console.log('🔄 [Midjourney Controller] 调用 midjourneyService.imagine...');
-    const response = await midjourneyService.imagine({
+    console.log('🔄 [Midjourney Controller] 调用 getMidjourneyService().imagine...');
+    const response = await getMidjourneyService().imagine({
       prompt,
       userId, // 🔑 传递用户ID
       base64Array,
@@ -135,7 +135,7 @@ export const fetchTask = async (req: Request, res: Response) => {
 
     console.log('🔍 [Midjourney Controller] 查询任务:', taskId);
 
-    const result = await midjourneyService.fetch(taskId);
+    const result = await getMidjourneyService().fetch(taskId);
 
     res.json({
       success: true,
@@ -156,7 +156,7 @@ export const pollTask = async (req: Request, res: Response) => {
 
     console.log('⏳ [Midjourney Controller] 开始轮询任务:', taskId);
 
-    const result = await midjourneyService.pollTask(taskId);
+    const result = await getMidjourneyService().pollTask(taskId);
 
     console.log('✅ [Midjourney Controller] 任务完成:', taskId);
 
@@ -220,7 +220,7 @@ export const action = async (req: Request, res: Response) => {
     // 获取原任务信息，判断是四宫格还是单张图
     let sourceAction = 'IMAGINE';
     try {
-      const sourceTask = await midjourneyService.fetch(taskId);
+      const sourceTask = await getMidjourneyService().fetch(taskId);
       sourceAction = sourceTask?.action || 'IMAGINE';
       console.log(`[Midjourney] 源任务信息:`, {
         taskId,
@@ -280,7 +280,7 @@ export const action = async (req: Request, res: Response) => {
     console.log('🎬 [Midjourney Controller] 执行动作:', { taskId, customId, operationType, messageId, messageHash, nodeId, userId });
     console.log('   原始taskId:', taskId);
 
-    const response = await midjourneyService.action({ taskId, customId, userId, messageId, messageHash, nodeId });
+    const response = await getMidjourneyService().action({ taskId, customId, userId, messageId, messageHash, nodeId });
 
     console.log('📥 [Midjourney Controller] 收到响应:');
     console.log('   code:', response.code);
@@ -351,7 +351,7 @@ export const blend = async (req: Request, res: Response) => {
 
     console.log('🎨 [Midjourney Controller] 提交 Blend 任务');
 
-    const response = await midjourneyService.blend(base64Array);
+    const response = await getMidjourneyService().blend(base64Array);
 
     if (response.code !== 1) {
       return res.status(500).json({ 
@@ -384,7 +384,7 @@ export const describe = async (req: Request, res: Response) => {
 
     console.log('📝 [Midjourney Controller] 提交 Describe 任务');
 
-    const response = await midjourneyService.describe(base64);
+    const response = await getMidjourneyService().describe(base64);
 
     if (response.code !== 1) {
       return res.status(500).json({ 
@@ -453,7 +453,7 @@ export const uploadReferenceImage = async (req: Request, res: Response) => {
     }
 
     // 调用 Discord 服务上传图片
-    const discordUrl = await midjourneyService.uploadReferenceImage(imageBuffer, imageName);
+    const discordUrl = await getMidjourneyService().uploadReferenceImage(imageBuffer, imageName);
 
     console.log('✅ [Midjourney Controller] 参考图上传成功:', discordUrl);
 

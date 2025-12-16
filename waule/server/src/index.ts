@@ -866,18 +866,6 @@ const gracefulShutdown = async () => {
       logger.info('Socket.io 已关闭');
     });
 
-    // 关闭 Discord WebSocket 连接
-    try {
-      const { getDiscordService } = await import('./services/discord-reverse.service');
-      const discordService = getDiscordService();
-      if (discordService) {
-        discordService.disconnect();
-        logger.info('Discord连接已关闭');
-      }
-    } catch (e) {
-      // Discord 服务可能未初始化，忽略
-    }
-
     await prisma.$disconnect();
     logger.info('数据库连接已关闭');
 

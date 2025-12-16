@@ -72,7 +72,7 @@ router.put('/update-profile', authenticateTenantUser, tenantAuthController.updat
  * @swagger
  * /tenant-auth/admin/users:
  *   get:
- *     summary: [管理员] 获取租户用户列表
+ *     summary: "[管理员] 获取租户用户列表"
  *     tags: [Tenant Admin]
  */
 router.get('/admin/users', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.getUsers);
@@ -81,7 +81,7 @@ router.get('/admin/users', authenticateTenantUser, authorizeTenantAdmin, tenantA
  * @swagger
  * /tenant-auth/admin/users:
  *   post:
- *     summary: [管理员] 创建用户
+ *     summary: "[管理员] 创建用户"
  *     tags: [Tenant Admin]
  */
 router.post(
@@ -99,7 +99,7 @@ router.post(
  * @swagger
  * /tenant-auth/admin/users/{userId}:
  *   put:
- *     summary: [管理员] 更新用户
+ *     summary: "[管理员] 更新用户"
  *     tags: [Tenant Admin]
  */
 router.put('/admin/users/:userId', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.updateUser);
@@ -108,7 +108,7 @@ router.put('/admin/users/:userId', authenticateTenantUser, authorizeTenantAdmin,
  * @swagger
  * /tenant-auth/admin/users/{userId}:
  *   delete:
- *     summary: [管理员] 删除用户
+ *     summary: "[管理员] 删除用户"
  *     tags: [Tenant Admin]
  */
 router.delete('/admin/users/:userId', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.deleteUser);
@@ -117,7 +117,7 @@ router.delete('/admin/users/:userId', authenticateTenantUser, authorizeTenantAdm
  * @swagger
  * /tenant-auth/admin/users/{userId}/reset-password:
  *   post:
- *     summary: [管理员] 重置用户密码
+ *     summary: "[管理员] 重置用户密码"
  *     tags: [Tenant Admin]
  */
 router.post(
@@ -132,7 +132,7 @@ router.post(
  * @swagger
  * /tenant-auth/admin/credits:
  *   get:
- *     summary: [管理员] 获取积分信息
+ *     summary: "[管理员] 获取积分信息"
  *     tags: [Tenant Admin]
  */
 router.get('/admin/credits', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.getCredits);
@@ -141,7 +141,7 @@ router.get('/admin/credits', authenticateTenantUser, authorizeTenantAdmin, tenan
  * @swagger
  * /tenant-auth/admin/credit-logs:
  *   get:
- *     summary: [管理员] 获取积分消耗明细
+ *     summary: "[管理员] 获取积分消耗明细"
  *     tags: [Tenant Admin]
  */
 router.get('/admin/credit-logs', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.getCreditLogs);
@@ -150,7 +150,7 @@ router.get('/admin/credit-logs', authenticateTenantUser, authorizeTenantAdmin, t
  * @swagger
  * /tenant-auth/admin/usage:
  *   get:
- *     summary: [管理员] 获取使用统计
+ *     summary: "[管理员] 获取使用统计"
  *     tags: [Tenant Admin]
  */
 router.get('/admin/usage', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.getUsageStats);
@@ -159,7 +159,7 @@ router.get('/admin/usage', authenticateTenantUser, authorizeTenantAdmin, tenantA
  * @swagger
  * /tenant-auth/admin/assets:
  *   get:
- *     summary: [管理员] 获取租户资产列表
+ *     summary: "[管理员] 获取租户资产列表"
  *     tags: [Tenant Admin]
  */
 router.get('/admin/assets', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.getAssets);
@@ -168,7 +168,7 @@ router.get('/admin/assets', authenticateTenantUser, authorizeTenantAdmin, tenant
  * @swagger
  * /tenant-auth/admin/recycle-bin:
  *   get:
- *     summary: [管理员] 获取回收站资产
+ *     summary: "[管理员] 获取回收站资产"
  *     tags: [Tenant Admin]
  */
 router.get('/admin/recycle-bin', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.getRecycleBin);
@@ -179,7 +179,7 @@ router.get('/admin/recycle-bin', authenticateTenantUser, authorizeTenantAdmin, t
  * @swagger
  * /tenant-auth/admin/activations:
  *   get:
- *     summary: [管理员] 获取已激活设备列表
+ *     summary: "[管理员] 获取已激活设备列表"
  *     tags: [Tenant Admin]
  */
 router.get('/admin/activations', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.getActivations);
@@ -188,7 +188,7 @@ router.get('/admin/activations', authenticateTenantUser, authorizeTenantAdmin, t
  * @swagger
  * /tenant-auth/admin/activations/{activationId}/unbind:
  *   post:
- *     summary: [管理员] 解绑设备
+ *     summary: "[管理员] 解绑设备"
  *     tags: [Tenant Admin]
  */
 router.post('/admin/activations/:activationId/unbind', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.unbindDevice);
@@ -199,7 +199,7 @@ router.post('/admin/activations/:activationId/unbind', authenticateTenantUser, a
  * @swagger
  * /tenant-auth/admin/reports/staff:
  *   get:
- *     summary: [管理员] 获取员工效率报表
+ *     summary: "[管理员] 获取员工效率报表"
  *     tags: [Tenant Admin]
  *     parameters:
  *       - in: query
@@ -219,7 +219,7 @@ router.get('/admin/reports/staff', authenticateTenantUser, authorizeTenantAdmin,
  * @swagger
  * /tenant-auth/admin/users/{userId}/workflows:
  *   get:
- *     summary: [管理员] 获取指定用户的工作流列表
+ *     summary: "[管理员] 获取指定用户的工作流列表"
  *     tags: [Tenant Admin]
  */
 router.get('/admin/users/:userId/workflows', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.getUserWorkflows);

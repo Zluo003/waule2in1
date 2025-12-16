@@ -2,6 +2,7 @@
 services:
   wauleapi:
     build: .
+    image: wauleapi:latest
     container_name: wauleapi
     restart: unless-stopped
     ports:
