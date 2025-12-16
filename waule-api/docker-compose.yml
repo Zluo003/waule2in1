@@ -1,0 +1,50 @@
+
+services:
+  wauleapi:
+    build: .
+    container_name: wauleapi
+    restart: unless-stopped
+    ports:
+      # Gateway (统一API入口)
+      - "9000:9000"
+      # Sora API (Python) - 管理页面
+      - "8000:8000"
+      # Sora Proxy (Node.js) - 视频代理
+      - "8001:8001"
+      # Gemini Service (Node.js) - 图片/文本生成
+      - "3100:3100"
+    volumes:
+      # 数据持久化
+      - ./data:/app/data
+      # 配置文件
+      - ./config/setting.toml:/app/sora-api/config/setting.toml
+      # 临时文件
+      - /tmp/sora-proxy:/tmp/sora-proxy
+      # 静态文件（方便更新）
+      - ./static:/app/static
+    environment:
+      # Python 环境
+      - PYTHONUNBUFFERED=1
+      
+      # Node.js 环境
+      - NODE_ENV=production
+      
+      # 数据库路径
+      - DB_PATH=/app/data/gateway.db
+      
+      # Sora API 配置 (内部通信)
+      - SORA2API_URL=http://localhost:8000
+      - SORA_API_KEY=${SORA_API_KEY}
+      
+      # 服务配置
+      - API_SECRET=${API_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      - GATEWAY_PORT=9000
+      - WAULE_API_URL=${WAULE_API_URL:-http://172.17.0.1:3000}
+      - SORA_API_URL=http://localhost:8000
+      - GEMINI_SERVICE_URL=http://localhost:3100
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

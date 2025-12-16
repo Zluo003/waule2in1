@@ -1,0 +1,7 @@
+# Waule.com robots.txt
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://waule.com/sitemap.xml

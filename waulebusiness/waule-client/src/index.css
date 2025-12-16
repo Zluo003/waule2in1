@@ -1,0 +1,638 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Electron drag regions */
+.drag {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+  cursor: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Custom scrollbar */
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-gray-600 rounded-full;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+  }
+
+  /* 隐藏滚动条但保留滚动功能 */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+}
+
+/* Slide animations */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out forwards;
+}
+
+/* Dot grid pattern for canvas */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(122, 15, 232, 0.15) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.dark .dot-grid {
+  background-image: radial-gradient(circle, rgba(122, 15, 232, 0.2) 1px, transparent 1px);
+}
+
+/* 工作流画布炫酷背景 */
+.react-flow {
+  background: 
+    /* 网格线 */
+    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px),
+    /* 渐变背景 */
+    radial-gradient(ellipse at 0% 0%, rgba(147, 51, 234, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 0% 100%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
+  background-size: 
+    40px 40px,
+    40px 40px,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+}
+
+.dark .react-flow {
+  background: 
+    /* 网格线 - 深色模式更明显 */
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+    /* 渐变背景 - 深色模式更鲜艳 */
+    radial-gradient(ellipse at 0% 0%, rgba(147, 51, 234, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 0% 100%, rgba(16, 185, 129, 0.10) 0%, transparent 50%);
+  background-size: 
+    40px 40px,
+    40px 40px,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+}
+
+/* Material Symbols config */
+.material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+  /* 在字体加载完成前隐藏文字，避免显示图标名称 */
+  font-display: block;
+  /* 确保使用正确的字体族 */
+  font-family: 'Material Symbols Outlined', sans-serif;
+  /* 防止字体未加载时文字换行 */
+  white-space: nowrap;
+  /* 如果字体未加载，使用最小尺寸 */
+  font-size: inherit;
+  /* 确保垂直对齐 */
+  vertical-align: middle;
+  /* 平滑渲染 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* 用户无法选择图标文本 */
+  user-select: none;
+  /* 在字体加载期间不显示任何内容 */
+  opacity: 1;
+}
+
+/* 字体加载前的占位符，防止布局跳动 */
+.material-symbols-outlined:not(:defined) {
+  visibility: hidden;
+}
+
+/* Global styles */
+body {
+  @apply bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white;
+}
+
+/* 全局炫酷渐变背景 - 应用于主内容区域 */
+.global-gradient-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.global-gradient-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: 
+    radial-gradient(ellipse at 0% 0%, rgba(147, 51, 234, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 0% 100%, rgba(245, 158, 11, 0.04) 0%, transparent 50%);
+}
+
+.dark .global-gradient-bg::before {
+  background: 
+    radial-gradient(ellipse at 0% 0%, rgba(147, 51, 234, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 100% 100%, rgba(59, 130, 246, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 0% 100%, rgba(245, 158, 11, 0.08) 0%, transparent 50%);
+}
+
+.global-gradient-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 统一所有表单元素的主题色为紫色 */
+*,
+*::before,
+*::after {
+  accent-color: #7a0fe8 !important;
+}
+
+/* 覆盖浏览器默认的蓝色主题 */
+:root {
+  /* 不使用 color-scheme，避免浏览器使用系统默认蓝色 */
+  --color-primary: #7a0fe8;
+  --color-primary-hover: #6b0dd1;
+  --color-primary-light: #ead5ff;
+}
+
+/* 移除所有蓝色相关的颜色 */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+  outline-color: #7a0fe8 !important;
+}
+
+/* React Flow custom styles */
+.react-flow__node {
+  @apply rounded-xl;
+}
+
+/* Edge styling - hitbox handled in AuroraEdge component */
+.react-flow__edge {
+  pointer-events: all !important;
+  cursor: pointer;
+}
+
+.react-flow__handle {
+  width: 7px;
+  height: 7px;
+  background: #ffffff;
+  border: 2px solid #a855f7;
+  border-radius: 50%;
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.react-flow__handle:hover {
+  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2);
+  transform: scale(1.1);
+}
+
+.react-flow__controls {
+  @apply bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-lg shadow-soft;
+}
+
+.react-flow__controls-button {
+  @apply bg-card-light dark:bg-card-dark border-b border-border-light dark:border-border-dark;
+}
+
+.react-flow__controls-button svg {
+  fill: #111827;
+}
+
+.dark .react-flow__controls-button svg {
+  fill: white;
+}
+
+.react-flow__controls-button:hover {
+  @apply bg-background-light-secondary dark:bg-white/10;
+}
+
+.react-flow__minimap {
+  @apply bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-lg shadow-soft;
+}
+
+/* React Flow background pattern */
+.react-flow__background {
+  @apply bg-background-light dark:bg-background-dark;
+  background-image: none !important;
+}
+
+/* Aurora gradient edge dash animation */
+.aurora-edge-dash {
+  animation: aurora-dash 0.6s linear infinite;
+}
+@keyframes aurora-dash {
+  from { stroke-dashoffset: 20; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Gradient border for scene card */
+.scene-gradient-border {
+  border: 1px solid;
+  border-image-slice: 1;
+  border-image-source: linear-gradient(135deg, #6D28D9, #F59E0B);
+}
+
+/* Select 和 option 样式 - 强制统一为紫色主题 */
+select {
+  accent-color: #7a0fe8 !important;
+  /* 移除 color-scheme，避免使用系统默认颜色 */
+}
+
+/* 暗色模式下的选项样式 */
+.dark select option,
+html.dark select option {
+  background-color: #1a1d29 !important;
+  color: white !important;
+}
+
+.dark select option:hover,
+html.dark select option:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+.dark select option:checked,
+.dark select option:focus,
+.dark select option[selected],
+html.dark select option:checked,
+html.dark select option:focus,
+html.dark select option[selected] {
+  background: #7a0fe8 !important;
+  background-color: #7a0fe8 !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+/* 亮色模式下的选项样式 */
+select option {
+  background-color: white !important;
+  color: #0f172a !important;
+}
+
+select option:hover {
+  background-color: #f1f5f9 !important;
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+select option:checked,
+select option:focus,
+select option[selected] {
+  background: #7a0fe8 !important;
+  background-color: #7a0fe8 !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+/* 针对 Webkit 内核浏览器（Chrome, Safari, Edge） */
+select::-webkit-scrollbar {
+  width: 12px;
+}
+
+select::-webkit-scrollbar-track {
+  background: #1a1d29;
+}
+
+select::-webkit-scrollbar-thumb {
+  background: #7a0fe8;
+  border-radius: 6px;
+}
+
+select::-webkit-scrollbar-thumb:hover {
+  background: #6b0dd1;
+}
+
+/* 覆盖系统默认的选中样式 */
+select option::selection {
+  background: #7a0fe8 !important;
+  color: white !important;
+}
+
+select option::-moz-selection {
+  background: #7a0fe8 !important;
+  color: white !important;
+}
+
+/* 自定义滑块样式 */
+input[type="range"].slider-purple {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+input[type="range"].slider-purple::-webkit-slider-track {
+  background: rgba(139, 92, 246, 0.2);
+  height: 8px;
+  border-radius: 4px;
+}
+
+input[type="range"].slider-purple::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  cursor: pointer;
+  border: 2px solid #c084fc;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+}
+
+input[type="range"].slider-purple::-webkit-slider-thumb:hover {
+  background: linear-gradient(135deg, #c084fc, #a855f7);
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2);
+}
+
+input[type="range"].slider-purple::-moz-range-track {
+  background: rgba(139, 92, 246, 0.2);
+  height: 8px;
+  border-radius: 4px;
+}
+
+input[type="range"].slider-purple::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  cursor: pointer;
+  border: 2px solid #c084fc;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+}
+
+input[type="range"].slider-purple::-moz-range-thumb:hover {
+  background: linear-gradient(135deg, #c084fc, #a855f7);
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2);
+}
+
+input[type="range"].slider-purple:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ReactFlow 层级控制 - 简单设置，让节点在编组框上方 */
+
+/* 框选模式下的鼠标样式 - 覆盖所有ReactFlow默认样式 */
+.cursor-crosshair,
+.cursor-crosshair * {
+  cursor: crosshair !important;
+}
+
+.react-flow.cursor-crosshair,
+.react-flow.cursor-crosshair .react-flow__pane,
+.react-flow.cursor-crosshair .react-flow__node,
+.react-flow.cursor-crosshair .react-flow__edge,
+.react-flow.cursor-crosshair .react-flow__background,
+.react-flow.cursor-crosshair .react-flow__selection,
+.react-flow.cursor-crosshair .react-flow__selectionpane {
+  cursor: crosshair !important;
+}
+
+/* 拖动连接点时显示十字光标 */
+.react-flow__handle {
+  cursor: crosshair !important;
+}
+
+.react-flow__handle:hover {
+  cursor: crosshair !important;
+}
+
+/* 连接线拖动时的十字光标 */
+.react-flow.connecting,
+.react-flow.connecting * {
+  cursor: crosshair !important;
+}
+
+.react-flow__connectionline {
+  cursor: crosshair !important;
+}
+/* Aurora form styles inside nodes */
+.react-flow__node input[type='text'],
+.react-flow__node input[type='number'],
+.react-flow__node input[type='email'],
+.react-flow__node textarea,
+.react-flow__node select {
+  font-size: 12px;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.react-flow__node textarea { resize: none; }
+
+/* light */
+:root.light .react-flow__node input[type='text'],
+:root.light .react-flow__node input[type='number'],
+:root.light .react-flow__node input[type='email'],
+:root.light .react-flow__node textarea,
+:root.light .react-flow__node select {
+  background: rgba(241, 245, 249, 1);
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+}
+:root.light .react-flow__node input:focus,
+:root.light .react-flow__node textarea:focus,
+:root.light .react-flow__node select:focus { background: #ffffff; border-color: #a855f7; }
+
+/* dark */
+:root.dark .react-flow__node input[type='text'],
+:root.dark .react-flow__node input[type='number'],
+:root.dark .react-flow__node input[type='email'],
+:root.dark .react-flow__node textarea,
+:root.dark .react-flow__node select {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+:root.dark .react-flow__node input:focus,
+:root.dark .react-flow__node textarea:focus,
+:root.dark .react-flow__node select:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(168, 85, 247, 0.5); }
+
+/* Range slider with dynamic gradient background */
+:root {
+  --range-bg-color: #f1f5f9; /* slate-100 for light mode */
+}
+
+:root.dark {
+  --range-bg-color: rgba(255, 255, 255, 0.05); /* white/5 for dark mode */
+}
+
+.react-flow__node input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.react-flow__node input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  transition: all 0.2s;
+  margin-top: -4px; /* 垂直居中：(16px - 8px) / 2 = 4px */
+}
+
+.react-flow__node input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2);
+}
+
+.react-flow__node input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  transition: all 0.2s;
+}
+
+.react-flow__node input[type='range']::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2);
+}
+
+/* Remove default track background since we use inline style */
+.react-flow__node input[type='range']::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: transparent;
+}
+
+.react-flow__node input[type='range']::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: transparent;
+}
+
+/* 只读工作流样式 - 完全的观察者模式 */
+.readonly-workflow .react-flow__node {
+  /* 节点本身禁用交互，但子元素需要单独处理 */
+  cursor: default !important;
+}
+
+.readonly-workflow .react-flow__node * {
+  /* 禁用节点内所有子元素的交互 */
+  pointer-events: none !important;
+  cursor: default !important;
+  user-select: none !important;
+}
+
+/* 允许视频元素播放 */
+.readonly-workflow .react-flow__node video {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* 允许视频控制条交互 */
+.readonly-workflow .react-flow__node video::-webkit-media-controls {
+  pointer-events: auto !important;
+}
+
+/* 允许音频元素播放 */
+.readonly-workflow .react-flow__node audio {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* 允许带有 nodrag 类的元素交互（如播放按钮） */
+.readonly-workflow .react-flow__node .nodrag {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* 禁用连接线交互 */
+.readonly-workflow .react-flow__edge {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
+/* 禁用连接点交互 */
+.readonly-workflow .react-flow__handle {
+  pointer-events: none !important;
+  opacity: 0.5;
+  cursor: default !important;
+}
+
+/* 禁用选择框 */
+.readonly-workflow .react-flow__selection {
+  display: none !important;
+}
+
+/* 禁用小地图交互 */
+.readonly-workflow .react-flow__minimap {
+  pointer-events: none !important;
+}
+
+/* 输入框和选择框的视觉提示 - 显示为不可编辑状态 */
+.readonly-workflow .react-flow__node input,
+.readonly-workflow .react-flow__node textarea,
+.readonly-workflow .react-flow__node select {
+  opacity: 0.7;
+  cursor: not-allowed !important;
+}
+
+/* 按钮默认不可编辑，但 nodrag 类的按钮（如播放按钮）可以交互 */
+.readonly-workflow .react-flow__node button:not(.nodrag) {
+  opacity: 0.7;
+  cursor: not-allowed !important;
+}
+
+/* nodrag 类的按钮恢复正常外观 */
+.readonly-workflow .react-flow__node button.nodrag {
+  opacity: 1 !important;
+  cursor: pointer !important;
+}

@@ -1,0 +1,302 @@
+/**
+ * WauleAPI 客户端
+ * 用于与 waule-api 网关通信，调用统一的 v1 接口
+ * 
+ * 支持多实例部署：
+ * - 国内实例：对接豆包、阿里万象等国内模型
+ * - 国外实例：对接 Gemini、Sora 等国外模型
+ * 
+ * 环境变量配置示例：
+ * WAULEAPI_URL=http://localhost:9000              # 默认地址
+ * WAULEAPI_SECRET=your-api-secret                 # 认证密钥
+ * 
+ * # 按供应商单独配置（可选，优先级高于默认）
+ * WAULEAPI_DOUBAO_URL=https://cn.wauleapi.com:9000
+ * WAULEAPI_WANX_URL=https://cn.wauleapi.com:9000
+ * WAULEAPI_GEMINI_URL=https://us.wauleapi.com:9000
+ * WAULEAPI_SORA_URL=https://us.wauleapi.com:9000
+ * WAULEAPI_VIDU_URL=https://us.wauleapi.com:9000
+ * WAULEAPI_MINIMAX_URL=https://cn.wauleapi.com:9000
+ * WAULEAPI_COSYVOICE_URL=https://cn.wauleapi.com:9000
+ */
+
+import axios, { AxiosInstance } from 'axios';
+
+// 供应商列表
+type Provider = 'doubao' | 'wanx' | 'gemini' | 'sora' | 'vidu' | 'minimax' | 'cosyvoice' | 'midjourney';
+
+class WauleApiClient {
+  private defaultUrl: string;
+  private apiSecret: string;
+  private providerUrls: Map<Provider, string> = new Map();
+
+  constructor() {
+    this.defaultUrl = process.env.WAULEAPI_URL || 'http://localhost:9000';
+    this.apiSecret = process.env.WAULEAPI_SECRET || '';
+
+    // 加载各供应商的自定义 URL
+    const providers: Provider[] = ['doubao', 'wanx', 'gemini', 'sora', 'vidu', 'minimax', 'cosyvoice', 'midjourney'];
+    for (const provider of providers) {
+      const envKey = `WAULEAPI_${provider.toUpperCase()}_URL`;
+      const url = process.env[envKey];
+      if (url) {
+        this.providerUrls.set(provider, url);
+        console.log(`[WauleAPI] ${provider} -> ${url}`);
+      }
+    }
+
+    console.log(`[WauleAPI] 默认地址: ${this.defaultUrl}, Auth: ${this.apiSecret ? 'Enabled' : 'Disabled'}`);
+  }
+
+  /**
+   * 获取指定供应商的 API 地址
+   */
+  private getUrl(provider: Provider): string {
+    return this.providerUrls.get(provider) || this.defaultUrl;
+  }
+
+  /**
+   * 创建请求客户端
+   */
+  private createClient(provider: Provider): AxiosInstance {
+    const baseURL = this.getUrl(provider);
+    return axios.create({
+      baseURL,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.apiSecret && { 'Authorization': `Bearer ${this.apiSecret}` }),
+      },
+      timeout: 600000, // 10分钟超时
+    });
+  }
+
+  /**
+   * 从模型名推断供应商
+   */
+  private inferProvider(model: string): Provider {
+    const modelLower = model.toLowerCase();
+    if (modelLower.includes('doubao') || modelLower.includes('seedream') || modelLower.includes('seedance')) return 'doubao';
+    if (modelLower.includes('wanx') || modelLower.includes('tongyi') || modelLower.includes('alibaba') || modelLower.includes('wan2') || modelLower.includes('qwen') || modelLower.includes('video-style') || modelLower.includes('videoretalk')) return 'wanx';
+    if (modelLower.includes('gemini')) return 'gemini';
+    if (modelLower.includes('sora')) return 'sora';
+    if (modelLower.includes('vidu')) return 'vidu';
+    if (modelLower.includes('minimax') || modelLower.includes('hailuo')) return 'minimax';
+    if (modelLower.includes('cosyvoice')) return 'cosyvoice';
+    if (modelLower.includes('midjourney') || modelLower.includes('mj')) return 'midjourney';
+    return 'doubao'; // 默认
+  }
+
+  /**
+   * 图片生成 - 调用 /v1/images/generations
+   */
+  async generateImage(params: {
+    model: string;
+    prompt: string;
+    size?: string;
+    n?: number;
+    reference_images?: string[];
+    use_intl?: boolean;
+    max_images?: number; // SeeDream 4.5 组图数量 (1-15)
+  }): Promise<{
+    created: number;
+    data: Array<{ url: string; revised_prompt?: string }>;
+  }> {
+    const provider = this.inferProvider(params.model);
+    const client = this.createClient(provider);
+    console.log(`[WauleAPI] 图片生成: model=${params.model}, provider=${provider}, url=${this.getUrl(provider)}`);
+    const response = await client.post('/v1/images/generations', params);
+    return response.data;
+  }
+
+  /**
+   * 视频生成 - 调用 /v1/videos/generations
+   */
+  async generateVideo(params: {
+    model: string;
+    prompt: string;
+    image?: string;
+    reference_images?: string[]; // 支持多图（首帧+尾帧）
+    duration?: number;
+    aspect_ratio?: string;
+    resolution?: string; // 720p, 1080p
+    use_intl?: boolean;
+    // 视频换人参数
+    replace_image_url?: string;
+    replace_video_url?: string;
+    mode?: string;
+    // 视频风格转绘参数
+    style?: number;
+    video_fps?: number;
+    min_len?: number;
+    // 视频换人参数
+    audio_url?: string;
+    video_extension?: boolean;
+    // Vidu 特有参数
+    subjects?: Array<{id: string; images: string[]; voice_id?: string}>;
+    audio?: boolean;
+    voice_id?: string;
+    bgm?: boolean;
+    movement_amplitude?: string;
+    generation_type?: string;
+  }): Promise<{
+    data: Array<{ url: string; duration?: number }>;
+  }> {
+    const provider = this.inferProvider(params.model);
+    const client = this.createClient(provider);
+    console.log(`[WauleAPI] 视频生成: model=${params.model}, provider=${provider}, url=${this.getUrl(provider)}`);
+    const response = await client.post('/v1/videos/generations', params);
+    return response.data;
+  }
+
+  /**
+   * 文本生成 - 调用 /v1/chat/completions
+   */
+  async chat(params: {
+    model: string;
+    messages: Array<{ role: string; content: any }>;
+    temperature?: number;
+    max_tokens?: number;
+  }): Promise<{
+    choices: Array<{ message: { content: string } }>;
+  }> {
+    const provider = this.inferProvider(params.model);
+    const client = this.createClient(provider);
+    console.log(`[WauleAPI] 文本生成: model=${params.model}, provider=${provider}, url=${this.getUrl(provider)}`);
+    const response = await client.post('/v1/chat/completions', params);
+    return response.data;
+  }
+
+  /**
+   * 音频生成 - 调用 /v1/audio/speech
+   */
+  async generateAudio(params: {
+    model: string;
+    input: string;
+    voice?: string;
+  }): Promise<{
+    data: Array<{ url: string }>;
+  }> {
+    const provider = this.inferProvider(params.model);
+    const client = this.createClient(provider);
+    console.log(`[WauleAPI] 音频生成: model=${params.model}, provider=${provider}, url=${this.getUrl(provider)}`);
+    const response = await client.post('/v1/audio/speech', params);
+    return response.data;
+  }
+
+  /**
+   * 智能超清 - 调用 /v1/videos/upscale
+   */
+  async upscaleVideo(params: {
+    video_url?: string;
+    video_creation_id?: string;
+    upscale_resolution?: '1080p' | '2K' | '4K' | '8K';
+  }): Promise<{
+    data: Array<{ url: string }>;
+  }> {
+    const client = this.createClient('vidu');
+    console.log(`[WauleAPI] 智能超清: resolution=${params.upscale_resolution}, url=${this.getUrl('vidu')}`);
+    const response = await client.post('/v1/videos/upscale', params);
+    return response.data;
+  }
+
+  /**
+   * 广告成片 - 调用 /v1/videos/commercial
+   */
+  async createCommercialVideo(params: {
+    images: string[];
+    prompt: string;
+    duration?: number;
+    ratio?: '16:9' | '9:16' | '1:1';
+    language?: 'zh' | 'en';
+  }): Promise<{
+    data: Array<{ url: string }>;
+  }> {
+    const client = this.createClient('vidu');
+    console.log(`[WauleAPI] 广告成片: images=${params.images?.length}, url=${this.getUrl('vidu')}`);
+    const response = await client.post('/v1/videos/commercial', params);
+    return response.data;
+  }
+
+  // ==================== Midjourney 方法 ====================
+
+  /**
+   * Midjourney Imagine - 文生图
+   */
+  async mjImagine(params: {
+    prompt: string;
+    userId?: string;
+  }): Promise<{
+    success: boolean;
+    taskId: string;
+    message?: string;
+  }> {
+    const client = this.createClient('midjourney');
+    console.log(`[WauleAPI] MJ Imagine: prompt=${params.prompt.substring(0, 50)}...`);
+    const response = await client.post('/v1/midjourney/imagine', params);
+    return response.data;
+  }
+
+  /**
+   * Midjourney Action - 执行按钮操作 (Upscale, Variation 等)
+   */
+  async mjAction(params: {
+    messageId: string;
+    customId: string;
+    userId?: string;
+  }): Promise<{
+    success: boolean;
+    taskId: string;
+    message?: string;
+  }> {
+    const client = this.createClient('midjourney');
+    console.log(`[WauleAPI] MJ Action: messageId=${params.messageId}, customId=${params.customId}`);
+    const response = await client.post('/v1/midjourney/action', params);
+    return response.data;
+  }
+
+  /**
+   * Midjourney 查询任务状态
+   */
+  async mjGetTask(taskId: string): Promise<{
+    taskId: string;
+    status: string;
+    progress?: string;
+    imageUrl?: string;
+    messageId?: string;
+    messageHash?: string;
+    buttons?: Array<{
+      customId: string;
+      label: string;
+      emoji?: string;
+    }>;
+    failReason?: string;
+  }> {
+    const client = this.createClient('midjourney');
+    const response = await client.get(`/v1/midjourney/task/${taskId}`);
+    return response.data;
+  }
+
+  /**
+   * Midjourney 等待任务完成（长轮询）
+   */
+  async mjWaitTask(taskId: string, timeout: number = 300000): Promise<{
+    taskId: string;
+    status: string;
+    imageUrl?: string;
+    messageId?: string;
+    messageHash?: string;
+    buttons?: Array<{
+      customId: string;
+      label: string;
+      emoji?: string;
+    }>;
+    failReason?: string;
+  }> {
+    const client = this.createClient('midjourney');
+    console.log(`[WauleAPI] MJ WaitTask: taskId=${taskId}, timeout=${timeout}`);
+    const response = await client.post(`/v1/midjourney/task/${taskId}/wait`, { timeout });
+    return response.data;
+  }
+}
+
+export const wauleApiClient = new WauleApiClient();

@@ -1,0 +1,55 @@
+{
+  "name": "waule-enterprise-server",
+  "version": "1.0.0",
+  "description": "Waule 企业版服务端 - AI生成内容本地存储服务",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop waule-tenant-server",
+    "pm2:restart": "pm2 restart waule-tenant-server",
+    "pm2:logs": "pm2 logs waule-tenant-server",
+    "pm2:status": "pm2 status",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3002 && electron .\"",
+    "electron:rebuild": "npx @electron/rebuild -f -w better-sqlite3",
+    "electron:build": "npm run build && npm run electron:rebuild && electron-builder --win",
+    "electron:build:win": "npm run build && npm run electron:rebuild && electron-builder --win"
+  },
+  "keywords": [
+    "waule",
+    "tenant",
+    "local-storage"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ali-oss": "^6.21.0",
+    "axios": "^1.7.9",
+    "better-sqlite3": "^12.5.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "uuid": "^11.0.5"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.7.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.10.2",
+    "@types/uuid": "^10.0.0",
+    "concurrently": "^9.1.2",
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.7.2",
+    "wait-on": "^8.0.2"
+  },
+  "build": {
+    "extends": "electron-builder.yml"
+  }
+}

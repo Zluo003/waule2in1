@@ -1,0 +1,194 @@
+import { CreateAnalysisData, UpdateShotData } from '../types/video-analysis.types';
+export declare class VideoAnalysisService {
+    constructor();
+    private getGeminiModel;
+    createAnalysis(data: CreateAnalysisData): Promise<{
+        userId: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: import(".prisma/client").$Enums.VideoAnalysisStatus;
+        projectId: string | null;
+        duration: number;
+        deletedAt: Date | null;
+        fileName: string;
+        width: number;
+        height: number;
+        progress: number;
+        title: string;
+        summary: string;
+        videoFile: string;
+        fileSize: bigint;
+        frameCount: number;
+        errorMsg: string | null;
+    }>;
+    getUserAnalyses(userId: string): Promise<({
+        _count: {
+            shots: number;
+        };
+    } & {
+        userId: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: import(".prisma/client").$Enums.VideoAnalysisStatus;
+        projectId: string | null;
+        duration: number;
+        deletedAt: Date | null;
+        fileName: string;
+        width: number;
+        height: number;
+        progress: number;
+        title: string;
+        summary: string;
+        videoFile: string;
+        fileSize: bigint;
+        frameCount: number;
+        errorMsg: string | null;
+    })[]>;
+    getAnalysisById(id: string, userId: string): Promise<({
+        shots: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            description: string;
+            duration: number;
+            size: string;
+            startTime: string;
+            audio: string;
+            shotNumber: number;
+            analysisId: string;
+            endTime: string;
+            movement: string;
+            sfx: string;
+            thumbnailIndex: number;
+            thumbnailUrl: string | null;
+        }[];
+        scripts: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            version: number;
+            analysisId: string;
+            content: string;
+        }[];
+        posters: {
+            id: string;
+            createdAt: Date;
+            variation: number;
+            imageUrl: string;
+            analysisId: string;
+            style: string;
+        }[];
+    } & {
+        userId: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: import(".prisma/client").$Enums.VideoAnalysisStatus;
+        projectId: string | null;
+        duration: number;
+        deletedAt: Date | null;
+        fileName: string;
+        width: number;
+        height: number;
+        progress: number;
+        title: string;
+        summary: string;
+        videoFile: string;
+        fileSize: bigint;
+        frameCount: number;
+        errorMsg: string | null;
+    }) | null>;
+    startAnalysisTask(analysisId: string): Promise<void>;
+    private createPlaceholderResult;
+    private extractFrames;
+    private analyzeWithGemini;
+    private saveAnalysisResult;
+    private updateStatus;
+    updateShot(shotId: string, data: UpdateShotData): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        description: string;
+        duration: number;
+        size: string;
+        startTime: string;
+        audio: string;
+        shotNumber: number;
+        analysisId: string;
+        endTime: string;
+        movement: string;
+        sfx: string;
+        thumbnailIndex: number;
+        thumbnailUrl: string | null;
+    }>;
+    generateScript(analysisId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        version: number;
+        analysisId: string;
+        content: string;
+    }>;
+    generatePosters(analysisId: string): Promise<{
+        id: string;
+        createdAt: Date;
+        variation: number;
+        imageUrl: string;
+        analysisId: string;
+        style: string;
+    }[]>;
+    exportToCSV(analysisId: string): Promise<string>;
+    deleteAnalysis(analysisId: string): Promise<{
+        userId: string;
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: import(".prisma/client").$Enums.VideoAnalysisStatus;
+        projectId: string | null;
+        duration: number;
+        deletedAt: Date | null;
+        fileName: string;
+        width: number;
+        height: number;
+        progress: number;
+        title: string;
+        summary: string;
+        videoFile: string;
+        fileSize: bigint;
+        frameCount: number;
+        errorMsg: string | null;
+    }>;
+    getConfig(): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        maxDuration: number;
+        maxFileSize: bigint;
+        allowedFormats: string[];
+        freeQuota: number;
+        pricePerAnalysis: number;
+        enableScript: boolean;
+        enablePoster: boolean;
+        enableColorScript: boolean;
+        geminiApiKey: string | null;
+        geminiModel: string;
+    }>;
+    updateConfig(data: any): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        maxDuration: number;
+        maxFileSize: bigint;
+        allowedFormats: string[];
+        freeQuota: number;
+        pricePerAnalysis: number;
+        enableScript: boolean;
+        enablePoster: boolean;
+        enableColorScript: boolean;
+        geminiApiKey: string | null;
+        geminiModel: string;
+    }>;
+}
+//# sourceMappingURL=video-analysis.service.d.ts.map

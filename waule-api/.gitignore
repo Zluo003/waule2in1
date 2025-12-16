@@ -1,0 +1,29 @@
+# 环境配置
+.env
+
+# 数据目录
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+.venv/
+
+# Node.js
+node_modules/
+dist/
+*.log
+npm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 临时文件
+tmp/
+*.tmp

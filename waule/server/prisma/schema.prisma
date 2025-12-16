@@ -1,0 +1,797 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                          String               @id @default(uuid())
+  email                       String?              @unique
+  username                    String?              @unique
+  password                    String?
+  nickname                    String?              @unique
+  avatar                      String?
+  role                        UserRole             @default(USER)
+  isActive                    Boolean              @default(true)
+  createdAt                   DateTime             @default(now())
+  updatedAt                   DateTime             @updatedAt
+  lastLoginAt                 DateTime?
+  loginType                   LoginType            @default(PHONE)
+  phone                       String?              @unique
+  wechatOpenId                String?              @unique
+  credits                     Int                  @default(0)
+  giftStartDate               DateTime?
+  membershipExpireAt          DateTime?
+  // 双因素认证 (TOTP)
+  totpSecret                  String?              // TOTP 密钥 (加密存储)
+  totpEnabled                 Boolean              @default(false) // 是否启用 2FA
+  assetLibraries              AssetLibrary[]
+  sharesOwned                 AssetLibraryShare[]  @relation("AssetLibraryShareOwner")
+  sharesReceived              AssetLibraryShare[]  @relation("AssetLibraryShareTarget")
+  assets                      Asset[]
+  projectSharesOwned          ProjectShare[]       @relation("ProjectShareOwner")
+  projectSharesReceived       ProjectShare[]       @relation("ProjectShareTarget")
+  projects                    Project[]
+  redeemCodesCreated          RedeemCode[]         @relation("RedeemCodeCreatedBy")
+  redeemCodesUsed             RedeemCode[]         @relation("RedeemCodeUsedBy")
+  sessions                    Session[]
+  workflowSharesOwned         WorkflowShare[]      @relation("WorkflowShareOwner")
+  workflowSharesReceived      WorkflowShare[]      @relation("WorkflowShareTarget")
+  workflows                   Workflow[]
+  soraCharacterSharesOwned    SoraCharacterShare[] @relation("SoraCharacterShareOwner")
+  soraCharacterSharesReceived SoraCharacterShare[] @relation("SoraCharacterShareTarget")
+
+  @@index([isActive])
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Project {
+  id          String         @id @default(uuid())
+  name        String
+  description String?
+  thumbnail   String?
+  type        ProjectType    @default(DRAMA)
+  status      ProjectStatus  @default(DRAFT)
+  userId      String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  isPublic    Boolean        @default(false)
+  assets      Asset[]
+  episodes    Episode[]
+  shares      ProjectShare[]
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workflows   Workflow[]
+
+  @@index([description(ops: raw("gin_trgm_ops"))], map: "idx_projects_desc_trgm", type: Gin)
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "idx_projects_name_trgm", type: Gin)
+  @@index([userId, type, status, updatedAt(sort: Desc)], map: "idx_projects_user_type_status_updated")
+  @@index([userId, updatedAt(sort: Desc), id(sort: Desc)], map: "idx_projects_user_updated_id")
+  @@index([isPublic])
+  @@map("projects")
+}
+
+model Episode {
+  id            String              @id @default(uuid())
+  projectId     String
+  episodeNumber Int
+  name          String
+  description   String?
+  duration      Int?
+  thumbnail     String?
+  videoUrl      String?
+  status        EpisodeStatus       @default(DRAFT)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  scriptJson    Json?
+  permissions   EpisodePermission[]
+  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scenes        Scene[]
+  workflows     Workflow[]
+
+  @@unique([projectId, episodeNumber])
+  @@index([projectId, updatedAt(sort: Desc), id(sort: Desc)], map: "idx_episodes_project")
+  @@map("episodes")
+}
+
+model Scene {
+  id          String   @id @default(uuid())
+  episodeId   String
+  sceneNumber Int
+  name        String?
+  description String
+  imagePrompt String?
+  imageUrl    String?
+  videoUrl    String?
+  duration    Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  episode     Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([episodeId, sceneNumber])
+  @@map("scenes")
+}
+
+model Workflow {
+  id          String          @id @default(uuid())
+  name        String
+  description String?
+  userId      String
+  projectId   String?
+  episodeId   String?
+  data        Json
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  isPublic    Boolean         @default(false)
+  nodes       Node[]
+  shares      WorkflowShare[]
+  episode     Episode?        @relation(fields: [episodeId], references: [id])
+  project     Project?        @relation(fields: [projectId], references: [id])
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, updatedAt(sort: Desc), id(sort: Desc)], map: "idx_workflows_project")
+  @@index([userId, updatedAt(sort: Desc)], map: "idx_workflows_user_updated")
+  @@index([isPublic])
+  @@map("workflows")
+}
+
+model Node {
+  id         String     @id @default(uuid())
+  workflowId String
+  type       NodeType
+  position   Json
+  data       Json
+  status     NodeStatus @default(IDLE)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  workflow   Workflow   @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@map("nodes")
+}
+
+model Asset {
+  id             String        @id @default(uuid())
+  userId         String
+  projectId      String?
+  assetLibraryId String?
+  name           String
+  originalName   String
+  type           AssetType
+  mimeType       String
+  size           Int
+  url            String
+  thumbnail      String?
+  metadata       Json?
+  tags           String[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  assetLibrary   AssetLibrary? @relation(fields: [assetLibraryId], references: [id], onDelete: Cascade)
+  project        Project?      @relation(fields: [projectId], references: [id])
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([assetLibraryId, createdAt])
+  @@index([userId, createdAt])
+  @@index([userId, type, createdAt])
+  @@index([name])
+  @@index([originalName])
+  @@index([projectId, createdAt(sort: Desc), id(sort: Desc)], map: "idx_assets_project")
+  @@map("assets")
+}
+
+model AssetLibrary {
+  id          String               @id @default(uuid())
+  name        String
+  description String?
+  thumbnail   String?
+  userId      String
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  category    AssetLibraryCategory @default(OTHER)
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shares      AssetLibraryShare[]
+  assets      Asset[]
+
+  @@unique([userId, name, category])
+  @@index([userId, createdAt])
+  @@index([userId, category])
+  @@map("asset_libraries")
+}
+
+model AIModel {
+  id           String            @id @default(uuid())
+  name         String
+  provider     String
+  modelId      String
+  type         AIModelType
+  config       Json
+  isActive     Boolean           @default(true)
+  pricePerUse  Decimal?          @db.Decimal(10, 4)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  apiKey       String?
+  apiUrl       String?
+  agentRoles   AgentRole[]
+  billingRules BillingRule[]
+  capabilities ModelCapability[]
+  permissions  ModelPermission[]
+
+  @@unique([provider, modelId])
+  @@map("ai_models")
+}
+
+model Agent {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  roles       AgentRole[]
+
+  @@map("agents")
+}
+
+model AgentRole {
+  id           String   @id @default(uuid())
+  agentId      String
+  name         String
+  description  String?
+  systemPrompt String
+  aiModelId    String
+  temperature  Float    @default(0.7)
+  maxTokens    Int      @default(2000)
+  isActive     Boolean  @default(true)
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  agent        Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  aiModel      AIModel  @relation(fields: [aiModelId], references: [id])
+
+  @@unique([agentId, name])
+  @@map("agent_roles")
+}
+
+model UsageRecord {
+  id             String       @id @default(uuid())
+  userId         String
+  modelId        String?
+  operation      String
+  tokens         Int?
+  cost           Decimal      @db.Decimal(10, 4)
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  billingRuleId  String?
+  creditsCharged Int          @default(0)
+  duration       Int?
+  mode           String?
+  moduleType     String?
+  nodeType       String?
+  operationType  String?
+  quantity       Int?
+  resolution     String?
+  billingRule    BillingRule? @relation(fields: [billingRuleId], references: [id])
+
+  @@index([userId])
+  @@index([modelId])
+  @@index([createdAt])
+  @@map("usage_records")
+}
+
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  type      String
+  category  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model GenerationTask {
+  id                 String     @id @default(uuid())
+  userId             String
+  type               TaskType
+  modelId            String
+  prompt             String
+  ratio              String?
+  referenceImages    Json?
+  generationType     String?
+  status             TaskStatus @default(PENDING)
+  progress           Int        @default(0)
+  resultUrl          String?
+  errorMessage       String?
+  metadata           Json?
+  previewNodeData    Json?
+  sourceNodeId       String?
+  previewNodeCreated Boolean    @default(false)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  completedAt        DateTime?
+  externalTaskId     String?
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([sourceNodeId])
+  @@index([externalTaskId])
+  @@map("generation_tasks")
+}
+
+model ModelCapability {
+  id             String    @id @default(uuid())
+  aiModelId      String
+  capability     String
+  supported      Boolean   @default(true)
+  signature      Json?
+  overrides      Json?
+  source         String?
+  lastVerifiedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  aiModel        AIModel   @relation(fields: [aiModelId], references: [id], onDelete: Cascade)
+
+  @@unique([aiModelId, capability])
+  @@map("model_capabilities")
+}
+
+model AssetLibraryShare {
+  id             String       @id @default(uuid())
+  assetLibraryId String
+  ownerUserId    String
+  targetUserId   String
+  canDownload    Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  assetLibrary   AssetLibrary @relation(fields: [assetLibraryId], references: [id], onDelete: Cascade)
+  owner          User         @relation("AssetLibraryShareOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  target         User         @relation("AssetLibraryShareTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([targetUserId])
+  @@map("asset_library_shares")
+}
+
+model WorkflowShare {
+  id           String          @id @default(uuid())
+  workflowId   String
+  ownerUserId  String
+  targetUserId String
+  createdAt    DateTime        @default(now())
+  permission   SharePermission @default(READ)
+  updatedAt    DateTime        @default(now()) @updatedAt
+  owner        User            @relation("WorkflowShareOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  target       User            @relation("WorkflowShareTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  workflow     Workflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, targetUserId])
+  @@index([targetUserId])
+  @@map("workflow_shares")
+}
+
+model ProjectShare {
+  id           String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  projectId    String
+  ownerUserId  String
+  targetUserId String
+  createdAt    DateTime @default(now())
+  owner        User     @relation("ProjectShareOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  target       User     @relation("ProjectShareTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, targetUserId])
+  @@index([targetUserId])
+  @@map("project_shares")
+}
+
+model EpisodePermission {
+  id         String          @id @default(dbgenerated("(gen_random_uuid())::text"))
+  episodeId  String
+  userId     String
+  permission SharePermission @default(READ)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @default(now()) @updatedAt
+  episode    Episode         @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([episodeId, userId])
+  @@index([userId])
+  @@map("episode_permissions")
+}
+
+model BillingRule {
+  id           String         @id @default(uuid())
+  name         String
+  description  String?
+  aiModelId    String?
+  nodeType     String?
+  moduleType   String?
+  billingType  BillingType
+  baseCredits  Int            @default(0)
+  config       Json?
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  prices       BillingPrice[]
+  aiModel      AIModel?       @relation(fields: [aiModelId], references: [id], onDelete: Cascade)
+  usageRecords UsageRecord[]
+
+  @@unique([aiModelId, nodeType, moduleType])
+  @@index([billingType])
+  @@index([isActive])
+  @@map("billing_rules")
+}
+
+model BillingPrice {
+  id             String      @id @default(uuid())
+  billingRuleId  String
+  dimension      String
+  value          String
+  creditsPerUnit Int
+  unitSize       Int?        @default(1)
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  billingRule    BillingRule @relation(fields: [billingRuleId], references: [id], onDelete: Cascade)
+
+  @@unique([billingRuleId, dimension, value])
+  @@index([billingRuleId])
+  @@map("billing_prices")
+}
+
+model SoraCharacter {
+  id             String   @id @default(uuid())
+  userId         String
+  customName     String
+  characterName  String
+  avatarUrl      String?
+  sourceVideoUrl String?
+  description    String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, customName])
+  @@index([userId])
+  @@index([userId, customName])
+  @@index([characterName])
+  @@map("sora_characters")
+}
+
+// Sora角色库共享（整个用户的角色库共享给另一用户）
+model SoraCharacterShare {
+  id           String   @id @default(uuid())
+  ownerUserId  String
+  targetUserId String
+  createdAt    DateTime @default(now())
+  owner        User     @relation("SoraCharacterShareOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  target       User     @relation("SoraCharacterShareTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerUserId, targetUserId])
+  @@index([targetUserId])
+  @@map("sora_character_shares")
+}
+
+model PaymentConfig {
+  id         String          @id @default(uuid())
+  provider   PaymentProvider @unique
+  name       String
+  appId      String
+  privateKey String
+  publicKey  String
+  config     Json?
+  isActive   Boolean         @default(true)
+  isSandbox  Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@map("payment_configs")
+}
+
+model CreditPackage {
+  id           String         @id @default(uuid())
+  name         String
+  description  String?
+  price        Int
+  credits      Int
+  bonusCredits Int            @default(0)
+  memberLevel  UserRole?
+  memberDays   Int?
+  coverImage   String?
+  badge        String?
+  badgeColor   String?
+  sortOrder    Int            @default(0)
+  isActive     Boolean        @default(true)
+  isRecommend  Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  type         PackageType    @default(RECHARGE)
+  orders       PaymentOrder[]
+
+  @@index([isActive, sortOrder])
+  @@map("credit_packages")
+}
+
+model PaymentOrder {
+  id             String              @id @default(uuid())
+  orderNo        String              @unique
+  userId         String
+  packageId      String?
+  amount         Int
+  credits        Int
+  paymentMethod  PaymentProvider
+  status         OrderStatus         @default(PENDING)
+  tradeNo        String?
+  qrCodeUrl      String?
+  qrCodeExpireAt DateTime?
+  paidAt         DateTime?
+  expireAt       DateTime
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  metadata       Json?
+  transactions   CreditTransaction[]
+  package        CreditPackage?      @relation(fields: [packageId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderNo])
+  @@index([createdAt])
+  @@map("payment_orders")
+}
+
+model CreditTransaction {
+  id            String          @id @default(uuid())
+  userId        String
+  type          TransactionType
+  amount        Int
+  balance       Int
+  orderId       String?
+  usageRecordId String?
+  description   String
+  createdAt     DateTime        @default(now())
+  order         PaymentOrder?   @relation(fields: [orderId], references: [id])
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("credit_transactions")
+}
+
+model RedeemCode {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  credits     Int
+  memberLevel UserRole?
+  memberDays  Int?
+  isUsed      Boolean   @default(false)
+  usedAt      DateTime?
+  usedById    String?
+  expireAt    DateTime?
+  remark      String?
+  batchId     String?
+  createdAt   DateTime  @default(now())
+  createdById String
+  createdBy   User      @relation("RedeemCodeCreatedBy", fields: [createdById], references: [id])
+  usedBy      User?     @relation("RedeemCodeUsedBy", fields: [usedById], references: [id])
+
+  @@index([code])
+  @@index([isUsed])
+  @@index([batchId])
+  @@index([createdAt])
+  @@map("redeem_codes")
+}
+
+model UserLevelConfig {
+  id               String   @id @default(uuid())
+  userRole         UserRole @unique
+  dailyGiftCredits Int      @default(0)
+  giftDays         Int      @default(0)
+  giftDescription  String?
+  maxConcurrency   Int      @default(1)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("user_level_configs")
+}
+
+model ModelPermission {
+  id              String   @id @default(uuid())
+  aiModelId       String?
+  nodeType        String?
+  moduleType      String?
+  userRole        UserRole
+  isAllowed       Boolean  @default(true)
+  dailyLimit      Int      @default(-1)
+  isFreeForMember Boolean  @default(false)
+  freeDailyLimit  Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  aiModel         AIModel? @relation(fields: [aiModelId], references: [id], onDelete: Cascade)
+
+  @@unique([aiModelId, nodeType, moduleType, userRole])
+  @@index([userRole])
+  @@index([aiModelId])
+  @@index([nodeType])
+  @@index([moduleType])
+  @@map("model_permissions")
+}
+
+model DailyUsageRecord {
+  id             String   @id @default(uuid())
+  userId         String
+  date           DateTime @db.Date
+  aiModelId      String?
+  nodeType       String?
+  moduleType     String?
+  usageCount     Int      @default(0)
+  freeUsageCount Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, date, aiModelId, nodeType, moduleType])
+  @@index([userId, date])
+  @@index([aiModelId])
+  @@map("daily_usage_records")
+}
+
+model GiftCreditsRecord {
+  id               String   @id @default(uuid())
+  userId           String
+  date             DateTime @db.Date
+  giftedCredits    Int      @default(0)
+  usedCredits      Int      @default(0)
+  remainingCredits Int      @default(0)
+  userRole         UserRole
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("gift_credits_records")
+}
+
+enum SharePermission {
+  READ
+  EDIT
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  VIP
+  SVIP
+  INTERNAL
+}
+
+enum LoginType {
+  PHONE
+  WECHAT
+  ADMIN
+}
+
+enum ProjectType {
+  DRAMA
+  QUICK
+}
+
+enum ProjectStatus {
+  DRAFT
+  IN_PROGRESS
+  RENDERING
+  COMPLETED
+  ARCHIVED
+}
+
+enum EpisodeStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum NodeType {
+  TEXT_PROCESSING
+  IMAGE_GENERATION
+  VIDEO_GENERATION
+  MEDIA_UPLOAD
+}
+
+enum NodeStatus {
+  IDLE
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum AssetType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+enum AssetLibraryCategory {
+  ROLE
+  SCENE
+  PROP
+  OTHER
+}
+
+enum AIModelType {
+  TEXT_GENERATION
+  IMAGE_GENERATION
+  VIDEO_GENERATION
+  VIDEO_EDITING
+  AUDIO_SYNTHESIS
+}
+
+enum TaskType {
+  IMAGE
+  VIDEO
+  STORYBOARD
+}
+
+enum TaskStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILURE
+}
+
+enum BillingType {
+  PER_REQUEST
+  PER_IMAGE
+  PER_DURATION
+  DURATION_RESOLUTION
+  PER_CHARACTER
+  DURATION_MODE
+  OPERATION_MODE
+}
+
+enum PackageType {
+  RECHARGE
+  CREDITS
+}
+
+enum PaymentProvider {
+  ALIPAY
+  WECHAT
+  MANUAL
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  REFUNDED
+  CANCELLED
+}
+
+enum TransactionType {
+  RECHARGE
+  CONSUME
+  REFUND
+  GIFT
+  ADMIN
+  EXPIRE
+  REDEEM
+}

@@ -1,0 +1,57 @@
+services:
+  wauleapi:
+    build: .
+    container_name: wauleapi
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "3100:3100"
+      - "9000:9000"
+    volumes:
+      - ./data:/app/data
+      # 使用 warp 代理配置
+      - ./config/setting_warp.toml:/app/sora-api/config/setting.toml
+      - /tmp/sora-proxy:/tmp/sora-proxy
+      # 静态文件（方便更新）
+      - ./static:/app/static
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NODE_ENV=production
+      - DB_PATH=/app/data/gateway.db
+      - SORA2API_URL=http://localhost:8000
+      - SORA_API_KEY=${SORA_API_KEY}
+      # 服务配置
+      - API_SECRET=${API_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      - GATEWAY_PORT=9000
+      - WAULE_API_URL=${WAULE_API_URL:-http://172.17.0.1:3000}
+      - SORA_API_URL=http://localhost:8000
+      - GEMINI_SERVICE_URL=http://localhost:3100
+    depends_on:
+      - warp
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  warp:
+    image: caomingjun/warp
+    container_name: warp
+    restart: always
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "1080:1080"
+    environment:
+      - WARP_SLEEP=2
+    cap_add:
+      - MKNOD
+      - AUDIT_WRITE
+      - NET_ADMIN
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv4.conf.all.src_valid_mark=1
+    volumes:
+      - ./data:/var/lib/cloudflare-warp

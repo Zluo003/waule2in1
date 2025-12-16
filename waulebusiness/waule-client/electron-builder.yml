@@ -1,0 +1,80 @@
+# Electron Builder 配置
+appId: com.waule.client
+productName: Waule
+copyright: Copyright © 2024 Waule
+
+# 目录配置
+directories:
+  output: release
+  buildResources: resources
+
+# 包含的文件
+files:
+  - dist/**/*
+  - electron/**/*.cjs
+  - package.json
+
+# 额外资源
+extraResources:
+  - from: resources/
+    to: resources/
+    filter:
+      - "**/*"
+
+# macOS 配置
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  icon: resources/icon.icns
+  category: public.app-category.productivity
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+
+# DMG 配置
+dmg:
+  sign: false
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+# Windows 配置
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  icon: resources/icon.ico
+  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+
+# NSIS 安装程序配置
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: resources/icon.ico
+  uninstallerIcon: resources/icon.ico
+  installerHeaderIcon: resources/icon.ico
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Waule
+
+# 自动更新配置（可选）
+publish:
+  provider: generic
+  url: https://your-update-server.com/releases
+  publishAutoUpdate: false

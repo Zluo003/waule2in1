@@ -1,0 +1,21 @@
+# Node modules (需要在容器内重新安装)
+services/node-gateway/node_modules
+services/node-gateway/dist
+
+# Python cache
+**/__pycache__
+**/*.pyc
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Logs
+*.log
+
+# Local env files
+.env.local
