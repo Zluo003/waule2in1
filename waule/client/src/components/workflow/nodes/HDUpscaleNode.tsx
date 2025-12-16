@@ -144,7 +144,6 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
             generatedImageUrl: displayUrl,
             taskId: '',
           });
-          // 恢复任务时不再创建预览节点，避免刷新页面重复添加
         } else if (task.status === 'PROCESSING' || task.status === 'PENDING') {
           setIsGenerating(true);
           pollTaskStatus(initialTaskId);
@@ -243,9 +242,9 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
         modelId: selectedModel.id,
         prompt,
         ratio: detectedRatio,
-        imageSize: imageSize,
         referenceImages: [processedImage],
         sourceNodeId: id,
+        metadata: { imageSize },
       });
 
       if (!response.success) {

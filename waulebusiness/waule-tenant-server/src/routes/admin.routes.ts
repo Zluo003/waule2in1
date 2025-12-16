@@ -22,6 +22,7 @@ import {
 } from '../services/database.service';
 import { storageService } from '../services/storage.service';
 import logger from '../utils/logger';
+import { getDeviceId } from '../utils/deviceId';
 
 const router = Router();
 
@@ -301,28 +302,134 @@ router.get('/api/config', requireAuth, (req: Request, res: Response) => {
 /**
  * 保存配置 API
  * POST /admin/api/config
+ * 安全措施：
+ * 1. 保存前必须验证 API Key 有效性
+ * 2. 首次配置时激活 API Key 并绑定设备（只能激活一次）
  */
-router.post('/api/config', requireAuth, (req: Request, res: Response) => {
+router.post('/api/config', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { storagePath, platformServerUrl, tenantApiKey } = req.body;
+    const { storagePath, platformServerUrl, tenantApiKey: inputApiKey } = req.body;
     
     // 验证必填项
     if (!platformServerUrl) {
       return res.status(400).json({ success: false, error: '平台地址不能为空' });
     }
+    
+    // 获取当前配置
+    const currentConfig = getAllConfig();
+    
+    // API Key: 如果输入为空，使用已保存的；首次配置必须提供
+    const tenantApiKey = inputApiKey || currentConfig.tenantApiKey;
     if (!tenantApiKey) {
       return res.status(400).json({ success: false, error: 'API Key 不能为空' });
     }
     
-    // 保存配置（端口使用默认值3002）
+    const cleanUrl = platformServerUrl.replace(/\/+$/, '');
+    const deviceId = getDeviceId();
+    
+    // 判断是否为首次配置（或更换了 API Key）
+    const isFirstConfig = !currentConfig.isConfigured || (inputApiKey && currentConfig.tenantApiKey !== inputApiKey);
+    
+    if (isFirstConfig) {
+      // 【首次配置】调用激活接口，绑定设备
+      try {
+        const activateResponse = await axios.post(
+          `${cleanUrl}/api/client/activate-server`,
+          { deviceId },
+          {
+            headers: {
+              'X-Tenant-API-Key': tenantApiKey,
+              'Content-Type': 'application/json',
+            },
+            timeout: 10000,
+          }
+        );
+        
+        if (!activateResponse.data?.success) {
+          return res.status(400).json({ 
+            success: false, 
+            error: activateResponse.data?.message || 'API Key 激活失败' 
+          });
+        }
+        
+        logger.info(`API Key 激活成功: ${activateResponse.data?.data?.tenantName || '未知租户'}`);
+        
+      } catch (activateError: any) {
+        const status = activateError.response?.status;
+        const data = activateError.response?.data;
+        let errorMessage = '保存失败：API Key 激活失败';
+        
+        if (status === 401) {
+          errorMessage = '保存失败：API Key 无效或已过期';
+        } else if (status === 403 && data?.alreadyActivated) {
+          errorMessage = '保存失败：此 API Key 已被其他设备激活，无法使用。如需更换设备，请联系管理员重置。';
+        } else if (status === 404) {
+          errorMessage = '保存失败：平台地址不正确';
+        } else if (activateError.code === 'ECONNREFUSED') {
+          errorMessage = '保存失败：无法连接到平台服务器';
+        } else if (activateError.code === 'ENOTFOUND') {
+          errorMessage = '保存失败：平台地址无法解析';
+        } else if (data?.message) {
+          errorMessage = `保存失败：${data.message}`;
+        }
+        
+        logger.warn(`配置保存被拒绝: ${errorMessage}`);
+        return res.status(400).json({ success: false, error: errorMessage });
+      }
+    } else {
+      // 【非首次配置】验证 API Key 和设备
+      try {
+        const verifyResponse = await axios.post(
+          `${cleanUrl}/api/client/verify-api-key`,
+          {},
+          {
+            headers: {
+              'X-Tenant-API-Key': tenantApiKey,
+              'X-Device-Id': deviceId,
+              'Content-Type': 'application/json',
+            },
+            timeout: 10000,
+          }
+        );
+        
+        if (!verifyResponse.data?.success) {
+          return res.status(400).json({ success: false, error: 'API Key 验证失败，请检查配置' });
+        }
+        
+        logger.info('API Key 验证通过');
+      } catch (verifyError: any) {
+        const status = verifyError.response?.status;
+        const data = verifyError.response?.data;
+        let errorMessage = '保存失败：API Key 验证不通过';
+        
+        if (status === 401) {
+          if (data?.deviceMismatch) {
+            errorMessage = '保存失败：API Key 已绑定其他设备，无法在此设备使用';
+          } else {
+            errorMessage = '保存失败：API Key 无效或已过期';
+          }
+        } else if (status === 404) {
+          errorMessage = '保存失败：平台地址不正确';
+        } else if (verifyError.code === 'ECONNREFUSED') {
+          errorMessage = '保存失败：无法连接到平台服务器';
+        } else if (verifyError.code === 'ENOTFOUND') {
+          errorMessage = '保存失败：平台地址无法解析';
+        }
+        
+        logger.warn(`配置保存被拒绝: ${errorMessage}`);
+        return res.status(400).json({ success: false, error: errorMessage });
+      }
+    }
+    
+    // 验证/激活通过，保存配置
     saveConfig({
       storagePath: storagePath || './data/storage',
-      platformServerUrl: platformServerUrl.replace(/\/+$/, ''), // 移除末尾斜杠
+      platformServerUrl: cleanUrl,
       tenantApiKey,
       isConfigured: true,
     });
     
-    logger.info('配置已保存');
+    logger.info('配置已保存（已通过安全验证）');
     
     res.json({ success: true, message: '配置保存成功' });
   } catch (error: any) {
@@ -337,10 +444,18 @@ router.post('/api/config', requireAuth, (req: Request, res: Response) => {
  */
 router.post('/api/test-connection', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { platformServerUrl, tenantApiKey } = req.body;
+    const { platformServerUrl, tenantApiKey: inputApiKey } = req.body;
     
-    if (!platformServerUrl || !tenantApiKey) {
-      return res.status(400).json({ success: false, error: '请填写平台地址和 API Key' });
+    if (!platformServerUrl) {
+      return res.status(400).json({ success: false, error: '请填写平台地址' });
+    }
+    
+    // API Key: 如果输入为空，使用已保存的
+    const currentConfig = getAllConfig();
+    const tenantApiKey = inputApiKey || currentConfig.tenantApiKey;
+    
+    if (!tenantApiKey) {
+      return res.status(400).json({ success: false, error: '请填写 API Key' });
     }
     
     // 测试连接 - 使用专用的 API Key 验证接口
@@ -785,17 +900,20 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
         <div class="card">
           <div class="card-title">⚙️ 平台连接配置</div>
           <div id="alertBox" class="alert"></div>
-          <form id="configForm">
+          <form id="configForm" autocomplete="off">
+            <!-- 隐藏的假输入框，用于欺骗浏览器自动填充 -->
+            <input type="text" name="fake_user" style="display:none;">
+            <input type="password" name="fake_pass" style="display:none;">
             <div class="form-row">
               <div class="form-group">
                 <label>平台服务端地址 *</label>
-                <input type="text" id="platformServerUrl" value="${config.platformServerUrl}" placeholder="https://api.example.com" required>
+                <input type="text" id="platformServerUrl" name="server_url_${Date.now()}" value="${config.platformServerUrl}" placeholder="https://api.example.com" required autocomplete="new-password">
                 <div class="hint">Waule 平台 API 地址</div>
               </div>
               <div class="form-group">
                 <label>租户 API Key *</label>
-                <input type="text" id="tenantApiKey" value="${config.tenantApiKey}" placeholder="wk_live_xxxxxxxx" required>
-                <div class="hint">格式为 wk_live_xxx</div>
+                <input type="text" id="tenantApiKey" name="api_key_${Date.now()}" value="" placeholder="${config.tenantApiKey ? '已配置 (***' + config.tenantApiKey.slice(-8) + ')' : 'wk_live_xxxxxxxx'}" ${config.tenantApiKey ? '' : 'required'} autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');">
+                <div class="hint">${config.tenantApiKey ? '留空保持原配置，输入新值则更新' : '格式为 wk_live_xxx'}</div>
               </div>
             </div>
             <div class="form-row">

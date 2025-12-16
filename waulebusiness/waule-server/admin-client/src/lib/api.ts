@@ -108,6 +108,16 @@ export const apiClient = {
         apiClient.post(`/admin/tasks/${taskId}/cancel`, { refund }),
     },
 
+    // Waule API 服务器管理
+    wauleApiServers: {
+      getAll: () => apiClient.get('/admin/waule-api-servers'),
+      create: (data: { name: string; url: string; authToken?: string; isDefault?: boolean; description?: string }) =>
+        apiClient.post('/admin/waule-api-servers', data),
+      update: (id: string, data: any) => apiClient.put(`/admin/waule-api-servers/${id}`, data),
+      delete: (id: string) => apiClient.delete(`/admin/waule-api-servers/${id}`),
+      test: (id: string) => apiClient.post(`/admin/waule-api-servers/${id}/test`),
+    },
+
     // 用户等级权限管理
     userLevels: {
       getConfigs: () => apiClient.get('/admin/user-levels/configs'),

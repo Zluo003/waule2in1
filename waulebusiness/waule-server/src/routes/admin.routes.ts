@@ -290,4 +290,51 @@ router.post('/tasks/:id/refund', adminController.refundTask);
  */
 router.post('/tasks/:id/cancel', adminController.cancelTask);
 
+// ==================== Waule API 服务器管理 ====================
+
+/**
+ * @swagger
+ * /admin/waule-api-servers:
+ *   get:
+ *     summary: 获取所有 Waule API 服务器
+ *     tags: [Admin - Waule API]
+ */
+router.get('/waule-api-servers', adminController.getWauleApiServers);
+
+/**
+ * @swagger
+ * /admin/waule-api-servers:
+ *   post:
+ *     summary: 创建 Waule API 服务器
+ *     tags: [Admin - Waule API]
+ */
+router.post('/waule-api-servers', adminController.createWauleApiServer);
+
+/**
+ * @swagger
+ * /admin/waule-api-servers/{id}:
+ *   put:
+ *     summary: 更新 Waule API 服务器
+ *     tags: [Admin - Waule API]
+ */
+router.put('/waule-api-servers/:id', adminController.updateWauleApiServer);
+
+/**
+ * @swagger
+ * /admin/waule-api-servers/{id}:
+ *   delete:
+ *     summary: 删除 Waule API 服务器
+ *     tags: [Admin - Waule API]
+ */
+router.delete('/waule-api-servers/:id', adminController.deleteWauleApiServer);
+
+/**
+ * @swagger
+ * /admin/waule-api-servers/{id}/test:
+ *   post:
+ *     summary: 测试 Waule API 服务器连接
+ *     tags: [Admin - Waule API]
+ */
+router.post('/waule-api-servers/:id/test', adminController.testWauleApiServer);
+
 export default router;

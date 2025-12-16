@@ -224,5 +224,15 @@ router.get('/admin/reports/staff', authenticateTenantUser, authorizeTenantAdmin,
  */
 router.get('/admin/users/:userId/workflows', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.getUserWorkflows);
 
+/**
+ * @swagger
+ * /tenant-auth/heartbeat:
+ *   post:
+ *     summary: "客户端心跳上报"
+ *     tags: [Tenant Auth]
+ *     description: 定期上报心跳，更新在线状态
+ */
+router.post('/heartbeat', authenticateTenantUser, tenantAuthController.heartbeat);
+
 export default router;
 

@@ -60,9 +60,32 @@ export const getTenants = asyncHandler(async (req: Request, res: Response) => {
     prisma.tenant.count({ where }),
   ]);
 
+  // 计算每个租户的在线客户端数（60秒内有心跳）
+  const oneMinuteAgo = new Date(Date.now() - 60000);
+  const tenantsWithOnlineCount = await Promise.all(
+    tenants.map(async (tenant) => {
+      const [onlineClients, totalClients] = await Promise.all([
+        prisma.clientActivation.count({
+          where: {
+            tenantId: tenant.id,
+            isActivated: true,
+            lastHeartbeat: { gte: oneMinuteAgo },
+          },
+        }),
+        prisma.clientActivation.count({
+          where: {
+            tenantId: tenant.id,
+            isActivated: true,
+          },
+        }),
+      ]);
+      return { ...tenant, onlineClients, totalClients };
+    })
+  );
+
   res.json({
     success: true,
-    data: tenants,
+    data: tenantsWithOnlineCount,
     pagination: {
       page: pageNum,
       limit: limitNum,

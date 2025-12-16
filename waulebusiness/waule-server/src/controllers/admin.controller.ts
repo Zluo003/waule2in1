@@ -272,6 +272,8 @@ export const createAIModel = asyncHandler(async (req: Request, res: Response) =>
     throw new AppError('该模型已存在', 409);
   }
   
+  const { wauleApiServerId } = req.body;
+  
   const model = await prisma.aIModel.create({
     data: {
       name,
@@ -284,7 +286,7 @@ export const createAIModel = asyncHandler(async (req: Request, res: Response) =>
         return rest;
       })(),
       isActive: isActive !== false,
-      // 简化：不再使用 apiKey, apiUrl, pricePerUse
+      wauleApiServerId: wauleApiServerId || null,
     },
   });
   
@@ -300,7 +302,7 @@ export const createAIModel = asyncHandler(async (req: Request, res: Response) =>
  */
 export const updateAIModel = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, provider, modelId, config, isActive } = req.body;
+  const { name, provider, modelId, config, isActive, wauleApiServerId } = req.body;
 
   const dataToUpdate: any = {};
 
@@ -309,7 +311,7 @@ export const updateAIModel = asyncHandler(async (req: Request, res: Response) =>
   if (typeof isActive === 'boolean') dataToUpdate.isActive = isActive;
   if (provider) dataToUpdate.provider = provider;
   if (modelId) dataToUpdate.modelId = modelId;
-  // 简化：不再使用 apiKey, apiUrl, pricePerUse
+  if (wauleApiServerId !== undefined) dataToUpdate.wauleApiServerId = wauleApiServerId || null;
 
   const current = await prisma.aIModel.findUnique({ where: { id } });
   if (!current) {
@@ -1339,5 +1341,136 @@ export const cancelTask = asyncHandler(async (req: Request, res: Response) => {
       creditsRefunded,
     },
   });
+});
+
+// ==================== Waule API 服务器管理 ====================
+
+/**
+ * 获取所有 Waule API 服务器
+ */
+export const getWauleApiServers = asyncHandler(async (req: Request, res: Response) => {
+  const servers = await prisma.wauleApiServer.findMany({
+    orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+    include: {
+      _count: { select: { aiModels: true } },
+    },
+  });
+
+  res.json({ success: true, data: servers });
+});
+
+/**
+ * 创建 Waule API 服务器
+ */
+export const createWauleApiServer = asyncHandler(async (req: Request, res: Response) => {
+  const { name, url, authToken, isDefault, description } = req.body;
+
+  if (!name || !url) {
+    throw new AppError('名称和地址不能为空', 400);
+  }
+
+  // 如果设为默认，取消其他服务器的默认状态
+  if (isDefault) {
+    await prisma.wauleApiServer.updateMany({
+      where: { isDefault: true },
+      data: { isDefault: false },
+    });
+  }
+
+  const server = await prisma.wauleApiServer.create({
+    data: {
+      name,
+      url: url.replace(/\/+$/, ''), // 去除尾部斜杠
+      authToken,
+      isDefault: isDefault || false,
+      description,
+    },
+  });
+
+  res.json({ success: true, data: server });
+});
+
+/**
+ * 更新 Waule API 服务器
+ */
+export const updateWauleApiServer = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, url, authToken, isDefault, isActive, description } = req.body;
+
+  // 如果设为默认，取消其他服务器的默认状态
+  if (isDefault) {
+    await prisma.wauleApiServer.updateMany({
+      where: { isDefault: true, id: { not: id } },
+      data: { isDefault: false },
+    });
+  }
+
+  const server = await prisma.wauleApiServer.update({
+    where: { id },
+    data: {
+      ...(name !== undefined && { name }),
+      ...(url !== undefined && { url: url.replace(/\/+$/, '') }),
+      ...(authToken !== undefined && { authToken }),
+      ...(isDefault !== undefined && { isDefault }),
+      ...(isActive !== undefined && { isActive }),
+      ...(description !== undefined && { description }),
+    },
+  });
+
+  res.json({ success: true, data: server });
+});
+
+/**
+ * 删除 Waule API 服务器
+ */
+export const deleteWauleApiServer = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  // 检查是否有模型在使用此服务器
+  const modelsCount = await prisma.aIModel.count({
+    where: { wauleApiServerId: id },
+  });
+
+  if (modelsCount > 0) {
+    throw new AppError(`该服务器正在被 ${modelsCount} 个模型使用，请先解除关联`, 400);
+  }
+
+  await prisma.wauleApiServer.delete({ where: { id } });
+
+  res.json({ success: true, message: '删除成功' });
+});
+
+/**
+ * 测试 Waule API 服务器连接
+ */
+export const testWauleApiServer = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const server = await prisma.wauleApiServer.findUnique({ where: { id } });
+  if (!server) {
+    throw new AppError('服务器不存在', 404);
+  }
+
+  try {
+    const axios = require('axios');
+    const response = await axios.get(`${server.url}/health`, {
+      timeout: 10000,
+      headers: server.authToken ? { Authorization: `Bearer ${server.authToken}` } : {},
+    });
+
+    res.json({
+      success: true,
+      message: '连接成功',
+      data: {
+        status: response.data?.status || 'ok',
+        version: response.data?.version,
+      },
+    });
+  } catch (error: any) {
+    res.json({
+      success: false,
+      message: `连接失败: ${error.message || '未知错误'}`,
+    });
+  }
 });
 

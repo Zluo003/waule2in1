@@ -72,7 +72,13 @@ interface TenantAuthState {
   clearActivation: () => void;
   // 刷新用户信息
   refreshUser: () => Promise<void>;
+  // 心跳
+  startHeartbeat: () => void;
+  stopHeartbeat: () => void;
 }
+
+// 心跳定时器
+let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
 export const useTenantAuthStore = create<TenantAuthState>()(
   persist(
@@ -83,21 +89,27 @@ export const useTenantAuthStore = create<TenantAuthState>()(
       isAuthenticated: false,
       activation: null,
 
-      setAuth: (user, token, tenantId) =>
+      setAuth: (user, token, tenantId) => {
         set({
           user,
           token,
           tenantId,
           isAuthenticated: true,
-        }),
+        });
+        // 登录后启动心跳
+        get().startHeartbeat();
+      },
 
-      clearAuth: () =>
+      clearAuth: () => {
+        // 退出前停止心跳
+        get().stopHeartbeat();
         set({
           user: null,
           token: null,
           isAuthenticated: false,
           // 保留 tenantId 和 activation，退出登录不清除激活状态
-        }),
+        });
+      },
 
       updateUser: (userData) =>
         set((state) => ({
@@ -147,6 +159,47 @@ export const useTenantAuthStore = create<TenantAuthState>()(
           }
         } catch (error) {
           console.error('Failed to refresh tenant user:', error);
+        }
+      },
+
+      startHeartbeat: () => {
+        // 清除已有的心跳定时器
+        if (heartbeatInterval) {
+          clearInterval(heartbeatInterval);
+          heartbeatInterval = null;
+        }
+
+        const sendHeartbeat = async () => {
+          const state = get();
+          if (!state.isAuthenticated || !state.token || !state.activation?.deviceFingerprint) {
+            return;
+          }
+
+          try {
+            const { api } = await import('../lib/api');
+            await api.post('/tenant-auth/heartbeat', { 
+              version: '1.0.0',
+              deviceFingerprint: state.activation.deviceFingerprint,
+            });
+            console.log('[Heartbeat] ✓ 客户端心跳发送成功');
+          } catch (error: any) {
+            console.log('[Heartbeat] ✗ 客户端心跳失败:', error.message || '未知错误');
+          }
+        };
+
+        // 立即发送一次心跳
+        sendHeartbeat();
+
+        // 每30秒发送一次心跳
+        heartbeatInterval = setInterval(sendHeartbeat, 30 * 1000);
+        console.log('[Heartbeat] 客户端心跳服务已启动（间隔30秒）');
+      },
+
+      stopHeartbeat: () => {
+        if (heartbeatInterval) {
+          clearInterval(heartbeatInterval);
+          heartbeatInterval = null;
+          console.log('[Heartbeat] 客户端心跳服务已停止');
         }
       },
     }),

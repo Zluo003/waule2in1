@@ -11,6 +11,7 @@ import PackageManagementPage from './PackageManagementPage';
 import RedeemCodePage from './RedeemCodePage';
 import UserLevelConfigPage from './UserLevelConfigPage';
 import ServerMonitorPage from './ServerMonitorPage';
+import NodePromptsPage from './NodePromptsPage';
 
 // 简易柱状图组件
 const MiniBarChart = ({ data, height = 60, unit = '' }: { data: { label: string; value: number }[]; height?: number; unit?: string }) => {
@@ -394,6 +395,7 @@ const AdminPage = () => {
     { name: '支付配置', path: '/frame25/payment-config', icon: 'account_balance_wallet' },
     { name: '套餐管理', path: '/frame25/packages', icon: 'redeem' },
     { name: '兑换码管理', path: '/frame25/redeem-codes', icon: 'confirmation_number' },
+    { name: '节点提示词', path: '/frame25/node-prompts', icon: 'edit_note' },
   ];
 
   const isActive = (path: string, exact: boolean = false) => {
@@ -444,6 +446,7 @@ const AdminPage = () => {
           <Route path="payment-config" element={<PaymentConfigPage />} />
           <Route path="packages" element={<PackageManagementPage />} />
           <Route path="redeem-codes" element={<RedeemCodePage />} />
+          <Route path="node-prompts" element={<NodePromptsPage />} />
         </Routes>
       </div>
     </div>

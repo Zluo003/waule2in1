@@ -215,25 +215,45 @@ model AssetLibrary {
   @@map("asset_libraries")
 }
 
+// Waule API 服务器配置（支持多个 waule-api 服务）
+model WauleApiServer {
+  id          String    @id @default(uuid())
+  name        String    // 服务器名称，如 "主服务器"、"备用服务器"
+  url         String    // 服务器地址，如 "http://localhost:9000"
+  authToken   String?   // 认证 Token（可选）
+  isDefault   Boolean   @default(false) // 是否为默认服务器
+  isActive    Boolean   @default(true)
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  aiModels    AIModel[]
+
+  @@map("waule_api_servers")
+}
+
 model AIModel {
-  id           String            @id @default(uuid())
-  name         String
-  provider     String
-  modelId      String
-  type         AIModelType
-  config       Json
-  isActive     Boolean           @default(true)
-  pricePerUse  Decimal?          @db.Decimal(10, 4)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  apiKey       String?
-  apiUrl       String?
-  agentRoles   AgentRole[]
-  billingRules BillingRule[]
-  capabilities ModelCapability[]
-  permissions  ModelPermission[]
+  id                String            @id @default(uuid())
+  name              String
+  provider          String
+  modelId           String
+  type              AIModelType
+  config            Json
+  isActive          Boolean           @default(true)
+  pricePerUse       Decimal?          @db.Decimal(10, 4)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  apiKey            String?
+  apiUrl            String?
+  // Waule API 服务器配置（可选，为空时使用默认服务器）
+  wauleApiServerId  String?
+  wauleApiServer    WauleApiServer?   @relation(fields: [wauleApiServerId], references: [id])
+  agentRoles        AgentRole[]
+  billingRules      BillingRule[]
+  capabilities      ModelCapability[]
+  permissions       ModelPermission[]
 
   @@unique([provider, modelId])
+  @@index([wauleApiServerId])
   @@map("ai_models")
 }
 
@@ -682,6 +702,15 @@ model Tenant {
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
   maxClients    Int                 @default(5)
+  // API Key 设备绑定（安全措施：API Key 只能激活一次）
+  serverActivated       Boolean     @default(false)  // API Key 是否已被服务端激活
+  serverDeviceId        String?     // 绑定的服务端设备指纹（CPU+主板等硬件信息哈希）
+  serverActivatedAt     DateTime?   // 服务端激活时间
+  serverActivatedIp     String?     // 服务端激活时的 IP
+  // 在线状态（心跳检测）
+  lastHeartbeat         DateTime?   // 最后一次心跳时间
+  serverVersion         String?     // 租户服务端版本
+  serverIp              String?     // 租户服务端 IP
   activations   ClientActivation[]
   usageRecords  TenantUsageRecord[]
   users         TenantUser[]
@@ -704,6 +733,10 @@ model TenantUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   lastLoginAt  DateTime?
+  // 客户端在线状态
+  lastHeartbeat DateTime? // 最后心跳时间
+  clientIp      String?   // 客户端 IP
+  clientVersion String?   // 客户端版本
   tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, username])
@@ -751,6 +784,10 @@ model ClientActivation {
   isActivated       Boolean   @default(false)
   activatedAt       DateTime?
   createdAt         DateTime  @default(now())
+  // 客户端在线状态
+  lastHeartbeat     DateTime? // 最后心跳时间
+  clientIp          String?   // 客户端 IP
+  clientVersion     String?   // 客户端版本
   tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])

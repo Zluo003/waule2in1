@@ -77,6 +77,9 @@ export const apiClient = {
   delete: <T = any>(url: string, config?: AxiosRequestConfig) =>
     api.delete<T>(url, config).then((res) => res.data),
 
+  patch: <T = any>(url: string, data?: any, config?: AxiosRequestConfig) =>
+    api.patch<T>(url, data, config).then((res) => res.data),
+
   // 认证API
   auth: {
     // 发送手机验证码
@@ -908,6 +911,37 @@ export const apiClient = {
       // 删除批次
       deleteBatch: (batchId: string) => apiClient.delete(`/redeem/batches/${batchId}`),
     },
+  },
+
+  // 节点提示词管理 API
+  nodePrompts: {
+    getAll: (includeInactive?: boolean) =>
+      apiClient.get('/admin/node-prompts', { params: { includeInactive } }),
+    getById: (id: string) => apiClient.get(`/admin/node-prompts/${id}`),
+    create: (data: {
+      nodeType: string;
+      name: string;
+      description?: string;
+      systemPrompt?: string;
+      userPromptTemplate: string;
+      enhancePromptTemplate?: string;
+      variables?: Array<{ name: string; desc: string; example?: string }>;
+      isActive?: boolean;
+    }) => apiClient.post('/admin/node-prompts', data),
+    update: (id: string, data: {
+      name?: string;
+      description?: string;
+      systemPrompt?: string;
+      userPromptTemplate?: string;
+      enhancePromptTemplate?: string;
+      variables?: Array<{ name: string; desc: string; example?: string }>;
+      isActive?: boolean;
+    }) => apiClient.put(`/admin/node-prompts/${id}`, data),
+    delete: (id: string) => apiClient.delete(`/admin/node-prompts/${id}`),
+    toggle: (id: string) => apiClient.patch(`/admin/node-prompts/${id}/toggle`),
+    initHDUpscale: () => apiClient.post('/admin/node-prompts/init/hd-upscale'),
+    initImageFusion: () => apiClient.post('/admin/node-prompts/init/image-fusion'),
+    initSmartStoryboard: () => apiClient.post('/admin/node-prompts/init/smart-storyboard'),
   },
 
   // Sora角色 API

@@ -1,13 +1,11 @@
 import { useState, useEffect, useMemo, memo, useRef } from 'react';
 import { NodeProps, useReactFlow, useStore, Handle, Position } from 'reactflow';
 import { Loader2 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { apiClient } from '../../../lib/api';
 import { processImageUrl } from '../../../utils/imageUtils';
 import { processTaskResult } from '../../../utils/taskResultHandler';
 import { sliceImageGrid } from '../../../utils/imageGridSlicer';
-import { uploadBase64ToLocal } from '../../../api/tenantLocalServer';
-import { isLocalStorageEnabled } from '../../../store/tenantStorageStore';
 
 interface SmartStoryboardNodeData {
   config: {
@@ -209,26 +207,12 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         inputImages.map(img => processImageUrl(img))
       );
 
-      // 使用默认提示词（后台配置功能暂不使用）
-      let systemPrompt = '';
-      let imagePrompt = '';
-
-      // 默认系统提示词
-      if (!systemPrompt) {
-        systemPrompt = '你是一个专业的分镜师，根据用户提供的图片和剧情简述，生成详细的9个分镜描述。每个分镜应包含场景、动作、镜头角度等信息。';
-      }
-      if (!imagePrompt) {
-        imagePrompt = '根据以下分镜描述和参考图片，生成3x3的九宫格分镜图，每个格子展示一个分镜场景，保持角色和风格一致，使用细黑边框分隔每个画面。';
-      }
+      // 使用默认提示词
+      const systemPrompt = '你是一个专业的分镜师，根据用户提供的图片和剧情简述，生成详细的9个分镜描述。每个分镜应包含场景、动作、镜头角度等信息。';
+      const imagePrompt = '根据以下分镜描述和参考图片，生成3x3的九宫格分镜图，每个格子展示一个分镜场景，保持角色和风格一致，使用细黑边框分隔每个画面。';
 
       // ========== 第一步：调用文字模型生成分镜描述 ==========
-      console.log('========================================');
       console.log('[SmartStoryboardNode] 【第1步开始】调用文字模型生成分镜描述');
-      console.log('[SmartStoryboardNode] 模型ID:', TEXT_MODEL_ID);
-      console.log('[SmartStoryboardNode] 系统提示词:', systemPrompt);
-      console.log('[SmartStoryboardNode] 用户提示词(剧情简述):', userPrompt);
-      console.log('[SmartStoryboardNode] 图片数量:', processedImages.length);
-      console.log('========================================');
       
       const textResponse = await apiClient.ai.text.generate({
         modelId: TEXT_MODEL_ID,
@@ -240,14 +224,12 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       console.log('[SmartStoryboardNode] 【第1步完成】文字模型响应:', JSON.stringify(textResponse, null, 2));
 
       if (!textResponse.success) {
-        console.error('[SmartStoryboardNode] 【第1步失败】success=false');
         throw new Error(textResponse.message || '文字生成失败');
       }
       
-      // 兼容不同响应格式：优先检查 data.text，其次 data.content
+      // 兼容不同响应格式
       const generatedText = textResponse.data?.text || textResponse.data?.content || textResponse.content;
       if (!generatedText || typeof generatedText !== 'string') {
-        console.error('[SmartStoryboardNode] 【第1步失败】返回内容为空或格式错误', textResponse.data);
         throw new Error('文字生成返回为空');
       }
 
@@ -264,16 +246,16 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         return;
       }
 
-      // 组合最终的图片生成提示词，结尾添加比例提示
+      // 组合最终的图片生成提示词
       const finalImagePrompt = `${imagePrompt}\n\n分镜描述：\n${generatedText}\n\n生成${aspectRatio}比例的图片`;
 
       const response = await apiClient.tasks.createImageTask({
         modelId: selectedModel.id,
         prompt: finalImagePrompt,
         ratio: aspectRatio,
-        imageSize: '4K', // 固定4K分辨率
         referenceImages: processedImages,
         sourceNodeId: id,
+        metadata: { imageSize: '4K' },
       });
 
       if (!response.success) {
@@ -380,31 +362,12 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       const result = await sliceImageGrid(imageToSlice, 3, 3);
       console.log('[SmartStoryboardNode] 切割完成，共', result.slices.length, '个片段');
 
-      // 如果启用了本地存储，将base64图片上传到本地服务器
-      let finalSlices = result.slices;
-      if (isLocalStorageEnabled()) {
-        console.log('[SmartStoryboardNode] 正在上传分割图片到本地存储...');
-        const userId = data.createdBy?.id || 'default';
-        const uploadPromises = result.slices.map(async (base64, index) => {
-          const filename = `storyboard_${id}_slice_${index + 1}_${Date.now()}.png`;
-          const uploadResult = await uploadBase64ToLocal(base64, userId, filename);
-          if (uploadResult.success && uploadResult.localUrl) {
-            console.log(`[SmartStoryboardNode] 分镜 ${index + 1} 已上传:`, uploadResult.localUrl);
-            return uploadResult.localUrl;
-          }
-          console.warn(`[SmartStoryboardNode] 分镜 ${index + 1} 上传失败，使用base64`);
-          return base64;
-        });
-        finalSlices = await Promise.all(uploadPromises);
-        console.log('[SmartStoryboardNode] 所有分割图片已上传到本地存储');
-      }
+      updateNodeData({ slicedImages: result.slices });
 
-      updateNodeData({ slicedImages: finalSlices });
-
-      // 批量创建9个预览节点（避免状态覆盖）
-      createAllPreviewNodes(finalSlices, aspectRatio);
+      // 批量创建9个预览节点
+      createAllPreviewNodes(result.slices, aspectRatio);
       
-      console.log('[SmartStoryboardNode] 已创建', finalSlices.length, '个预览节点');
+      console.log('[SmartStoryboardNode] 已创建', result.slices.length, '个预览节点');
     } catch (error: any) {
       console.error('[SmartStoryboardNode] 切割失败:', error);
       toast.error('图片切割失败: ' + error.message);
@@ -418,12 +381,12 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
     const nodeHeight = 220;  // 每个预览节点的高度
     const gap = 20;          // 节点之间的间距
-    const batchId = Date.now(); // 唯一批次ID，确保每次生成的节点不会覆盖之前的
+    const batchId = Date.now(); // 唯一批次ID
 
     // 起始位置：在当前节点右侧，垂直居中对齐
     const baseX = currentNode.position.x + 350;
     const totalHeight = slices.length * nodeHeight + (slices.length - 1) * gap;
-    const baseY = currentNode.position.y - totalHeight / 2 + 150;  // 居中偏移
+    const baseY = currentNode.position.y - totalHeight / 2 + 150;
 
     const newNodes: any[] = [];
     const newEdges: any[] = [];
@@ -434,7 +397,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         type: 'imagePreview',
         position: {
           x: baseX,
-          y: baseY + index * (nodeHeight + gap),  // 纵向排列
+          y: baseY + index * (nodeHeight + gap),
         },
         data: {
           imageUrl,

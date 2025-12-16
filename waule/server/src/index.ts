@@ -40,6 +40,7 @@ import soraCharacterRoutes from './routes/sora-character.routes';
 import paymentRoutes from './routes/payment.routes';
 import redeemRoutes from './routes/redeem.routes';
 import userLevelRoutes from './routes/user-level.routes';
+import nodePromptRoutes from './routes/node-prompt.routes';
 
 
 // 导入中间件
@@ -710,6 +711,7 @@ app.use(`${API_PREFIX}/sora-characters`, soraCharacterRoutes); // Sora角色管�
 app.use(`${API_PREFIX}/payment`, paymentRoutes); // 支付与充值
 app.use(`${API_PREFIX}/redeem`, redeemRoutes); // 兑换码
 app.use(`${API_PREFIX}/admin/user-levels`, userLevelRoutes); // 用户等级权限管理
+app.use(API_PREFIX, nodePromptRoutes); // 节点提示词管理
 
 
 // 404处理

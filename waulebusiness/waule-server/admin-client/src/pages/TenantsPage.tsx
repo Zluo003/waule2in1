@@ -32,6 +32,14 @@ interface Tenant {
   remark: string | null;
   createdAt: string;
   _count: { users: number; activations?: number };
+  // 在线状态
+  serverActivated: boolean;
+  lastHeartbeat: string | null;
+  serverVersion: string | null;
+  serverIp: string | null;
+  // 在线客户端数
+  onlineClients: number;
+  totalClients: number;
 }
 
 interface ClientActivation {
@@ -857,6 +865,20 @@ const TenantsPage = () => {
     }
   };
 
+  const handleResetApiKey = async (tenant: Tenant) => {
+    if (!confirm(`确定要重设租户「${tenant.name}」的 API Key 吗？\n\n⚠️ 重设后：\n• 旧的 API Key 立即失效\n• 租户服务端需要重新配置\n• 设备绑定将被解除`)) {
+      return;
+    }
+    try {
+      const res = await apiClient.post(`/client/reset-api-key/${tenant.id}`);
+      const newApiKey = res.data?.data?.apiKey;
+      toast.success(`API Key 已重设！\n\n新的 Key: ${newApiKey}\n\n请复制并发送给租户`, { duration: 10000 });
+      fetchTenants();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || '重设失败');
+    }
+  };
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
@@ -914,7 +936,8 @@ const TenantsPage = () => {
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600 dark:text-gray-400">租户</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600 dark:text-gray-400">联系人</th>
                   <th className="text-right px-4 py-3 text-sm font-medium text-gray-600 dark:text-gray-400">积分</th>
-                  <th className="text-center px-4 py-3 text-sm font-medium text-gray-600 dark:text-gray-400">用户数</th>
+                  <th className="text-center px-4 py-3 text-sm font-medium text-gray-600 dark:text-gray-400">客户端</th>
+                  <th className="text-center px-4 py-3 text-sm font-medium text-gray-600 dark:text-gray-400">服务端</th>
                   <th className="text-center px-4 py-3 text-sm font-medium text-gray-600 dark:text-gray-400">状态</th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-gray-600 dark:text-gray-400">创建时间</th>
                   <th className="text-center px-4 py-3 text-sm font-medium text-gray-600 dark:text-gray-400">操作</th>
@@ -938,9 +961,33 @@ const TenantsPage = () => {
                               {tenant.apiKey}
                             </code>
                             <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(tenant.apiKey);
-                                toast.success('API Key 已复制');
+                              onClick={async () => {
+                                try {
+                                  if (navigator.clipboard && window.isSecureContext) {
+                                    await navigator.clipboard.writeText(tenant.apiKey);
+                                    toast.success('API Key 已复制');
+                                  } else {
+                                    const textArea = document.createElement('textarea');
+                                    textArea.value = tenant.apiKey;
+                                    textArea.style.position = 'fixed';
+                                    textArea.style.left = '-9999px';
+                                    document.body.appendChild(textArea);
+                                    textArea.select();
+                                    document.execCommand('copy');
+                                    document.body.removeChild(textArea);
+                                    toast.success('API Key 已复制');
+                                  }
+                                } catch {
+                                  const textArea = document.createElement('textarea');
+                                  textArea.value = tenant.apiKey;
+                                  textArea.style.position = 'fixed';
+                                  textArea.style.left = '-9999px';
+                                  document.body.appendChild(textArea);
+                                  textArea.select();
+                                  document.execCommand('copy');
+                                  document.body.removeChild(textArea);
+                                  toast.success('API Key 已复制');
+                                }
                               }}
                               className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
                               title="复制 API Key"
@@ -959,10 +1006,31 @@ const TenantsPage = () => {
                       <span className="text-lg font-bold text-amber-500">{tenant.credits.toLocaleString()}</span>
                     </td>
                     <td className="px-4 py-4 text-center">
-                      <span className="inline-flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-                        <Users className="w-4 h-4" />
-                        {tenant._count.users}
+                      <span className="text-sm font-medium">
+                        <span className={tenant.onlineClients > 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}>{tenant.onlineClients || 0}</span>
+                        <span className="text-gray-400 mx-0.5">/</span>
+                        <span className="text-gray-600 dark:text-gray-400">{tenant.totalClients || 0}</span>
                       </span>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      {tenant.serverActivated ? (
+                        <div className="flex flex-col items-center">
+                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
+                            tenant.lastHeartbeat && (Date.now() - new Date(tenant.lastHeartbeat).getTime()) < 60000
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              tenant.lastHeartbeat && (Date.now() - new Date(tenant.lastHeartbeat).getTime()) < 60000
+                                ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
+                            }`} />
+                            {tenant.lastHeartbeat && (Date.now() - new Date(tenant.lastHeartbeat).getTime()) < 60000 ? '在线' : '离线'}
+                          </span>
+                          {tenant.serverIp && <span className="text-[10px] text-gray-400 mt-0.5">{tenant.serverIp}</span>}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">未激活</span>
+                      )}
                     </td>
                     <td className="px-4 py-4 text-center">
                       <button
@@ -1001,6 +1069,13 @@ const TenantsPage = () => {
                           title="编辑"
                         >
                           <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleResetApiKey(tenant)}
+                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-purple-500"
+                          title="重设 API Key"
+                        >
+                          <Key className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(tenant)}

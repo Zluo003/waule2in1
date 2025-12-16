@@ -1,6 +1,6 @@
 import { memo, useState, useEffect, useRef, useMemo } from 'react';
 import { Handle, Position, NodeProps, useReactFlow, useStore } from 'reactflow';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
 import { apiClient } from '../../../lib/api';
 import { processImageUrl } from '../../../utils/imageUtils';
@@ -11,7 +11,7 @@ import NodeCreatorBadge from '../NodeCreatorBadge';
 
 type GenerationMode = 'single' | 'grid2x2' | 'grid3x3';
 
-interface StoryboardMasterNodeData {
+interface ImageFusionNodeData {
   label: string;
   type: string;
   config: {
@@ -40,7 +40,7 @@ interface StoryboardMasterNodeData {
   _isGrouped?: boolean;
 }
 
-const StoryboardMasterNode = ({ data, selected, id }: NodeProps<StoryboardMasterNodeData>) => {
+const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>) => {
   const [selectedModel, setSelectedModel] = useState<any>(null);
   const mode: GenerationMode = 'single'; // 固定单图模式
   const [aspectRatio, setAspectRatio] = useState(data.config.aspectRatio || '16:9');
@@ -197,7 +197,7 @@ const StoryboardMasterNode = ({ data, selected, id }: NodeProps<StoryboardMaster
     }
   }, []);
 
-  const updateNodeData = (updates: Partial<StoryboardMasterNodeData['config']>) => {
+  const updateNodeData = (updates: Partial<ImageFusionNodeData['config']>) => {
     setNodes((nodes) =>
       nodes.map((node) => {
         if (node.id === id) {
@@ -334,9 +334,9 @@ const StoryboardMasterNode = ({ data, selected, id }: NodeProps<StoryboardMaster
         modelId: selectedModel.id,
         prompt: finalPrompt,
         ratio: aspectRatio,
-        imageSize: imageSize,
         referenceImages: processedImages.filter(Boolean),
         sourceNodeId: id,
+        metadata: { imageSize },
       });
 
       if (!response.success) {
@@ -492,7 +492,7 @@ const StoryboardMasterNode = ({ data, selected, id }: NodeProps<StoryboardMaster
     >
       {/* 角色输入 - 节点外部左侧 */}
       <div className="absolute left-0 top-[25%] -translate-x-full flex items-center gap-1 pointer-events-none">
-        <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded whitespace-nowrap">
+        <span className="text-xs text-slate-800 dark:text-white whitespace-nowrap">
           角色 {characterImages.length > 0 && `(${characterImages.length})`}
         </span>
         <Handle
@@ -506,7 +506,7 @@ const StoryboardMasterNode = ({ data, selected, id }: NodeProps<StoryboardMaster
 
       {/* 场景输入 - 节点外部左侧 */}
       <div className="absolute left-0 top-[50%] -translate-x-full flex items-center gap-1 pointer-events-none">
-        <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded whitespace-nowrap">
+        <span className="text-xs text-slate-800 dark:text-white whitespace-nowrap">
           场景 {sceneImages.length > 0 ? '✓' : ''}
         </span>
         <Handle
@@ -521,7 +521,7 @@ const StoryboardMasterNode = ({ data, selected, id }: NodeProps<StoryboardMaster
 
       {/* 风格输入 - 节点外部左侧 */}
       <div className="absolute left-0 top-[75%] -translate-x-full flex items-center gap-1 pointer-events-none">
-        <span className="text-xs text-pink-600 dark:text-pink-400 bg-pink-100 dark:bg-pink-900/60 px-2 py-0.5 rounded whitespace-nowrap">
+        <span className="text-xs text-slate-800 dark:text-white whitespace-nowrap">
           风格 {styleImage ? '✓' : ''}
         </span>
         <Handle
@@ -733,4 +733,4 @@ const StoryboardMasterNode = ({ data, selected, id }: NodeProps<StoryboardMaster
   );
 };
 
-export default memo(StoryboardMasterNode);
+export default memo(ImageFusionNode);

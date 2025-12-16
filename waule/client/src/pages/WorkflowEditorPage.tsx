@@ -48,6 +48,9 @@ import VideoUpscaleNode from '../components/workflow/nodes/VideoUpscaleNode';
 import CommercialVideoNode from '../components/workflow/nodes/CommercialVideoNode';
 import TextAnnotationNode from '../components/workflow/nodes/TextAnnotationNode';
 import ImageEditingNode from '../components/workflow/nodes/ImageEditingNode';
+import HDUpscaleNode from '../components/workflow/nodes/HDUpscaleNode';
+import ImageFusionNode from '../components/workflow/nodes/ImageFusionNode';
+import SmartStoryboardNode from '../components/workflow/nodes/SmartStoryboardNode';
 import AssetLibraryPanel from '../components/workflow/AssetLibraryPanel';
 
 interface Project {
@@ -109,6 +112,9 @@ const nodeTypes: NodeTypes = {
   commercialVideo: CommercialVideoNode,
   textAnnotation: TextAnnotationNode,
   imageEditing: ImageEditingNode,
+  hdUpscale: HDUpscaleNode,
+  imageFusion: ImageFusionNode,
+  smartStoryboard: SmartStoryboardNode,
 };
 
 const edgeTypes = {
@@ -162,9 +168,11 @@ const WorkflowEditorInner = () => {
   // const showAgentSubmenu = activeCtxSubmenu === 'agent';
   const showVideoSubmenu = activeCtxSubmenu === 'video';
   const showVideoEditSubmenu = activeCtxSubmenu === 'edit';
+  const showImageEditSubmenu = activeCtxSubmenu === 'imageEdit';
   const setShowAgentSubmenu = (v: boolean) => setActiveCtxSubmenu(v ? 'agent' : null);
   const setShowVideoSubmenu = (v: boolean) => setActiveCtxSubmenu(v ? 'video' : null);
   const setShowVideoEditSubmenu = (v: boolean) => setActiveCtxSubmenu(v ? 'edit' : null);
+  const setShowImageEditSubmenu = (v: boolean) => setActiveCtxSubmenu(v ? 'imageEdit' : null);
   // const agentSubmenuTimeoutRef = ctxSubmenuTimeoutRef;
   const videoSubmenuTimeoutRef = ctxSubmenuTimeoutRef;
   // const editSubmenuTimeoutRef = ctxSubmenuTimeoutRef;
@@ -3937,6 +3945,75 @@ const WorkflowEditorInner = () => {
               <div className="text-sm">图片生成</div>
             </button>
 
+            {/* 图片编辑二级菜单 */}
+            <div
+              className="relative"
+              onMouseEnter={() => {
+                if (ctxSubmenuTimeoutRef.current) {
+                  clearTimeout(ctxSubmenuTimeoutRef.current);
+                  ctxSubmenuTimeoutRef.current = null;
+                }
+                setShowImageEditSubmenu(true);
+              }}
+              onMouseLeave={() => {
+                ctxSubmenuTimeoutRef.current = window.setTimeout(() => {
+                  setShowImageEditSubmenu(false);
+                }, 200);
+              }}
+            >
+              <button
+                onMouseEnter={() => { setActiveCtxSubmenu('imageEdit'); }}
+                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setActiveCtxSubmenu('imageEdit'); }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setActiveCtxSubmenu('imageEdit'); }}
+                className="w-full px-4 py-2 text-left hover:bg-white/5 dark:hover:bg-white/5 hover:bg-gray-100 transition-colors flex items-center justify-between text-gray-900 dark:text-white"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">edit</span>
+                  <div className="text-sm">图片编辑</div>
+                </div>
+                <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">chevron_right</span>
+              </button>
+              {showImageEditSubmenu && (
+                <div
+                  onMouseEnter={() => {
+                    if (ctxSubmenuTimeoutRef.current) {
+                      clearTimeout(ctxSubmenuTimeoutRef.current);
+                      ctxSubmenuTimeoutRef.current = null;
+                    }
+                    setShowImageEditSubmenu(true);
+                  }}
+                  onMouseLeave={(e) => {
+                    const parent = (e.currentTarget as HTMLElement).parentElement;
+                    const rt = e.relatedTarget as HTMLElement | null;
+                    if (!parent || !parent.contains(rt)) {
+                      ctxSubmenuTimeoutRef.current = window.setTimeout(() => {
+                        setShowImageEditSubmenu(false);
+                      }, 120);
+                    }
+                  }}
+                  className="absolute left-full top-0 -ml-px bg-[#171718] dark:bg-[#171718] bg-[#fcfdfe] backdrop-blur-xl border border-white/10 dark:border-white/10 border-gray-200 rounded-lg shadow-2xl py-1 w-full max-h-none overflow-y-visible"
+                  style={{ animation: 'submenuSlideLR 0.22s ease-out' }}
+                >
+                  <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); addNode('hdUpscale', '高清放大', 'hdUpscale'); }} className="w-full px-4 py-2 text-left hover:bg-white/5 dark:hover:bg-white/5 hover:bg-gray-100 transition-colors flex items-center gap-3 text-gray-900 dark:text-white">
+                    <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">high_quality</span>
+                    <div className="text-sm">高清放大</div>
+                  </button>
+                  <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); addNode('imageFusion', '智能溶图', 'imageFusion'); }} className="w-full px-4 py-2 text-left hover:bg-white/5 dark:hover:bg-white/5 hover:bg-gray-100 transition-colors flex items-center gap-3 text-gray-900 dark:text-white">
+                    <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">auto_awesome</span>
+                    <div className="text-sm">智能溶图</div>
+                  </button>
+                  <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); addNode('smartStoryboard', '智能分镜', 'smartStoryboard'); }} className="w-full px-4 py-2 text-left hover:bg-white/5 dark:hover:bg-white/5 hover:bg-gray-100 transition-colors flex items-center gap-3 text-gray-900 dark:text-white">
+                    <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">grid_view</span>
+                    <div className="text-sm">智能分镜</div>
+                  </button>
+                  <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); addNode('superCanvas', '自由画布', 'superCanvas'); }} className="w-full px-4 py-2 text-left hover:bg-white/5 dark:hover:bg-white/5 hover:bg-gray-100 transition-colors flex items-center gap-3 text-gray-900 dark:text-white">
+                    <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">brush</span>
+                    <div className="text-sm">自由画布</div>
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* 临时禁用图片编辑节点
             <button
               onClick={() => addNode('image', '图片编辑', 'imageEditing')}
@@ -4152,15 +4229,6 @@ const WorkflowEditorInner = () => {
               <div className="text-sm">资产选择器</div>
             </button>
 
-            <div className="h-px bg-white/10 dark:bg-white/10 bg-gray-200 my-1"></div>
-
-            <button
-              onClick={() => addNode('superCanvas', '自由画布', 'superCanvas')}
-              className="w-full px-4 py-2 text-left hover:bg-white/5 dark:hover:bg-white/5 hover:bg-gray-100 transition-colors flex items-center gap-3 text-gray-900 dark:text-white"
-            >
-              <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">brush</span>
-              <div className="text-sm">自由画布</div>
-            </button>
           </div>
         )}
 
@@ -4257,16 +4325,74 @@ const WorkflowEditorInner = () => {
               </button>
             )}
 
-            {/* 临时禁用图片编辑节点 */}
-            {false && connectionMenuFilters.showImageEditing && (
-              <button
-                onMouseEnter={() => setActiveConnSubmenu(null)}
-                onClick={() => createNodeFromConnection('imageEditing', '图片编辑', 'image')}
-                className="w-full px-4 py-2 text-left hover:bg-white/5 dark:hover:bg-white/5 hover:bg-gray-100 transition-colors flex items-center gap-3 text-gray-900 dark:text-white"
+            {/* 图片编辑二级菜单 */}
+            {connectionMenuFilters.showImageEditing && (
+              <div
+                className="relative"
+                onMouseEnter={() => {
+                  if (connSubmenuTimeoutRef.current) {
+                    clearTimeout(connSubmenuTimeoutRef.current);
+                    connSubmenuTimeoutRef.current = null;
+                  }
+                  setActiveConnSubmenu('imageEdit');
+                }}
+                onMouseLeave={() => {
+                  connSubmenuTimeoutRef.current = window.setTimeout(() => {
+                    setActiveConnSubmenu(null);
+                  }, 200);
+                }}
               >
-                <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">edit</span>
-                <div className="text-sm">图片编辑</div>
-              </button>
+                <button
+                  onMouseEnter={() => setActiveConnSubmenu('imageEdit')}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full px-4 py-2 text-left hover:bg-white/5 dark:hover:bg-white/5 hover:bg-gray-100 transition-colors flex items-center justify-between text-gray-900 dark:text-white"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">edit</span>
+                    <div className="text-sm">图片编辑</div>
+                  </div>
+                  <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">chevron_right</span>
+                </button>
+                {activeConnSubmenu === 'imageEdit' && (
+                  <div
+                    onMouseEnter={() => {
+                      if (connSubmenuTimeoutRef.current) {
+                        clearTimeout(connSubmenuTimeoutRef.current);
+                        connSubmenuTimeoutRef.current = null;
+                      }
+                      setActiveConnSubmenu('imageEdit');
+                    }}
+                    onMouseLeave={(e) => {
+                      const parent = (e.currentTarget as HTMLElement).parentElement;
+                      const rt = e.relatedTarget as HTMLElement | null;
+                      if (!parent || !parent.contains(rt)) {
+                        connSubmenuTimeoutRef.current = window.setTimeout(() => {
+                          setActiveConnSubmenu(null);
+                        }, 120);
+                      }
+                    }}
+                    className="absolute left-full top-0 -ml-px bg-[#171718] dark:bg-[#171718] bg-[#fcfdfe] backdrop-blur-xl border border-white/10 dark:border-white/10 border-gray-200 rounded-lg shadow-2xl py-1 min-w-48"
+                    style={{ animation: 'submenuSlideLR 0.22s ease-out' }}
+                  >
+                    <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); createNodeFromConnection('hdUpscale', '高清放大', 'image'); }} className="w-full px-4 py-2 text-left hover:bg-white/5 dark:hover:bg-white/5 hover:bg-gray-100 transition-colors flex items-center gap-3 text-gray-900 dark:text-white">
+                      <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">high_quality</span>
+                      <div className="text-sm">高清放大</div>
+                    </button>
+                    <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); createNodeFromConnection('imageFusion', '智能溶图', 'image'); }} className="w-full px-4 py-2 text-left hover:bg-white/5 dark:hover:bg-white/5 hover:bg-gray-100 transition-colors flex items-center gap-3 text-gray-900 dark:text-white">
+                      <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">auto_awesome</span>
+                      <div className="text-sm">智能溶图</div>
+                    </button>
+                    <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); createNodeFromConnection('smartStoryboard', '智能分镜', 'image'); }} className="w-full px-4 py-2 text-left hover:bg-white/5 dark:hover:bg-white/5 hover:bg-gray-100 transition-colors flex items-center gap-3 text-gray-900 dark:text-white">
+                      <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">grid_view</span>
+                      <div className="text-sm">智能分镜</div>
+                    </button>
+                    <button onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); createNodeFromConnection('superCanvas', '自由画布', 'superCanvas'); }} className="w-full px-4 py-2 text-left hover:bg-white/5 dark:hover:bg-white/5 hover:bg-gray-100 transition-colors flex items-center gap-3 text-gray-900 dark:text-white">
+                      <span className="material-symbols-outlined menu-icon text-sm text-gray-400 dark:text-gray-400 text-gray-600">brush</span>
+                      <div className="text-sm">自由画布</div>
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             {connectionMenuFilters.showVideo && (

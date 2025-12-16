@@ -1261,3 +1261,46 @@ export const getUserWorkflows = asyncHandler(async (req: Request, res: Response)
   });
 });
 
+/**
+ * 客户端心跳上报
+ */
+export const heartbeat = asyncHandler(async (req: Request, res: Response) => {
+  const { version, deviceFingerprint } = req.body;
+  const tenantId = req.headers['x-tenant-id'] as string;
+  
+  if (!tenantId || !deviceFingerprint) {
+    return res.status(400).json({ success: false, message: '缺少必要参数' });
+  }
+  
+  // 获取客户端 IP
+  const clientIp = req.headers['x-forwarded-for'] as string || 
+                   req.headers['x-real-ip'] as string ||
+                   req.socket.remoteAddress || 
+                   'unknown';
+  
+  // 查找并更新对应的激活记录
+  const activation = await prisma.clientActivation.findFirst({
+    where: {
+      tenantId,
+      deviceFingerprint,
+      isActivated: true,
+    },
+  });
+  
+  if (!activation) {
+    return res.status(404).json({ success: false, message: '激活记录不存在' });
+  }
+  
+  // 更新心跳时间
+  await prisma.clientActivation.update({
+    where: { id: activation.id },
+    data: {
+      lastHeartbeat: new Date(),
+      clientIp: typeof clientIp === 'string' ? clientIp.split(',')[0].trim() : null,
+      clientVersion: version || null,
+    },
+  });
+  
+  res.json({ success: true, message: 'ok' });
+});
+

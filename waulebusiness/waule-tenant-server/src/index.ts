@@ -14,7 +14,9 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import axios from 'axios';
 import { getAppConfig, isAppConfigured } from './services/database.service';
+import { getDeviceId } from './utils/deviceId';
 import logger from './utils/logger';
 
 // 路由
@@ -137,5 +139,60 @@ function startServer() {
   // 启动服务
   app.listen(port, '0.0.0.0', () => {
     console.log(`[Server] 服务已启动 - http://${localIP}:${port}`);
+    
+    // 启动心跳上报（每30秒一次）
+    startHeartbeat();
   });
+}
+
+// 心跳上报
+let heartbeatInterval: NodeJS.Timeout | null = null;
+
+function startHeartbeat() {
+  // 清除已有的心跳定时器
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+  }
+  
+  const sendHeartbeat = async () => {
+    const config = getAppConfig();
+    
+    // 只有配置完成后才发送心跳
+    if (!config.isConfigured || !config.platformServerUrl || !config.tenantApiKey) {
+      return;
+    }
+    
+    try {
+      await axios.post(
+        `${config.platformServerUrl}/api/client/heartbeat`,
+        { version: '1.0.0' },
+        {
+          headers: {
+            'X-Tenant-API-Key': config.tenantApiKey,
+            'X-Device-Id': getDeviceId(),
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        }
+      );
+      console.log('[Heartbeat] ✓ 心跳发送成功');
+    } catch (error: any) {
+      // 心跳失败，记录日志但不中断服务
+      if (error.response?.status === 401) {
+        console.log('[Heartbeat] ✗ API Key 验证失败，可能已被重设');
+      } else if (error.response?.status === 404) {
+        console.log('[Heartbeat] ✗ 心跳接口不存在，请确认 waule-server 已重启');
+      } else {
+        console.log('[Heartbeat] ✗ 心跳发送失败:', error.message || '未知错误');
+      }
+    }
+  };
+  
+  // 立即发送一次心跳
+  sendHeartbeat();
+  
+  // 每30秒发送一次心跳
+  heartbeatInterval = setInterval(sendHeartbeat, 30 * 1000);
+  
+  console.log('[Heartbeat] 心跳服务已启动（间隔30秒）');
 }

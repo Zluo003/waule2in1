@@ -72,6 +72,22 @@ const ModelConfigPage = () => {
   const [mjFastEnabled, setMjFastEnabled] = useState(true)
   const [mjSettingsLoading, setMjSettingsLoading] = useState(false)
 
+  // Waule API 服务器管理
+  interface WauleApiServer {
+    id: string
+    name: string
+    url: string
+    authToken?: string
+    isDefault: boolean
+    isActive: boolean
+    description?: string
+    _count?: { aiModels: number }
+  }
+  const [wauleServers, setWauleServers] = useState<WauleApiServer[]>([])
+  const [showWauleServerModal, setShowWauleServerModal] = useState(false)
+  const [editingServer, setEditingServer] = useState<WauleApiServer | null>(null)
+  const [serverForm, setServerForm] = useState({ name: '', url: '', authToken: '', isDefault: false, description: '' })
+
   const [proId, setProId] = useState<string | null>(null)
   const [proName, setProName] = useState('Gemini 2.5 Pro')
   const [proIsActive, setProIsActive] = useState(true)
@@ -80,6 +96,7 @@ const ModelConfigPage = () => {
   const [proApiUrl, setProApiUrl] = useState('')
   const [proAccepted, setProAccepted] = useState<string[]>(['TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'])
   const [proTextConfig, setProTextConfig] = useState({ maxTokens: 8192, temperature: 0.7, topP: 0.95, topK: 40, frequencyPenalty: 0, presencePenalty: 0 })
+  const [proServerId, setProServerId] = useState<string>('')
 
   const [flashTextId, setFlashTextId] = useState<string | null>(null)
   const [flashTextName, setFlashTextName] = useState('Gemini 2.5 Flash (视频分析)')
@@ -89,6 +106,7 @@ const ModelConfigPage = () => {
   const [flashTextApiUrl, setFlashTextApiUrl] = useState('')
   const [flashTextAccepted, setFlashTextAccepted] = useState<string[]>(['TEXT', 'IMAGE', 'VIDEO'])
   const [flashTextConfig, setFlashTextConfig] = useState({ maxTokens: 8192, temperature: 0.7, topP: 0.95, topK: 40 })
+  const [flashTextServerId, setFlashTextServerId] = useState<string>('')
 
   const [flashId, setFlashId] = useState<string | null>(null)
   const [flashName, setFlashName] = useState('Gemini 2.5 Flash Image')
@@ -98,6 +116,7 @@ const ModelConfigPage = () => {
   const [flashApiUrl, setFlashApiUrl] = useState('')
   const [flashAccepted, setFlashAccepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [flashImageConfig, setFlashImageConfig] = useState({ supportedRatios: ASPECT_RATIOS.map(r => r.value), supportsImageToImage: true, maxReferenceImages: 2 })
+  const [flashServerId, setFlashServerId] = useState<string>('')
 
   const [gemini3Id, setGemini3Id] = useState<string | null>(null)
   const [gemini3Name, setGemini3Name] = useState('Gemini 3.0 Pro')
@@ -109,6 +128,7 @@ const ModelConfigPage = () => {
   const [gemini3TextConfig, setGemini3TextConfig] = useState({ maxTokens: 8192, temperature: 0.7, topP: 0.95, topK: 40, frequencyPenalty: 0, presencePenalty: 0 })
   const [gemini3ThinkingConfig, setGemini3ThinkingConfig] = useState({ enableThinkingMode: true, thinkingLevel: 'medium' })
   const [gemini3MediaConfig, setGemini3MediaConfig] = useState({ imageResolution: 'media_resolution_high', pdfResolution: 'media_resolution_medium', videoResolution: 'media_resolution_low' })
+  const [gemini3ServerId, setGemini3ServerId] = useState<string>('')
 
   const [gemini3ImageId, setGemini3ImageId] = useState<string | null>(null)
   const [gemini3ImageName, setGemini3ImageName] = useState('Gemini 3 Pro Image')
@@ -118,6 +138,7 @@ const ModelConfigPage = () => {
   const [gemini3ImageApiUrl, setGemini3ImageApiUrl] = useState('')
   const [gemini3ImageAccepted, setGemini3ImageAccepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [gemini3ImageConfig, setGemini3ImageConfig] = useState({ supportedRatios: ASPECT_RATIOS.map(r => r.value), supportedResolutions: ['2K', '4K'], supportsImageToImage: true, maxReferenceImages: 1, capabilities: ['google_search', 'reasoning', 'text_rendering'] })
+  const [gemini3ImageServerId, setGemini3ImageServerId] = useState<string>('')
 
   const [sdProId, setSdProId] = useState<string | null>(null)
   const [sdProName, setSdProName] = useState('Doubao SeeDance 1.0 Pro')
@@ -127,6 +148,7 @@ const ModelConfigPage = () => {
   const [sdProApiUrl, setSdProApiUrl] = useState('')
   const [sdProAccepted, setSdProAccepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [sdProVideoConfig, setSdProVideoConfig] = useState({ supportedRatios: ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'], supportedResolutions: ['720P', '1080P', '2K', '4K'], supportedGenerationTypes: ['文生视频', '参考图', '主体参考', '首帧', '尾帧', '首尾帧'], supportedDurations: [5, 6, 8, 10, 15, 30] })
+  const [sdProServerId, setSdProServerId] = useState<string>('')
 
   const [sdFastId, setSdFastId] = useState<string | null>(null)
   const [sdFastName, setSdFastName] = useState('Doubao SeeDance 1.0 Pro Fast')
@@ -136,6 +158,7 @@ const ModelConfigPage = () => {
   const [sdFastApiUrl, setSdFastApiUrl] = useState('')
   const [sdFastAccepted, setSdFastAccepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [sdFastVideoConfig, setSdFastVideoConfig] = useState({ supportedRatios: ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'], supportedResolutions: ['720P', '1080P'], supportedGenerationTypes: ['文生视频', '首帧'], supportedDurations: [5, 6, 8, 10] })
+  const [sdFastServerId, setSdFastServerId] = useState<string>('')
 
   const [sdreamId, setSdreamId] = useState<string | null>(null)
   const [sdreamName, setSdreamName] = useState('Doubao SeeDream 4.0')
@@ -145,6 +168,7 @@ const ModelConfigPage = () => {
   const [sdreamApiUrl, setSdreamApiUrl] = useState('')
   const [sdreamAccepted, setSdreamAccepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [sdreamImageConfig, setSdreamImageConfig] = useState({ supportedRatios: ASPECT_RATIOS.map(r => r.value), supportsImageToImage: true, maxReferenceImages: 10 })
+  const [sdreamServerId, setSdreamServerId] = useState<string>('')
 
   const [sdream45Id, setSdream45Id] = useState<string | null>(null)
   const [sdream45Name, setSdream45Name] = useState('Doubao SeeDream 4.5')
@@ -154,6 +178,7 @@ const ModelConfigPage = () => {
   const [sdream45ApiUrl, setSdream45ApiUrl] = useState('')
   const [sdream45Accepted, setSdream45Accepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [sdream45ImageConfig, setSdream45ImageConfig] = useState({ supportedRatios: ASPECT_RATIOS.map(r => r.value), supportsImageToImage: true, maxReferenceImages: 10 })
+  const [sdream45ServerId, setSdream45ServerId] = useState<string>('')
 
   const [aliQwenImageEditId, setAliQwenImageEditId] = useState<string | null>(null)
   const [aliQwenImageEditName, setAliQwenImageEditName] = useState('Qwen Image Edit Plus')
@@ -163,6 +188,7 @@ const ModelConfigPage = () => {
   const [aliQwenImageEditApiUrl, setAliQwenImageEditApiUrl] = useState('')
   const [aliQwenImageEditAccepted, setAliQwenImageEditAccepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [aliQwenImageEditConfig, setAliQwenImageEditConfig] = useState({ supportedRatios: ASPECT_RATIOS.map(r => r.value), supportsImageToImage: true, maxReferenceImages: 10 })
+  const [aliQwenServerId, setAliQwenServerId] = useState<string>('')
 
   const [aliMoveId, setAliMoveId] = useState<string | null>(null)
   const [aliMoveName, setAliMoveName] = useState('Aliyun Wan Animate Move')
@@ -172,6 +198,7 @@ const ModelConfigPage = () => {
   const [aliMoveApiUrl, setAliMoveApiUrl] = useState('')
   const [aliMoveAccepted] = useState<string[]>(['IMAGE', 'VIDEO'])
   const [aliMoveModes, setAliMoveModes] = useState<string[]>(['wan-std', 'wan-pro'])
+  const [aliMoveServerId, setAliMoveServerId] = useState<string>('')
 
   const [aliMixId, setAliMixId] = useState<string | null>(null)
   const [aliMixName, setAliMixName] = useState('Aliyun Wan Animate Mix')
@@ -181,6 +208,7 @@ const ModelConfigPage = () => {
   const [aliMixApiUrl, setAliMixApiUrl] = useState('')
   const [aliMixAccepted] = useState<string[]>(['IMAGE', 'VIDEO'])
   const [aliMixModes, setAliMixModes] = useState<string[]>(['wan-std', 'wan-pro'])
+  const [aliMixServerId, setAliMixServerId] = useState<string>('')
 
   const [aliStyleId, setAliStyleId] = useState<string | null>(null)
   const [aliStyleName, setAliStyleName] = useState('Aliyun Video Style Transform')
@@ -191,6 +219,7 @@ const ModelConfigPage = () => {
   const [aliStyleAccepted] = useState<string[]>(['VIDEO'])
   const [aliStyleFps, setAliStyleFps] = useState(15)
   const [aliStyleSupportedStyles, setAliStyleSupportedStyles] = useState<number[]>([0, 1, 2, 3, 4, 5, 6, 7])
+  const [aliStyleServerId, setAliStyleServerId] = useState<string>('')
 
   const [aliRetalkId, setAliRetalkId] = useState<string | null>(null)
   const [aliRetalkName, setAliRetalkName] = useState('Aliyun VideoRetalk')
@@ -200,6 +229,7 @@ const ModelConfigPage = () => {
   const [aliRetalkApiUrl, setAliRetalkApiUrl] = useState('')
   const [aliRetalkAccepted, setAliRetalkAccepted] = useState<string[]>(['VIDEO', 'AUDIO', 'IMAGE'])
   const [aliRetalkParams, setAliRetalkParams] = useState({ video_extension: false })
+  const [aliRetalkServerId, setAliRetalkServerId] = useState<string>('')
 
   const [mm23Id, setMm23Id] = useState<string | null>(null)
   const [mm23Name, setMm23Name] = useState('MiniMax Hailuo 2.3')
@@ -209,6 +239,7 @@ const ModelConfigPage = () => {
   const [mm23ApiUrl, setMm23ApiUrl] = useState('')
   const [mm23Accepted, setMm23Accepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [mm23VideoConfig, setMm23VideoConfig] = useState({ supportedRatios: ['16:9', '9:16', '1:1'], supportedResolutions: ['768P', '1080P'], supportedGenerationTypes: ['文生视频', '参考图', '首帧'], supportedDurations: [6, 10] })
+  const [mm23ServerId, setMm23ServerId] = useState<string>('')
 
   const [mm23FastId, setMm23FastId] = useState<string | null>(null)
   const [mm23FastName, setMm23FastName] = useState('MiniMax Hailuo 2.3 Fast')
@@ -218,6 +249,7 @@ const ModelConfigPage = () => {
   const [mm23FastApiUrl, setMm23FastApiUrl] = useState('')
   const [mm23FastAccepted, setMm23FastAccepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [mm23FastVideoConfig, setMm23FastVideoConfig] = useState({ supportedRatios: ['16:9', '9:16', '1:1'], supportedResolutions: ['768P', '1080P'], supportedGenerationTypes: ['首帧'], supportedDurations: [6, 10] })
+  const [mm23FastServerId, setMm23FastServerId] = useState<string>('')
 
   const [mm02Id, setMm02Id] = useState<string | null>(null)
   const [mm02Name, setMm02Name] = useState('MiniMax Hailuo 02')
@@ -227,6 +259,7 @@ const ModelConfigPage = () => {
   const [mm02ApiUrl, setMm02ApiUrl] = useState('')
   const [mm02Accepted, setMm02Accepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [mm02VideoConfig, setMm02VideoConfig] = useState({ supportedRatios: ['16:9', '9:16', '1:1'], supportedResolutions: ['768P', '1080P'], supportedGenerationTypes: ['文生视频', '参考图', '主体参考', '首帧', '尾帧', '首尾帧'], supportedDurations: [6, 8, 10] })
+  const [mm02ServerId, setMm02ServerId] = useState<string>('')
 
   const [mmSpeechId, setMmSpeechId] = useState<string | null>(null)
   const [mmSpeechName, setMmSpeechName] = useState('MiniMax Speech 2.6 HD')
@@ -237,6 +270,7 @@ const ModelConfigPage = () => {
   const [mmSpeechAccepted, setMmSpeechAccepted] = useState<string[]>(['TEXT', 'AUDIO'])
   const [mmSpeechConfig, setMmSpeechConfig] = useState({ supportedFormats: ['mp3', 'wav'], sampleRateMin: 16000, supportsStereo: true })
   const [mmSpeechAbilities, setMmSpeechAbilities] = useState<{ synth: boolean; clone: boolean; design: boolean }>({ synth: true, clone: true, design: true })
+  const [mmSpeechServerId, setMmSpeechServerId] = useState<string>('')
 
   const [soraImageId, setSoraImageId] = useState<string | null>(null)
   const [soraImageName, setSoraImageName] = useState('Sora2 Image')
@@ -246,6 +280,7 @@ const ModelConfigPage = () => {
   const [soraImageApiUrl, setSoraImageApiUrl] = useState('')
   const [soraImageAccepted, setSoraImageAccepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [soraImageConfig, setSoraImageConfig] = useState({ supportedRatios: ASPECT_RATIOS.map(r => r.value), supportsImageToImage: true, maxReferenceImages: 5 })
+  const [soraImageServerId, setSoraImageServerId] = useState<string>('')
 
   const [soraVideoId, setSoraVideoId] = useState<string | null>(null)
   const [soraVideoName, setSoraVideoName] = useState('Sora2 Video')
@@ -255,6 +290,7 @@ const ModelConfigPage = () => {
   const [soraVideoApiUrl, setSoraVideoApiUrl] = useState('')
   const [soraVideoAccepted, setSoraVideoAccepted] = useState<string[]>(['TEXT', 'IMAGE', 'VIDEO'])
   const [soraVideoConfig, setSoraVideoConfig] = useState({ supportedRatios: ['landscape', 'portrait'], supportsImageToVideo: true, maxReferenceImages: 1, supportedGenerationTypes: ['文生视频', '图生视频', '视频生视频'], supportedDurations: [10, 15, 25] })
+  const [soraVideoServerId, setSoraVideoServerId] = useState<string>('')
 
   const [viduQ2ProId, setViduQ2ProId] = useState<string | null>(null)
   const [viduQ2ProName, setViduQ2ProName] = useState('Vidu Q2 Pro')
@@ -264,6 +300,7 @@ const ModelConfigPage = () => {
   const [viduQ2ProApiUrl, setViduQ2ProApiUrl] = useState('')
   const [viduQ2ProAccepted, setViduQ2ProAccepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [viduQ2ProVideoConfig, setViduQ2ProVideoConfig] = useState({ supportedRatios: ['16:9', '9:16', '1:1', '4:3', '3:4'], supportedResolutions: ['540p', '720p', '1080p'], supportedGenerationTypes: ['文生视频', '主体参考', '首帧', '尾帧', '首尾帧'], supportedDurations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], maxDuration: 10, supportedFps: [24, 30], maxResolution: '1920x1080', supportsImageToVideo: true, maxReferenceImages: 2, supportsSubjects: true, supportsAudioOutput: true })
+  const [viduQ2ProServerId, setViduQ2ProServerId] = useState<string>('')
 
   const [viduQ2TurboId, setViduQ2TurboId] = useState<string | null>(null)
   const [viduQ2TurboName, setViduQ2TurboName] = useState('Vidu Q2 Turbo')
@@ -273,6 +310,7 @@ const ModelConfigPage = () => {
   const [viduQ2TurboApiUrl, setViduQ2TurboApiUrl] = useState('')
   const [viduQ2TurboAccepted, setViduQ2TurboAccepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [viduQ2TurboVideoConfig, setViduQ2TurboVideoConfig] = useState({ supportedRatios: ['16:9', '9:16', '1:1', '4:3', '3:4'], supportedResolutions: ['540p', '720p', '1080p'], supportedGenerationTypes: ['文生视频', '主体参考', '首帧', '尾帧', '首尾帧'], supportedDurations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], maxDuration: 10, supportedFps: [24, 30], maxResolution: '1920x1080', supportsImageToVideo: true, maxReferenceImages: 2, supportsSubjects: true, supportsAudioOutput: true })
+  const [viduQ2TurboServerId, setViduQ2TurboServerId] = useState<string>('')
 
   const [viduQ2Id, setViduQ2Id] = useState<string | null>(null)
   const [viduQ2Name, setViduQ2Name] = useState('Vidu Q2')
@@ -282,6 +320,7 @@ const ModelConfigPage = () => {
   const [viduQ2ApiUrl, setViduQ2ApiUrl] = useState('')
   const [viduQ2Accepted, setViduQ2Accepted] = useState<string[]>(['IMAGE'])
   const [viduQ2VideoConfig, setViduQ2VideoConfig] = useState({ supportedRatios: ['16:9', '9:16', '1:1', '4:3', '3:4'], supportedResolutions: ['540p', '720p', '1080p'], supportedGenerationTypes: ['参考图生视频'], supportedDurations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], maxDuration: 10, supportedFps: [24, 30], maxResolution: '1920x1080', supportsImageToVideo: true, maxReferenceImages: 7, supportsSubjects: true, supportsAudioOutput: true, supportsBgm: true })
+  const [viduQ2ServerId, setViduQ2ServerId] = useState<string>('')
 
   // 获取 Midjourney 设置
   useEffect(() => {
@@ -295,6 +334,81 @@ const ModelConfigPage = () => {
     }
     fetchMjSettings()
   }, [])
+
+  // 获取 Waule API 服务器列表
+  const fetchWauleServers = async () => {
+    try {
+      const res = await apiClient.admin.wauleApiServers.getAll()
+      setWauleServers(res.data || [])
+    } catch (error) {
+      console.error('获取 Waule API 服务器失败:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchWauleServers()
+  }, [])
+
+  // 保存 Waule API 服务器
+  const saveWauleServer = async () => {
+    try {
+      if (!serverForm.name || !serverForm.url) {
+        toast.error('名称和地址不能为空')
+        return
+      }
+      if (editingServer) {
+        await apiClient.admin.wauleApiServers.update(editingServer.id, serverForm)
+        toast.success('服务器已更新')
+      } else {
+        await apiClient.admin.wauleApiServers.create(serverForm)
+        toast.success('服务器已创建')
+      }
+      setShowWauleServerModal(false)
+      setEditingServer(null)
+      setServerForm({ name: '', url: '', authToken: '', isDefault: false, description: '' })
+      fetchWauleServers()
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || '保存失败')
+    }
+  }
+
+  // 删除 Waule API 服务器
+  const deleteWauleServer = async (id: string) => {
+    if (!confirm('确定要删除此服务器吗？')) return
+    try {
+      await apiClient.admin.wauleApiServers.delete(id)
+      toast.success('服务器已删除')
+      fetchWauleServers()
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || '删除失败')
+    }
+  }
+
+  // 测试 Waule API 服务器
+  const testWauleServer = async (id: string) => {
+    try {
+      const res = await apiClient.admin.wauleApiServers.test(id)
+      if (res.success) {
+        toast.success(`连接成功: ${res.data?.version || 'OK'}`)
+      } else {
+        toast.error(res.message || '连接失败')
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || '测试失败')
+    }
+  }
+
+  // 可复用的服务器选择组件
+  const ServerSelect = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+    <div className="mt-4">
+      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Waule API 服务器</label>
+      <select value={value} onChange={e => onChange(e.target.value)} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white">
+        <option value="">使用默认服务器</option>
+        {wauleServers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.url}){s.isDefault ? ' [默认]' : ''}</option>)}
+      </select>
+      {wauleServers.length === 0 && <div className="text-xs text-amber-500 mt-1">请先在上方添加 Waule API 服务器</div>}
+    </div>
+  )
 
   // 更新 Midjourney Fast 模式设置
   const updateMjFastEnabled = async (enabled: boolean) => {
@@ -1656,6 +1770,76 @@ const ModelConfigPage = () => {
         <p className="text-slate-600 dark:text-gray-400">左侧模型列表，右侧对应配置</p>
       </div>
 
+      {/* Waule API 服务器管理 */}
+      <div className="mb-6 bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="text-sm font-bold text-slate-900 dark:text-white">Waule API 服务器</div>
+            <div className="text-xs text-slate-500 dark:text-gray-500 mt-1">配置多个 waule-api 服务，支持为不同模型指定不同的服务器</div>
+          </div>
+          <button onClick={() => { setEditingServer(null); setServerForm({ name: '', url: 'http://localhost:9000', authToken: '', isDefault: false, description: '' }); setShowWauleServerModal(true) }} className="px-3 py-1.5 text-sm bg-primary text-white rounded-lg">添加服务器</button>
+        </div>
+        {wauleServers.length > 0 ? (
+          <div className="space-y-2">
+            {wauleServers.map(server => (
+              <div key={server.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-slate-900 dark:text-white">{server.name}</span>
+                    {server.isDefault && <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded">默认</span>}
+                    {!server.isActive && <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 rounded">已禁用</span>}
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-gray-500 font-mono mt-1">{server.url}</div>
+                  {server._count?.aiModels ? <div className="text-xs text-slate-400 mt-1">关联 {server._count.aiModels} 个模型</div> : null}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => testWauleServer(server.id)} className="px-2 py-1 text-xs text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded">测试</button>
+                  <button onClick={() => { setEditingServer(server); setServerForm({ name: server.name, url: server.url, authToken: server.authToken || '', isDefault: server.isDefault, description: server.description || '' }); setShowWauleServerModal(true) }} className="px-2 py-1 text-xs text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded">编辑</button>
+                  <button onClick={() => deleteWauleServer(server.id)} className="px-2 py-1 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">删除</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-4 text-slate-400 text-sm">暂无服务器配置，点击"添加服务器"创建</div>
+        )}
+      </div>
+
+      {/* Waule API 服务器编辑弹窗 */}
+      {showWauleServerModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-card-dark rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{editingServer ? '编辑服务器' : '添加服务器'}</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-700 dark:text-gray-300 mb-1">名称 *</label>
+                <input type="text" value={serverForm.name} onChange={e => setServerForm({ ...serverForm, name: e.target.value })} placeholder="如：主服务器" className="w-full px-3 py-2 border border-slate-200 dark:border-border-dark rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-700 dark:text-gray-300 mb-1">地址 *</label>
+                <input type="text" value={serverForm.url} onChange={e => setServerForm({ ...serverForm, url: e.target.value })} placeholder="http://localhost:9000" className="w-full px-3 py-2 border border-slate-200 dark:border-border-dark rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-700 dark:text-gray-300 mb-1">认证 Token（可选）</label>
+                <input type="password" value={serverForm.authToken} onChange={e => setServerForm({ ...serverForm, authToken: e.target.value })} placeholder="留空表示无需认证" className="w-full px-3 py-2 border border-slate-200 dark:border-border-dark rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-700 dark:text-gray-300 mb-1">备注</label>
+                <input type="text" value={serverForm.description} onChange={e => setServerForm({ ...serverForm, description: e.target.value })} placeholder="可选" className="w-full px-3 py-2 border border-slate-200 dark:border-border-dark rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="isDefault" checked={serverForm.isDefault} onChange={e => setServerForm({ ...serverForm, isDefault: e.target.checked })} className="w-4 h-4" />
+                <label htmlFor="isDefault" className="text-sm text-slate-700 dark:text-gray-300">设为默认服务器</label>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => setShowWauleServerModal(false)} className="px-4 py-2 text-slate-600 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">取消</button>
+              <button onClick={saveWauleServer} className="px-4 py-2 bg-primary text-white rounded-lg">保存</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Midjourney 设置 */}
       <div className="mb-6 bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-xl p-4">
         <div className="flex items-center justify-between">
@@ -1893,7 +2077,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={GOOGLE_PRO_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={proServerId} onChange={setProServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -1953,7 +2138,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={GOOGLE_FLASH_TEXT_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={flashTextServerId} onChange={setFlashTextServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2009,7 +2195,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={GOOGLE_FLASH_IMAGE_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={flashServerId} onChange={setFlashServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2064,7 +2251,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={GOOGLE_GEMINI_3_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={gemini3ServerId} onChange={setGemini3ServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2188,7 +2376,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={GOOGLE_GEMINI_3_IMAGE_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={gemini3ImageServerId} onChange={setGemini3ImageServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2268,7 +2457,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={DOUBAO_SEEDANCE_PRO_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={sdProServerId} onChange={setSdProServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2337,7 +2527,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={DOUBAO_SEEDANCE_FAST_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={sdFastServerId} onChange={setSdFastServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2405,7 +2596,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={DOUBAO_SEEDREAM_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={sdreamServerId} onChange={setSdreamServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2460,7 +2652,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={DOUBAO_SEEDREAM_45_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={sdream45ServerId} onChange={setSdream45ServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2516,6 +2709,7 @@ const ModelConfigPage = () => {
                   <input value={ALI_QWEN_IMAGE_EDIT_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
               </div>
+              <ServerSelect value={aliQwenServerId} onChange={setAliQwenServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2570,7 +2764,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={ALI_WAN_ANIMATE_MOVE_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={aliMoveServerId} onChange={setAliMoveServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">服务模式（可多选）</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2612,7 +2807,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={ALI_WAN_ANIMATE_MIX_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={aliMixServerId} onChange={setAliMixServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">服务模式（可多选）</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2654,7 +2850,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={ALI_VIDEO_STYLE_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={aliStyleServerId} onChange={setAliStyleServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可用风格（0-7，可多选）</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2702,6 +2899,7 @@ const ModelConfigPage = () => {
                   <input value={ALI_VIDEOTALK_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
               </div>
+              <ServerSelect value={aliRetalkServerId} onChange={setAliRetalkServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2744,6 +2942,7 @@ const ModelConfigPage = () => {
                   <input value={MINIMAX_HAILUO_23_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
               </div>
+              <ServerSelect value={mm23ServerId} onChange={setMm23ServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2868,6 +3067,7 @@ const ModelConfigPage = () => {
                   <input value={MINIMAX_HAILUO_23_FAST_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
               </div>
+              <ServerSelect value={mm23FastServerId} onChange={setMm23FastServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -2980,6 +3180,7 @@ const ModelConfigPage = () => {
                   <input value={MINIMAX_HAILUO_02_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
               </div>
+              <ServerSelect value={mm02ServerId} onChange={setMm02ServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -3092,6 +3293,7 @@ const ModelConfigPage = () => {
                   <input value={MINIMAX_SPEECH_26_HD_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
               </div>
+              <ServerSelect value={mmSpeechServerId} onChange={setMmSpeechServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -3204,7 +3406,15 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={SORA_IMAGE_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Waule API 服务器</label>
+                <select value={soraImageServerId} onChange={e => setSoraImageServerId(e.target.value)} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white">
+                  <option value="">使用默认服务器</option>
+                  {wauleServers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.url}){s.isDefault ? ' [默认]' : ''}</option>)}
+                </select>
+                {wauleServers.length === 0 && <div className="text-xs text-amber-500 mt-1">请先在上方添加 Waule API 服务器</div>}
+              </div>
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -3241,7 +3451,7 @@ const ModelConfigPage = () => {
                 </div>
                 <button onClick={async () => {
                   try {
-                    const payload = { name: soraImageName, provider: 'sora', modelId: SORA_IMAGE_ID, type: 'IMAGE_GENERATION' as ModelType, apiKey: soraImageApiKey, apiUrl: soraImageApiUrl, isActive: soraImageIsActive, pricePerUse: soraImagePrice ? parseFloat(soraImagePrice) : undefined, config: { ...soraImageConfig, acceptedInputs: soraImageAccepted } }
+                    const payload = { name: soraImageName, provider: 'sora', modelId: SORA_IMAGE_ID, type: 'IMAGE_GENERATION' as ModelType, apiKey: soraImageApiKey, apiUrl: soraImageApiUrl, isActive: soraImageIsActive, pricePerUse: soraImagePrice ? parseFloat(soraImagePrice) : undefined, config: { ...soraImageConfig, acceptedInputs: soraImageAccepted }, wauleApiServerId: soraImageServerId || null }
                     const existing = existingModels.find(m => m.provider === 'sora' && m.modelId === SORA_IMAGE_ID)
                     const targetId = soraImageId || existing?.id
                     if (targetId) {
@@ -3291,7 +3501,15 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={SORA_VIDEO_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Waule API 服务器</label>
+                <select value={soraVideoServerId} onChange={e => setSoraVideoServerId(e.target.value)} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white">
+                  <option value="">使用默认服务器</option>
+                  {wauleServers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.url}){s.isDefault ? ' [默认]' : ''}</option>)}
+                </select>
+                {wauleServers.length === 0 && <div className="text-xs text-amber-500 mt-1">请先在上方添加 Waule API 服务器</div>}
+              </div>
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -3344,7 +3562,7 @@ const ModelConfigPage = () => {
                 </div>
                 <button onClick={async () => {
                   try {
-                    const payload = { name: soraVideoName, provider: 'sora', modelId: SORA_VIDEO_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: soraVideoApiKey, apiUrl: soraVideoApiUrl, isActive: soraVideoIsActive, pricePerUse: soraVideoPrice ? parseFloat(soraVideoPrice) : undefined, config: { ...soraVideoConfig, acceptedInputs: soraVideoAccepted } }
+                    const payload = { name: soraVideoName, provider: 'sora', modelId: SORA_VIDEO_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: soraVideoApiKey, apiUrl: soraVideoApiUrl, isActive: soraVideoIsActive, pricePerUse: soraVideoPrice ? parseFloat(soraVideoPrice) : undefined, config: { ...soraVideoConfig, acceptedInputs: soraVideoAccepted }, wauleApiServerId: soraVideoServerId || null }
                     const existing = existingModels.find(m => m.provider === 'sora' && m.modelId === SORA_VIDEO_ID)
                     const targetId = soraVideoId || existing?.id
                     if (targetId) {
@@ -3394,7 +3612,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={VIDU_Q2_PRO_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={viduQ2ProServerId} onChange={setViduQ2ProServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -3505,7 +3724,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={VIDU_Q2_TURBO_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={viduQ2TurboServerId} onChange={setViduQ2TurboServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
@@ -3616,7 +3836,8 @@ const ModelConfigPage = () => {
                   <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
                   <input value={VIDU_Q2_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
                 </div>
-                </div>
+              </div>
+              <ServerSelect value={viduQ2ServerId} onChange={setViduQ2ServerId} />
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
                 <div className="flex gap-2 flex-wrap">
