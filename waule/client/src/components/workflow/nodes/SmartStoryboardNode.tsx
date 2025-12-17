@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { apiClient } from '../../../lib/api';
 import { processImageUrl } from '../../../utils/imageUtils';
 import { processTaskResult } from '../../../utils/taskResultHandler';
-import { sliceImageGrid } from '../../../utils/imageGridSlicer';
+import { sliceImageGrid, base64ToBlob } from '../../../utils/imageGridSlicer';
 
 interface SmartStoryboardNodeData {
   config: {
@@ -344,17 +344,19 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       let imageToSlice = imageUrl;
       if (!imageUrl.startsWith('data:')) {
         try {
-          const response = await fetch(imageUrl);
-          const blob = await response.blob();
+          // 使用后端代理接口绕过CORS限制
+          console.log('[SmartStoryboardNode] 通过代理下载图片...');
+          const proxyResponse = await apiClient.assets.proxyDownload(imageUrl);
+          const blob = new Blob([proxyResponse], { type: 'image/png' });
           imageToSlice = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result as string);
             reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
-          console.log('[SmartStoryboardNode] 图片已转换为base64');
+          console.log('[SmartStoryboardNode] 图片已通过代理转换为base64');
         } catch (fetchError) {
-          console.warn('[SmartStoryboardNode] 无法转换为base64，尝试直接切割:', fetchError);
+          console.warn('[SmartStoryboardNode] 代理下载失败，尝试直接切割:', fetchError);
         }
       }
       
@@ -362,12 +364,35 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       const result = await sliceImageGrid(imageToSlice, 3, 3);
       console.log('[SmartStoryboardNode] 切割完成，共', result.slices.length, '个片段');
 
-      updateNodeData({ slicedImages: result.slices });
+      // 将 base64 图片上传到 OSS，获取 OSS URL
+      console.log('[SmartStoryboardNode] 开始上传切割图片到 OSS...');
+      const ossUrls: string[] = [];
+      for (let i = 0; i < result.slices.length; i++) {
+        try {
+          const base64 = result.slices[i];
+          const blob = base64ToBlob(base64, 'image/png');
+          const file = new File([blob], `storyboard_${id}_slice_${i + 1}_${Date.now()}.png`, { type: 'image/png' });
+          const uploadResult = await apiClient.assets.upload(file);
+          if (uploadResult.success && uploadResult.data?.url) {
+            ossUrls.push(uploadResult.data.url);
+            console.log(`[SmartStoryboardNode] 分镜 ${i + 1} 已上传:`, uploadResult.data.url);
+          } else {
+            console.warn(`[SmartStoryboardNode] 分镜 ${i + 1} 上传失败，使用 base64`);
+            ossUrls.push(base64);
+          }
+        } catch (uploadError) {
+          console.warn(`[SmartStoryboardNode] 分镜 ${i + 1} 上传异常，使用 base64:`, uploadError);
+          ossUrls.push(result.slices[i]);
+        }
+      }
+      console.log('[SmartStoryboardNode] OSS 上传完成，成功数量:', ossUrls.filter(u => u.startsWith('http')).length);
+
+      updateNodeData({ slicedImages: ossUrls });
 
       // 批量创建9个预览节点
-      createAllPreviewNodes(result.slices, aspectRatio);
+      createAllPreviewNodes(ossUrls, aspectRatio);
       
-      console.log('[SmartStoryboardNode] 已创建', result.slices.length, '个预览节点');
+      console.log('[SmartStoryboardNode] 已创建', ossUrls.length, '个预览节点');
     } catch (error: any) {
       console.error('[SmartStoryboardNode] 切割失败:', error);
       toast.error('图片切割失败: ' + error.message);

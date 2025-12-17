@@ -1561,7 +1561,7 @@ export const getAssetLibraries = asyncHandler(async (req: Request, res: Response
 
 export const createAssetLibrary = asyncHandler(async (req: Request, res: Response) => {
   const tenantUser = req.tenantUser!;
-  const { name, description, category } = req.body;
+  const { name, description, category, thumbnail } = req.body;
 
   const library = await prisma.tenantAssetLibrary.create({
     data: {
@@ -1570,6 +1570,7 @@ export const createAssetLibrary = asyncHandler(async (req: Request, res: Respons
       name,
       description,
       category,
+      thumbnail,
     },
   });
 
@@ -1748,6 +1749,77 @@ function getAssetTypeFromMimeType(mimeType: string): string {
   if (mimeType.startsWith('audio/')) return 'AUDIO';
   return 'OTHER';
 }
+
+/**
+ * 上传文件到资产库
+ */
+export const uploadAssetToLibrary = asyncHandler(async (req: Request, res: Response) => {
+  const tenantUser = req.tenantUser!;
+  const { id } = req.params;
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({ success: false, message: '缺少文件' });
+  }
+
+  // 验证资产库存在且属于当前租户
+  const library = await prisma.tenantAssetLibrary.findFirst({
+    where: { id, tenantId: tenantUser.tenantId },
+  });
+
+  if (!library) {
+    return res.status(404).json({ success: false, message: '资产库不存在' });
+  }
+
+  // 检查权限：必须是所有者
+  if (library.tenantUserId !== tenantUser.id && !tenantUser.isAdmin) {
+    return res.status(403).json({ success: false, message: '只有资产库所有者才能上传资产' });
+  }
+
+  const tenantInfo: TenantUploadInfo = {
+    tenantId: tenantUser.tenantId,
+    userId: tenantUser.id,
+  };
+
+  // 解码文件名（处理中文乱码）
+  let decodedName = file.originalname;
+  try {
+    decodedName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+  } catch {
+    // 如果解码失败，尝试 URI 解码
+    try {
+      decodedName = decodeURIComponent(file.originalname);
+    } catch {
+      decodedName = file.originalname;
+    }
+  }
+
+  // 上传到 OSS
+  const ext = path.extname(decodedName) || '.bin';
+  const fileUrl = await uploadBuffer(file.buffer, ext, tenantInfo);
+
+  // 确定资产类型
+  const assetType = getAssetTypeFromMimeType(file.mimetype);
+
+  // 去除文件扩展名作为显示名称
+  const displayName = decodedName.replace(/\.[^/.]+$/, '');
+
+  // 保存到数据库
+  const asset = await prisma.tenantAsset.create({
+    data: {
+      tenantId: tenantUser.tenantId,
+      tenantUserId: tenantUser.id,
+      libraryId: id,
+      name: displayName,
+      mimeType: file.mimetype,
+      size: file.size,
+      url: fileUrl,
+      type: assetType,
+    },
+  });
+
+  res.json({ success: true, data: asset });
+});
 
 /**
  * 从URL添加资产到资产库

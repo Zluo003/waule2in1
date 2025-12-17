@@ -285,7 +285,7 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
     return [];
   };
 
-  // 提示词构建 - 用户输入 + 风格图提示
+  // 提示词构建 - 用户输入 + 风格图提示 + 比例提示
   const buildPrompt = (): string => {
     let prompt = userPrompt;
     
@@ -295,6 +295,9 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
       const styleIndex = characterImages.length + sceneImages.length + 1;
       prompt += `，参考图片${styleIndex}的色调与风格，不允许使用图片${styleIndex}的场景，所有元素保持合理的尺寸与比例`;
     }
+    
+    // 追加图片比例提示词
+    prompt += `，生成${aspectRatio}比例的图片`;
     
     return prompt;
   };

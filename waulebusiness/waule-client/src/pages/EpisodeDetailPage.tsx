@@ -509,7 +509,7 @@ export default function EpisodeDetailPageNew() {
   return (
     <div className="h-screen w-full overflow-hidden flex flex-col bg-background-light dark:bg-background-dark">
       {/* Header */}
-      <header className="h-14 border-b border-slate-400 dark:border-white/20 flex items-center justify-between px-4 bg-white/70 dark:bg-black/30 backdrop-blur-xl shrink-0">
+      <header className="h-14 border-b border-slate-400 dark:border-white/20 flex items-center justify-between px-4 bg-white/70 dark:bg-black/30 backdrop-blur-xl shrink-0 overflow-visible relative z-10">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate(-1)} 
@@ -521,22 +521,73 @@ export default function EpisodeDetailPageNew() {
           <h2 className="text-text-light-primary dark:text-text-dark-primary font-bold">
             《{projectName}》{epNo && <span className="font-normal text-text-light-secondary dark:text-text-dark-secondary text-sm ml-2">第{epNo}集</span>}
           </h2>
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 dark:bg-border-dark text-text-light-secondary dark:text-text-dark-secondary uppercase tracking-wider">
-            {canEdit ? 'Draft' : 'View Only'}
-          </span>
         </div>
         <div className="flex items-center gap-2">
           {saving && <span className="text-xs text-text-light-secondary dark:text-text-dark-secondary">保存中...</span>}
-          <button 
-            onClick={() => setShowConfigModal(true)}
-            className="h-8 px-4 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white text-sm font-medium hover:shadow-lg hover:scale-105 transition-all shadow-md flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-lg">inventory_2</span>
-            配置资产库
-            {selectedLibraryIds.length > 0 && (
-              <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs">{selectedLibraryIds.length}</span>
-            )}
-          </button>
+          {/* 第一组：配置资产库 */}
+          <div className="group relative">
+            <button 
+              onClick={() => setShowConfigModal(true)}
+              className="relative w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+            >
+              <span className="material-symbols-outlined text-lg">settings</span>
+              {selectedLibraryIds.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-slate-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow">{selectedLibraryIds.length}</span>
+              )}
+            </button>
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">配置资产库</span>
+          </div>
+          {/* 分隔线 */}
+          <div className="h-5 w-px bg-slate-300 dark:bg-white/20"></div>
+          {/* 第二组：脚本操作 */}
+          <div className="group relative">
+            <button 
+              onClick={() => {
+                // TODO: 实现下载分镜脚本模板功能
+                toast.info('下载分镜脚本模板功能开发中')
+              }}
+              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+            >
+              <span className="material-symbols-outlined text-lg">download</span>
+            </button>
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">下载分镜脚本模板</span>
+          </div>
+          <div className="group relative">
+            <button 
+              onClick={() => {
+                // TODO: 实现导入分镜脚本功能
+                toast.info('导入分镜脚本功能开发中')
+              }}
+              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+            >
+              <span className="material-symbols-outlined text-lg">upload_file</span>
+            </button>
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">导入分镜脚本</span>
+          </div>
+          <div className="group relative">
+            <button 
+              onClick={() => {
+                // TODO: 实现创建分镜脚本功能
+                toast.info('创建分镜脚本功能开发中')
+              }}
+              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+            >
+              <span className="material-symbols-outlined text-lg">edit_note</span>
+            </button>
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">创建分镜脚本</span>
+          </div>
+          {/* 分隔线 */}
+          <div className="h-5 w-px bg-slate-300 dark:bg-white/20"></div>
+          {/* 第三组：导出 */}
+          <div className="group relative">
+            <button 
+              onClick={() => toast.info('导出功能开发中')}
+              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+            >
+              <span className="material-symbols-outlined text-lg">ios_share</span>
+            </button>
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">导出</span>
+          </div>
         </div>
       </header>
 
@@ -594,22 +645,13 @@ export default function EpisodeDetailPageNew() {
               </>
             )}
           </div>
-          <div className="p-4 border-t border-slate-400 dark:border-white/20">
-            <button 
-              onClick={enterWorkflow}
-              className="w-full py-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white text-sm font-medium hover:shadow-lg hover:scale-[1.02] transition-all shadow-md flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined text-sm">add</span>
-              生成素材
-            </button>
-          </div>
         </div>
 
         {/* Center - Preview */}
         <div className="bg-white/70 dark:bg-black/30 backdrop-blur-xl flex flex-col relative">
           <div className="h-10 flex items-center justify-between px-4 border-b border-slate-400 dark:border-white/20">
             <div className="flex items-center gap-3 text-text-light-secondary dark:text-text-dark-secondary text-sm">
-              <span className="font-bold text-text-light-primary dark:text-text-dark-primary">Shot {currentShotIndex.toString().padStart(2, '0')}</span>
+              <span className="font-bold text-text-light-primary dark:text-text-dark-primary">分镜头 {currentShotIndex.toString().padStart(2, '0')}</span>
               <span>/</span>
               <span>共 {shots.length} 镜</span>
             </div>
@@ -622,6 +664,15 @@ export default function EpisodeDetailPageNew() {
                   <span className="material-symbols-outlined text-lg">download</span>
                 </button>
               )}
+              <div className="group relative">
+                <button 
+                  onClick={enterWorkflow}
+                  className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+                >
+                  <span className="material-symbols-outlined text-lg">auto_awesome</span>
+                </button>
+                <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">生成素材</span>
+              </div>
             </div>
           </div>
           
@@ -650,7 +701,7 @@ export default function EpisodeDetailPageNew() {
         <div className="border-l border-slate-400 dark:border-white/20 bg-white/70 dark:bg-black/30 backdrop-blur-xl flex flex-col">
           <div className="h-10 flex items-center justify-between px-4 border-b border-slate-400 dark:border-white/20">
             <span className="text-text-light-primary dark:text-text-dark-primary font-bold text-sm">脚本</span>
-            {canEdit && (
+            {canEdit && false && (
               <button className="p-1 rounded hover:bg-slate-200 dark:hover:bg-border-dark text-text-light-secondary dark:text-text-dark-secondary transition-colors">
                 <span className="material-symbols-outlined text-lg">edit_note</span>
               </button>
@@ -659,8 +710,8 @@ export default function EpisodeDetailPageNew() {
           <div className="flex-1 p-4 flex flex-col min-h-0">
             {currentShot ? (
               <div className="flex flex-col gap-3 h-full">
-                {/* 画面 - 22.5% */}
-                <div className="flex flex-col" style={{ flex: '0 0 22.5%' }}>
+                {/* 画面 - 50% */}
+                <div className="flex flex-col flex-1 min-h-0">
                   <label className="block text-xs font-bold text-text-light-secondary dark:text-text-dark-secondary mb-1 uppercase shrink-0">画面</label>
                   <textarea
                     value={currentShot['画面']}
@@ -671,8 +722,8 @@ export default function EpisodeDetailPageNew() {
                     placeholder="描述画面内容..."
                   />
                 </div>
-                {/* 动作 - 22.5% */}
-                <div className="flex flex-col" style={{ flex: '0 0 22.5%' }}>
+                {/* 动作 - 50% */}
+                <div className="flex flex-col flex-1 min-h-0">
                   <label className="block text-xs font-bold text-text-light-secondary dark:text-text-dark-secondary mb-1 uppercase shrink-0">动作</label>
                   <textarea
                     value={currentShot['内容/动作']}
@@ -681,18 +732,6 @@ export default function EpisodeDetailPageNew() {
                     readOnly={!canEdit}
                     className="flex-1 w-full bg-white/30 dark:bg-white/5 text-text-light-primary dark:text-text-dark-primary rounded-lg p-3 text-sm resize-none border border-slate-400 dark:border-white/20 focus:border-purple-500 focus:outline-none backdrop-blur-sm"
                     placeholder="描述角色动作..."
-                  />
-                </div>
-                {/* 提示词 - 剩余空间 */}
-                <div className="flex flex-col flex-1 min-h-0">
-                  <label className="block text-xs font-bold text-text-light-secondary dark:text-text-dark-secondary mb-1 uppercase shrink-0">提示词</label>
-                  <textarea
-                    value={currentShot['提示词']}
-                    onChange={canEdit ? (e) => updateShotField(currentShotIndex, '提示词', e.target.value) : undefined}
-                    onBlur={canEdit ? () => saveShots(shots) : undefined}
-                    readOnly={!canEdit}
-                    className="flex-1 w-full bg-white/30 dark:bg-white/5 text-text-light-primary dark:text-text-dark-primary rounded-lg p-3 text-sm resize-none border border-slate-400 dark:border-white/20 focus:border-purple-500 focus:outline-none backdrop-blur-sm"
-                    placeholder="AI 生成提示词..."
                   />
                 </div>
               </div>
@@ -815,9 +854,9 @@ export default function EpisodeDetailPageNew() {
               {/* 已选角色 */}
               {(currentShot?.selectedRoles || []).map((role: any) => (
                 <div key={role.id} className="shrink-0 flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity group relative">
-                  <div className="size-12 rounded-full border-2 border-slate-400 dark:border-purple-400 overflow-hidden bg-slate-100 dark:bg-border-dark">
+                  <div className="size-12 rounded-lg border-2 border-slate-400 dark:border-purple-400 overflow-hidden bg-slate-100 dark:bg-border-dark">
                     {role.thumbnail ? (
-                      <img src={role.thumbnail} alt={role.name} className="w-full h-full object-cover" />
+                      <img src={role.thumbnail} alt={role.name} className="w-full h-full object-cover object-top" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">person</span>
@@ -836,10 +875,17 @@ export default function EpisodeDetailPageNew() {
               ))}
               {/* 添加按钮 */}
               <div 
-                onClick={() => selectedLibraryIds.length > 0 ? setShowAssetPicker('role') : setShowConfigModal(true)}
+                onClick={() => {
+                  if (selectedLibraryIds.length === 0) {
+                    toast.info('请先配置资产库')
+                    setShowConfigModal(true)
+                  } else {
+                    setShowAssetPicker('role')
+                  }
+                }}
                 className="shrink-0 flex flex-col items-center gap-1 cursor-pointer opacity-50 hover:opacity-100 transition-opacity"
               >
-                <div className="size-12 rounded-full border-2 border-dashed border-border-light dark:border-border-dark p-0.5 flex items-center justify-center hover:border-primary-500">
+                <div className="size-12 rounded-lg border-2 border-dashed border-border-light dark:border-border-dark p-0.5 flex items-center justify-center hover:border-primary-500">
                   <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">add</span>
                 </div>
                 <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary">{selectedLibraryIds.length > 0 ? '添加' : '配置'}</span>
@@ -875,7 +921,14 @@ export default function EpisodeDetailPageNew() {
               ))}
               {/* 添加按钮 */}
               <div 
-                onClick={() => selectedLibraryIds.length > 0 ? setShowAssetPicker('scene') : setShowConfigModal(true)}
+                onClick={() => {
+                  if (selectedLibraryIds.length === 0) {
+                    toast.info('请先配置资产库')
+                    setShowConfigModal(true)
+                  } else {
+                    setShowAssetPicker('scene')
+                  }
+                }}
                 className="relative w-24 h-14 rounded-lg overflow-hidden border border-dashed border-border-light dark:border-border-dark cursor-pointer hover:border-primary-500 transition-colors flex items-center justify-center"
               >
                 <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">add</span>
@@ -911,7 +964,14 @@ export default function EpisodeDetailPageNew() {
               ))}
               {/* 添加按钮 */}
               <div 
-                onClick={() => selectedLibraryIds.length > 0 ? setShowAssetPicker('prop') : setShowConfigModal(true)}
+                onClick={() => {
+                  if (selectedLibraryIds.length === 0) {
+                    toast.info('请先配置资产库')
+                    setShowConfigModal(true)
+                  } else {
+                    setShowAssetPicker('prop')
+                  }
+                }}
                 className="size-14 rounded-lg bg-slate-100 dark:bg-border-dark border border-dashed border-border-light dark:border-border-dark flex items-center justify-center cursor-pointer hover:border-primary-500 transition-colors"
               >
                 <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">add</span>
@@ -945,7 +1005,14 @@ export default function EpisodeDetailPageNew() {
               ))}
               {/* 添加按钮 */}
               <div 
-                onClick={() => selectedLibraryIds.length > 0 ? setShowAssetPicker('audio') : setShowConfigModal(true)}
+                onClick={() => {
+                  if (selectedLibraryIds.length === 0) {
+                    toast.info('请先配置资产库')
+                    setShowConfigModal(true)
+                  } else {
+                    setShowAssetPicker('audio')
+                  }
+                }}
                 className="shrink-0 flex flex-col items-center gap-1 cursor-pointer opacity-50 hover:opacity-100 transition-opacity"
               >
                 <div className="size-12 rounded-lg border-2 border-dashed border-border-light dark:border-border-dark p-0.5 flex items-center justify-center hover:border-primary-500">
@@ -958,8 +1025,8 @@ export default function EpisodeDetailPageNew() {
         </div>
       </div>
 
-      {/* 资产选择弹窗 */}
-      {showAssetPicker && (
+      {/* 资产选择弹窗 - 只有配置了资产库才显示 */}
+      {showAssetPicker && selectedLibraryIds.length > 0 && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowAssetPicker(null)}>
           <div className="bg-card-light dark:bg-card-dark rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
@@ -993,9 +1060,9 @@ export default function EpisodeDetailPageNew() {
                             : 'hover:bg-slate-100 dark:hover:bg-border-dark'
                         }`}
                       >
-                        <div className="size-16 rounded-full overflow-hidden bg-slate-100 dark:bg-border-dark">
+                        <div className="size-16 rounded-lg overflow-hidden bg-slate-100 dark:bg-border-dark">
                           {role.thumbnail ? (
-                            <img src={role.thumbnail} alt={role.name} className="w-full h-full object-cover" />
+                            <img src={role.thumbnail} alt={role.name} className="w-full h-full object-cover object-top" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <span className="material-symbols-outlined text-2xl text-text-light-secondary dark:text-text-dark-secondary">person</span>
@@ -1269,6 +1336,48 @@ export default function EpisodeDetailPageNew() {
                       ))}
                       {availableLibraries.filter(l => l.category === 'PROP').length === 0 && (
                         <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary col-span-2">暂无道具库</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 音频库 */}
+                  <div>
+                    <h3 className="text-sm font-bold text-text-light-primary dark:text-text-dark-primary mb-3 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-lg">music_note</span> 音频库
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {availableLibraries.filter(l => l.category === 'AUDIO').map(lib => (
+                        <label 
+                          key={lib.id}
+                          className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                            selectedLibraryIds.includes(lib.id) 
+                              ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10' 
+                              : 'border-border-light dark:border-border-dark hover:border-primary-300'
+                          }`}
+                        >
+                          <input 
+                            type="checkbox" 
+                            checked={selectedLibraryIds.includes(lib.id)}
+                            onChange={() => toggleLibrary(lib.id)}
+                            className="sr-only"
+                          />
+                          <div className="size-10 rounded-lg bg-slate-100 dark:bg-border-dark overflow-hidden shrink-0">
+                            {lib.thumbnail ? (
+                              <img src={lib.thumbnail} alt={lib.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">music_note</span>
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-sm font-medium text-text-light-primary dark:text-text-dark-primary truncate">{lib.name}</span>
+                          {selectedLibraryIds.includes(lib.id) && (
+                            <span className="material-symbols-outlined text-primary-500 ml-auto">check_circle</span>
+                          )}
+                        </label>
+                      ))}
+                      {availableLibraries.filter(l => l.category === 'AUDIO').length === 0 && (
+                        <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary col-span-2">暂无音频库</p>
                       )}
                     </div>
                   </div>

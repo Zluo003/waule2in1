@@ -105,7 +105,7 @@ interface AssetLibrary {
   name: string;
   description?: string;
   thumbnail?: string;
-  category?: 'ROLE' | 'SCENE' | 'PROP' | 'OTHER';
+  category?: 'ROLE' | 'SCENE' | 'PROP' | 'AUDIO' | 'OTHER';
   _count: {
     assets: number;
   };
@@ -163,6 +163,10 @@ const AssetLibraryDetailPage = () => {
     canDownload: boolean;
     canDelete: boolean;
   }>({ isOwner: true, isCollaborator: false, canDownload: true, canDelete: true });
+  
+  // 上传相关
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -395,6 +399,63 @@ const AssetLibraryDetailPage = () => {
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   };
 
+  // 获取允许上传的文件类型
+  const getAcceptedFileTypes = (): string => {
+    if (!library) return '';
+    switch (library.category) {
+      case 'SCENE':
+      case 'PROP':
+        return 'image/*';
+      case 'AUDIO':
+        return 'audio/*';
+      case 'OTHER':
+        return 'image/*,video/*,audio/*,.pdf,.doc,.docx,.txt';
+      default:
+        return '';
+    }
+  };
+
+  // 上传素材
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !id) return;
+
+    setUploading(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    try {
+      for (const file of Array.from(files)) {
+        try {
+          // 使用 uploadAsset 上传到 OSS 并关联到资产库
+          const result = await apiClient.assetLibraries.uploadAsset(id, file);
+          if (result.success && result.data?.url) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+        } catch (err) {
+          console.error('上传文件失败:', file.name, err);
+          failCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`成功上传 ${successCount} 个文件`);
+        loadAssets();
+        loadLibrary();
+      }
+      if (failCount > 0) {
+        toast.error(`${failCount} 个文件上传失败`);
+      }
+    } finally {
+      setUploading(false);
+      if (uploadInputRef.current) {
+        uploadInputRef.current.value = '';
+      }
+    }
+  };
+
   // 下载资产
   const handleDownloadAsset = async (asset: Asset) => {
     try {
@@ -516,7 +577,7 @@ const AssetLibraryDetailPage = () => {
           >
             <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
           </button>
-          <h1 className="text-4xl font-bold text-text-light-primary dark:text-text-dark-primary whitespace-nowrap">
+          <h1 className="text-xl font-bold text-text-light-primary dark:text-text-dark-primary whitespace-nowrap">
             {library.name}
           </h1>
         </div>
@@ -549,21 +610,50 @@ const AssetLibraryDetailPage = () => {
           </div>
         </div>
 
+        {/* 上传按钮 - 非角色库可见 */}
+        {permissions.canDelete && library.category !== 'ROLE' && (
+          <>
+            <input
+              ref={uploadInputRef}
+              type="file"
+              multiple
+              accept={getAcceptedFileTypes()}
+              onChange={handleUpload}
+              className="hidden"
+            />
+            <div className="group relative">
+              <button
+                onClick={() => uploadInputRef.current?.click()}
+                disabled={uploading}
+                className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>
+                  {uploading ? 'progress_activity' : 'upload'}
+                </span>
+              </button>
+              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                {uploading ? '上传中...' : '上传素材'}
+              </span>
+            </div>
+          </>
+        )}
         {/* 创建角色按钮 - 仅角色库所有者可见 */}
         {permissions.canDelete && library.category === 'ROLE' && (
-          <button
-            onClick={() => {
-              setRoleForm({ name: '', faceAssetId: '', frontAssetId: '', sideAssetId: '', backAssetId: '', voiceAssetId: '', documentAssetId: '' });
-              setRoleMainFile(null);
-              setRoleOpt1File(null);
-              setRoleOpt2File(null);
-              setShowCreateRole(true);
-            }}
-            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white font-medium rounded-lg transition-all flex items-center gap-2 active:scale-95 whitespace-nowrap"
-          >
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>person_add</span>
-            创建角色
-          </button>
+          <div className="group relative">
+            <button
+              onClick={() => {
+                setRoleForm({ name: '', faceAssetId: '', frontAssetId: '', sideAssetId: '', backAssetId: '', voiceAssetId: '', documentAssetId: '' });
+                setRoleMainFile(null);
+                setRoleOpt1File(null);
+                setRoleOpt2File(null);
+                setShowCreateRole(true);
+              }}
+              className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+            >
+              <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>person_add</span>
+            </button>
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">创建角色</span>
+          </div>
         )}
         {/* 协作者标识 */}
         {library.isShared && (
@@ -700,14 +790,15 @@ const AssetLibraryDetailPage = () => {
                     }}
                   />
                 ) : asset.type === 'AUDIO' ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-4">
-                    <span className="material-symbols-outlined text-4xl text-tiffany-300 dark:text-white/30 mb-3">
+                  <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-slate-100 dark:bg-transparent">
+                    <span className="material-symbols-outlined text-4xl text-tiffany-500 dark:text-white/30 mb-3">
                       audio_file
                     </span>
                     <audio
                       src={resolveAssetUrl(asset.url)}
                       controls
                       className="w-full max-w-[90%]"
+                      style={{ colorScheme: 'light dark' }}
                       onError={() => {
                         console.error('Audio load error:', asset.url);
                       }}
@@ -967,11 +1058,11 @@ const AssetLibraryDetailPage = () => {
                 }}
               />
             ) : previewAsset.type === 'AUDIO' ? (
-              <div className="bg-gradient-to-br from-tiffany-500/20 to-coral-500/20 backdrop-blur-md rounded-2xl p-16 flex flex-col items-center justify-center min-w-[500px]">
-                <span className="material-symbols-outlined text-9xl text-white mb-8">
+              <div className="bg-white/90 dark:bg-gradient-to-br dark:from-tiffany-500/20 dark:to-coral-500/20 backdrop-blur-md rounded-2xl p-16 flex flex-col items-center justify-center min-w-[500px]">
+                <span className="material-symbols-outlined text-9xl text-tiffany-500 dark:text-white mb-8">
                   audio_file
                 </span>
-                <h3 className="text-2xl font-bold text-white mb-6 text-center max-w-md">
+                <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-6 text-center max-w-md">
                   {previewAsset.name}
                 </h3>
                 <audio
@@ -979,6 +1070,7 @@ const AssetLibraryDetailPage = () => {
                   controls
                   autoPlay
                   className="w-full max-w-lg"
+                  style={{ colorScheme: 'light dark' }}
                   onError={() => {
                     console.error('Audio preview error:', previewAsset.url);
                   }}

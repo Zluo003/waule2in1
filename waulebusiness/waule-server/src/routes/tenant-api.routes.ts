@@ -149,6 +149,9 @@ router.delete('/asset-libraries/:id/roles/:roleId', tenantApiController.deleteRo
 // 获取资产库中的资产
 router.get('/asset-libraries/:id/assets', tenantApiController.getAssetLibraryAssets);
 
+// 上传文件到资产库
+router.post('/asset-libraries/:id/upload', upload.single('file'), tenantApiController.uploadAssetToLibrary);
+
 // 从URL添加资产到资产库
 router.post('/asset-libraries/:id/add-from-url', tenantApiController.addAssetFromUrl);
 

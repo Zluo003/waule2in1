@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Audio player light mode - invert colors to show light player */
+audio {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.dark audio {
+  filter: none;
+}
+
 /* Electron drag regions */
 .drag {
   -webkit-app-region: drag;

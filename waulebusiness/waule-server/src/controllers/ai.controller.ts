@@ -25,9 +25,16 @@ async function getAIModel(modelId: string) {
     if (cached) return JSON.parse(cached);
   } catch {}
   
-  const model = await prisma.aIModel.findUnique({
+  // 兼容：部分调用方会传 AIModel.id（数据库主键），也有调用方会直接传 AIModel.modelId（供应商模型名）
+  let model = await prisma.aIModel.findUnique({
     where: { id: modelId },
   });
+
+  if (!model) {
+    model = await prisma.aIModel.findFirst({
+      where: { modelId },
+    });
+  }
   
   if (model) {
     try { await redis.set(cacheKey, JSON.stringify(model), 'EX', 600); } catch {}

@@ -462,9 +462,14 @@ export const apiClient = {
       apiClient.tenant.put(`/asset-libraries/${id}`, data),
     delete: (id: string) => apiClient.tenant.delete(`/asset-libraries/${id}`),
     getAssets: (id: string) => apiClient.tenant.get(`/asset-libraries/${id}/assets`),
-    uploadAsset: async (libraryId: string, file: File, customName?: string, config?: AxiosRequestConfig) => {
-      // 使用直传 OSS
-      return apiClient.assets.upload(file, { assetLibraryId: libraryId, customName }, config);
+    uploadAsset: async (libraryId: string, file: File, _customName?: string, config?: AxiosRequestConfig) => {
+      // 使用租户 API 上传到资产库
+      const formData = new FormData();
+      formData.append('file', file);
+      return apiClient.tenant.post(`/asset-libraries/${libraryId}/upload`, formData, {
+        ...config,
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
     },
     addFromUrl: (libraryId: string, url: string, name?: string) =>
       apiClient.tenant.post(`/asset-libraries/${libraryId}/add-from-url`, { url, name }),

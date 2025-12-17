@@ -794,13 +794,15 @@ const AssetsPage = () => {
         </div>
 
         {/* 创建按钮 */}
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white font-medium rounded-lg transition-all flex items-center gap-2 active:scale-95 whitespace-nowrap"
-        >
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>add</span>
-          创建资产库
-        </button>
+        <div className="group relative">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+          >
+            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
+          </button>
+          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">创建资产库</span>
+        </div>
       </div>
 
       {/* 资产库列表 */}
@@ -850,15 +852,14 @@ const AssetsPage = () => {
             >
               {/* 缩略图区域 */}
               <div className="h-[70%] bg-slate-100 dark:bg-white/5 relative overflow-hidden flex items-center justify-center">
-                {soraLibraryCover ? (
-                  <img
-                    src={soraLibraryCover.startsWith('data:') || soraLibraryCover.startsWith('http') ? soraLibraryCover : `${API_URL}${soraLibraryCover}`}
-                    alt="Sora角色库"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="material-symbols-outlined text-3xl text-tiffany-300 dark:text-white/30">face</span>
-                )}
+                <img
+                  src={soraLibraryCover || '/sora-library.jpg'}
+                  alt="Sora角色库"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = '/sora-library.jpg';
+                  }}
+                />
                 
                 {/* 编辑按钮 - 左上角悬浮显示 */}
                 <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5">
@@ -977,12 +978,12 @@ const AssetsPage = () => {
               </div>
 
               {/* 资产库信息 */}
-              <div className="h-[40%] p-4 bg-slate-50 dark:bg-white/5 flex flex-col justify-start border-t border-slate-200 dark:border-white/10">
-                <h3 className="text-base font-bold text-slate-800 dark:text-white line-clamp-2 mb-2">
+              <div className="h-[30%] p-3 flex flex-col justify-center">
+                <h3 className="font-bold text-sm text-slate-800 dark:text-white truncate">
                   {library.name}
                 </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3">
-                  {library.description || '暂无描述'}
+                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 truncate">
+                  {library.description || `已上传 ${library._count?.assets ?? 0} 个素材`}
                 </p>
               </div>
             </div>

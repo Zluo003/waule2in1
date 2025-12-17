@@ -20,12 +20,17 @@ const storage = multer.memoryStorage();
 // 文件过滤器
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedTypes = [
-    // 图片
-    'image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif',
+    // 图片（包括各种变体 MIME 类型）
+    'image/png', 'image/x-png',
+    'image/jpeg', 'image/jpg', 'image/pjpeg',
+    'image/webp', 'image/gif', 'image/bmp', 'image/tiff',
+    'image/svg+xml', 'image/heic', 'image/heif', 'image/avif',
     // 视频
-    'video/mp4', 'video/quicktime', 'video/webm',
+    'video/mp4', 'video/quicktime', 'video/webm', 'video/avi', 'video/x-msvideo',
+    'video/mpeg', 'video/x-matroska', 'video/3gpp',
     // 音频
-    'audio/mpeg', 'audio/wav',
+    'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/ogg', 'audio/webm',
+    'audio/aac', 'audio/flac', 'audio/x-m4a', 'audio/mp4',
     // 文档
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -36,6 +41,8 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
+    // 记录被拒绝的 MIME 类型，方便后续排查
+    console.warn(`[Asset] 文件类型被拒绝: ${file.mimetype}, 文件名: ${file.originalname}`);
     cb(new Error(`不支持的文件类型: ${file.mimetype}`));
   }
 };
