@@ -13,6 +13,7 @@ export interface GeminiImageOptions {
   model: string;
   prompt: string;
   size?: string;
+  imageSize?: string; // 图片分辨率（2K/4K，仅用于 Gemini 3 Pro Image）
   referenceImages?: string[];
 }
 
@@ -28,19 +29,25 @@ export async function generateImage(options: GeminiImageOptions): Promise<{
   url: string;
   revisedPrompt?: string;
 }> {
-  const { model, prompt, size, referenceImages } = options;
+  const { model, prompt, size, imageSize: inputImageSize, referenceImages } = options;
   const { key: API_KEY, keyId } = getApiKey('google', 'GOOGLE_API_KEY');
   
   // 处理 waule-server 传来的分辨率后缀（如 -2k, -4k），Google API 不识别这些后缀
   let modelId = model || 'gemini-2.0-flash-exp-image-generation';
   const originalModel = modelId;
   
-  // 去除分辨率后缀，提取分辨率信息（用于日志）
-  if (modelId.endsWith('-2k') || modelId.endsWith('-4k')) {
-    modelId = modelId.replace(/-[24]k$/, '');
+  // 优先使用传入的 imageSize 参数，其次从模型名后缀提取
+  // Gemini 3 Pro Image 支持 imageSize: "1K", "2K", "4K"（大写K）
+  let imageSize = inputImageSize;
+  if (modelId.endsWith('-4k')) {
+    if (!imageSize) imageSize = '4K';
+    modelId = modelId.replace(/-4k$/, '');
+  } else if (modelId.endsWith('-2k')) {
+    if (!imageSize) imageSize = '2K';
+    modelId = modelId.replace(/-2k$/, '');
   }
   
-  log('Gemini', `图片生成: model=${modelId}${originalModel !== modelId ? ` (原始: ${originalModel})` : ''}`);
+  log('Gemini', `图片生成: model=${modelId}, 分辨率=${imageSize || '默认'}${originalModel !== modelId ? ` (原始: ${originalModel})` : ''}`);
   
   const parts: any[] = [];
   
@@ -100,7 +107,7 @@ export async function generateImage(options: GeminiImageOptions): Promise<{
         contents: [{ parts }],
         generationConfig: {
           responseModalities: ['IMAGE'],
-          imageConfig: { aspectRatio },
+          imageConfig: imageSize ? { aspectRatio, imageSize } : { aspectRatio },
         },
       },
       { headers: { 'Content-Type': 'application/json' }, timeout: 300000 }

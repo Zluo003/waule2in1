@@ -21,6 +21,7 @@ export interface FutureApiImageOptions {
   model: string;
   prompt: string;
   size?: string;
+  imageSize?: string; // 图片分辨率（2K/4K）
   referenceImages?: string[];
 }
 

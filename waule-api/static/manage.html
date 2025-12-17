@@ -575,6 +575,12 @@
                             <label class="text-sm font-medium mb-2 block">代理地址</label>
                             <input id="cfgProxyUrl" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="http://127.0.0.1:7890 或 socks5://127.0.0.1:1080">
                             <p class="text-xs text-muted-foreground mt-1">支持 HTTP 和 SOCKS5 代理</p>
+                        </div>
+                        <button onclick="saveProxyConfig()" class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 w-full">保存配置</button>
+                    </div>
+                </div>
+
+                <!-- 错误处理配置 -->
                 <div class="rounded-lg border border-border bg-background p-6">
                     <h3 class="text-lg font-semibold mb-4">错误处理配置</h3>
                     <div class="space-y-4">

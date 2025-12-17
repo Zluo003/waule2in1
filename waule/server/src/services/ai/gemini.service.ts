@@ -270,10 +270,12 @@ export const generateImage = async (options: GeminiImageGenerateOptions): Promis
     const wauleApiClient = getGlobalWauleApiClient();
     if (wauleApiClient) {
       console.log('🌐 [Gemini] apiKey 为空，使用 waule-api 网关生成图片');
+      console.log(`   - 模型: ${modelId}, 宽高比: ${aspectRatio}, 分辨率: ${imageSize || '默认'}`);
       const r = await wauleApiClient.generateImage({
         model: modelId,
         prompt,
         size: aspectRatio,
+        image_size: imageSize, // 传递分辨率参数（2K/4K）
         reference_images: referenceImages || undefined,
       });
       const imageUrl = r?.data?.[0]?.url;

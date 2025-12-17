@@ -50,7 +50,7 @@ function shouldUseProxyChannel(model: string): boolean {
 
 router.post('/generations', async (req: Request, res: Response) => {
   try {
-    const { model, prompt, size, n = 1, reference_images, use_intl, max_images } = req.body;
+    const { model, prompt, size, image_size, n = 1, reference_images, use_intl, max_images } = req.body;
     
     if (!model || !prompt) {
       return res.status(400).json({
@@ -58,7 +58,7 @@ router.post('/generations', async (req: Request, res: Response) => {
       });
     }
     
-    log(`图片生成请求: model=${model}, size=${size}, refImages=${reference_images?.length || 0}, maxImages=${max_images || 1}`);
+    log(`图片生成请求: model=${model}, size=${size}, imageSize=${image_size || '默认'}, refImages=${reference_images?.length || 0}, maxImages=${max_images || 1}`);
     
     let result: { url: string; urls?: string[]; revisedPrompt?: string };
     const modelLower = model.toLowerCase();
@@ -70,14 +70,14 @@ router.post('/generations', async (req: Request, res: Response) => {
       
       if (useProxy) {
         // 使用中转API
-        result = await futureApi.generateImage({ model, prompt, size, referenceImages: reference_images });
+        result = await futureApi.generateImage({ model, prompt, size, imageSize: image_size, referenceImages: reference_images });
       } else {
-        // 使用原生Gemini API，传递原始模型名（gemini.ts 会处理分辨率后缀）
-        result = await gemini.generateImage({ model, prompt, size, referenceImages: reference_images });
+        // 使用原生Gemini API，传递分辨率参数
+        result = await gemini.generateImage({ model, prompt, size, imageSize: image_size, referenceImages: reference_images });
       }
     } else if (modelLower.includes('gemini')) {
       // 其他 Gemini 模型使用原生API
-      result = await gemini.generateImage({ model, prompt, size, referenceImages: reference_images });
+      result = await gemini.generateImage({ model, prompt, size, imageSize: image_size, referenceImages: reference_images });
     } else if (modelLower.includes('doubao') || modelLower.includes('seedream')) {
       result = await doubao.generateImage({ model, prompt, size, referenceImages: reference_images, maxImages: max_images });
     } else if (modelLower.includes('qwen-vl') || modelLower.includes('qwen2-vl') || modelLower.includes('qwen-image')) {
