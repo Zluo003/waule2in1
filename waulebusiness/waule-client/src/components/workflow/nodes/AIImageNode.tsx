@@ -707,11 +707,28 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
 
     try {
       // 处理参考图片（本地转base64，公网直接用）
+      // 限制单张图片最大 10MB
+      const MAX_IMAGE_SIZE_MB = 10;
+      const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
       let processedReferenceImages: string[] = [];
 
       if (referenceImages.length > 0) {
         try {
           for (const imageUrl of referenceImages) {
+            // 检查图片大小（对于可获取的URL）
+            if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) {
+              try {
+                const headRes = await fetch(imageUrl, { method: 'HEAD' });
+                const contentLength = headRes.headers.get('content-length');
+                if (contentLength && parseInt(contentLength) > MAX_IMAGE_SIZE_BYTES) {
+                  toast.error(`参考图片超过 ${MAX_IMAGE_SIZE_MB}MB 限制，请压缩后重试`);
+                  setIsGenerating(false);
+                  return;
+                }
+              } catch {
+                // HEAD 请求失败，继续处理（某些服务器不支持 HEAD）
+              }
+            }
             const processedUrl = await processImageUrl(imageUrl);
             processedReferenceImages.push(processedUrl);
           }
