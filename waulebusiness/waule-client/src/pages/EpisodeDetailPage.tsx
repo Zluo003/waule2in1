@@ -581,12 +581,21 @@ export default function EpisodeDetailPageNew() {
           {/* 第三组：导出 */}
           <div className="group relative">
             <button 
+              onClick={() => toast.info('导出到剪映功能开发中')}
+              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+            >
+              <span className="material-symbols-outlined text-lg">content_cut</span>
+            </button>
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">导出到剪映</span>
+          </div>
+          <div className="group relative">
+            <button 
               onClick={() => toast.info('导出功能开发中')}
               className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
             >
               <span className="material-symbols-outlined text-lg">ios_share</span>
             </button>
-            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">导出</span>
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">导出全部素材</span>
           </div>
         </div>
       </header>
@@ -710,7 +719,7 @@ export default function EpisodeDetailPageNew() {
           <div className="flex-1 p-4 flex flex-col min-h-0">
             {currentShot ? (
               <div className="flex flex-col gap-3 h-full">
-                {/* 画面 - 50% */}
+                {/* 画面 - 1/3 */}
                 <div className="flex flex-col flex-1 min-h-0">
                   <label className="block text-xs font-bold text-text-light-secondary dark:text-text-dark-secondary mb-1 uppercase shrink-0">画面</label>
                   <textarea
@@ -722,7 +731,7 @@ export default function EpisodeDetailPageNew() {
                     placeholder="描述画面内容..."
                   />
                 </div>
-                {/* 动作 - 50% */}
+                {/* 动作 - 1/3 */}
                 <div className="flex flex-col flex-1 min-h-0">
                   <label className="block text-xs font-bold text-text-light-secondary dark:text-text-dark-secondary mb-1 uppercase shrink-0">动作</label>
                   <textarea
@@ -732,6 +741,18 @@ export default function EpisodeDetailPageNew() {
                     readOnly={!canEdit}
                     className="flex-1 w-full bg-white/30 dark:bg-white/5 text-text-light-primary dark:text-text-dark-primary rounded-lg p-3 text-sm resize-none border border-slate-400 dark:border-white/20 focus:border-purple-500 focus:outline-none backdrop-blur-sm"
                     placeholder="描述角色动作..."
+                  />
+                </div>
+                {/* 台词/旁白 - 1/3 */}
+                <div className="flex flex-col flex-1 min-h-0">
+                  <label className="block text-xs font-bold text-text-light-secondary dark:text-text-dark-secondary mb-1 uppercase shrink-0">台词/旁白</label>
+                  <textarea
+                    value={currentShot['声音/对话']}
+                    onChange={canEdit ? (e) => updateShotField(currentShotIndex, '声音/对话', e.target.value) : undefined}
+                    onBlur={canEdit ? () => saveShots(shots) : undefined}
+                    readOnly={!canEdit}
+                    className="flex-1 w-full bg-white/30 dark:bg-white/5 text-text-light-primary dark:text-text-dark-primary rounded-lg p-3 text-sm resize-none border border-slate-400 dark:border-white/20 focus:border-purple-500 focus:outline-none backdrop-blur-sm"
+                    placeholder="描述台词或旁白..."
                   />
                 </div>
               </div>
