@@ -17,7 +17,7 @@ export const getAssetLibraries = async (req: Request, res: Response) => {
     }
 
     const { category: categoryParam, q, limit: limitRaw, offset: offsetRaw, includeShared } = req.query as any;
-    const allowed = ['ROLE', 'SCENE', 'PROP', 'OTHER'];
+    const allowed = ['ROLE', 'SCENE', 'PROP', 'AUDIO', 'OTHER'];
     const categoryFilter = allowed.includes(String(categoryParam || '').toUpperCase())
       ? String(categoryParam).toUpperCase()
       : undefined;
@@ -188,7 +188,7 @@ export const createAssetLibrary = async (req: Request, res: Response) => {
       return res.status(400).json({ message: '资产库名称不能为空' });
     }
 
-    const allowedCategories = ['ROLE', 'SCENE', 'PROP', 'OTHER'];
+    const allowedCategories = ['ROLE', 'SCENE', 'PROP', 'AUDIO', 'OTHER'];
     const finalCategory = allowedCategories.includes((category || '').toUpperCase())
       ? (category as string).toUpperCase()
       : 'OTHER';
@@ -263,7 +263,7 @@ export const updateAssetLibrary = async (req: Request, res: Response) => {
     if (description !== undefined) updateData.description = description?.trim();
     if (thumbnail !== undefined) updateData.thumbnail = thumbnail;
     if (category !== undefined) {
-      const allowedCategories = ['ROLE', 'SCENE', 'PROP', 'OTHER'];
+      const allowedCategories = ['ROLE', 'SCENE', 'PROP', 'AUDIO', 'OTHER'];
       const upper = (category as string).toUpperCase();
       if (allowedCategories.includes(upper)) {
         updateData.category = upper as any;

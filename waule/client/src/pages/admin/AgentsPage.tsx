@@ -6,6 +6,7 @@ interface Agent {
   id: string;
   name: string;
   description?: string;
+  usageScene: string; // workflow | episode | advertisement
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -51,6 +52,7 @@ export default function AgentsPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    usageScene: 'workflow',
     isActive: true,
   });
   const [roleForm, setRoleForm] = useState({
@@ -106,6 +108,7 @@ export default function AgentsPage() {
     setFormData({
       name: '',
       description: '',
+      usageScene: 'workflow',
       isActive: true,
     });
     setShowModal(true);
@@ -116,6 +119,7 @@ export default function AgentsPage() {
     setFormData({
       name: agent.name,
       description: agent.description || '',
+      usageScene: agent.usageScene || 'workflow',
       isActive: agent.isActive,
     });
     setShowModal(true);
@@ -298,6 +302,15 @@ export default function AgentsPage() {
             </div>
 
             <div className="space-y-2 mb-4">
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`px-2 py-0.5 rounded text-xs ${
+                  agent.usageScene === 'workflow' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+                  agent.usageScene === 'episode' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' :
+                  'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                }`}>
+                  {agent.usageScene === 'workflow' ? '工作流' : agent.usageScene === 'episode' ? '剧集创作' : '广告创作'}
+                </span>
+              </div>
               <div className="text-xs text-text-light-tertiary dark:text-text-dark-tertiary">此智能体为空壳，具体能力由下方角色决定</div>
             </div>
 
@@ -426,6 +439,24 @@ export default function AgentsPage() {
                   className="w-full px-3 py-2 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-tiffany-500"
                   placeholder="简要描述智能体的功能"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
+                  使用场景 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.usageScene}
+                  onChange={(e) => setFormData({ ...formData, usageScene: e.target.value })}
+                  className="w-full px-3 py-2 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-tiffany-500"
+                >
+                  <option value="workflow">工作流</option>
+                  <option value="episode">剧集创作</option>
+                  <option value="advertisement">广告创作</option>
+                </select>
+                <p className="mt-1 text-xs text-text-light-tertiary dark:text-text-dark-tertiary">
+                  选择智能体的使用场景，不同场景下的智能体会在对应功能中显示
+                </p>
               </div>
 
               {/* 空壳智能体无需提示词与模型，改由角色定义 */}

@@ -71,7 +71,7 @@ export class AgentController {
   // 创建智能体
   async create(req: Request, res: Response) {
     try {
-      const { name, description, isActive } = req.body;
+      const { name, description, usageScene, isActive } = req.body;
       if (!name) {
         return res.status(400).json({ error: 'Name is required' });
       }
@@ -80,6 +80,7 @@ export class AgentController {
         data: {
           name,
           description,
+          usageScene: usageScene || 'workflow',
           isActive: isActive ?? true,
         },
         include: {
@@ -92,6 +93,9 @@ export class AgentController {
         },
       });
 
+      // 清除缓存
+      try { await redis.del('agents:list'); } catch {}
+
       res.status(201).json(agent);
     } catch (error: any) {
       console.error('Failed to create agent:', error);
@@ -103,7 +107,7 @@ export class AgentController {
   async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { name, description, isActive } = req.body;
+      const { name, description, usageScene, isActive } = req.body;
 
       // 验证智能体是否存在
       const existingAgent = await prisma.agent.findUnique({
@@ -119,6 +123,7 @@ export class AgentController {
         data: {
           ...(name !== undefined && { name }),
           ...(description !== undefined && { description }),
+          ...(usageScene !== undefined && { usageScene }),
           ...(isActive !== undefined && { isActive }),
         },
         include: {
@@ -130,6 +135,9 @@ export class AgentController {
           },
         },
       });
+
+      // 清除缓存
+      try { await redis.del('agents:list'); } catch {}
 
       res.json(agent);
     } catch (error: any) {
@@ -155,6 +163,9 @@ export class AgentController {
       await prisma.agent.delete({
         where: { id },
       });
+
+      // 清除缓存
+      try { await redis.del('agents:list'); } catch {}
 
       res.json({ message: 'Agent deleted successfully' });
     } catch (error: any) {

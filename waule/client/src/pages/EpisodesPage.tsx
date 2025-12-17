@@ -467,20 +467,22 @@ const EpisodesPage = () => {
         <div className="flex-1"></div>
 
         {/* 新建剂集按钮 */}
-        <button
-          onClick={() => {
-            setFormData({
-              name: '',
-              episodeNumber: getNextAvailableEpisodeNumber(),
-              description: '',
-            });
-            setShowCreateModal(true);
-          }}
-          className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white font-medium rounded-lg transition-all flex items-center gap-2 active:scale-95 whitespace-nowrap"
-        >
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>add</span>
-          新建剧集
-        </button>
+        <div className="group relative">
+          <button
+            onClick={() => {
+              setFormData({
+                name: '',
+                episodeNumber: getNextAvailableEpisodeNumber(),
+                description: '',
+              });
+              setShowCreateModal(true);
+            }}
+            className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+          >
+            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
+          </button>
+          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">新建剧集</span>
+        </div>
       </div>
 
       {/* 剧集列表 */}
@@ -523,7 +525,7 @@ const EpisodesPage = () => {
               className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-purple-400 dark:hover:border-purple-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3] flex flex-col"
             >
               {/* 缩略图 */}
-              <div className="h-[65%] bg-slate-100 dark:bg-white/5 relative overflow-hidden">
+              <div className="h-[70%] bg-slate-100 dark:bg-white/5 relative overflow-hidden">
                 <EpisodeCover thumbnail={episode.thumbnail || ''} name={episode.name} episodeNumber={episode.episodeNumber} />
               
                 {/* 操作按钮组 - 仅所有者可见 */}
@@ -573,11 +575,11 @@ const EpisodesPage = () => {
               </div>
 
               {/* 剧集信息 */}
-              <div className="h-[35%] p-4 bg-slate-50 dark:bg-white/5 flex flex-col justify-start border-t border-slate-200 dark:border-white/10">
-                <h3 className="text-base font-bold text-slate-800 dark:text-white line-clamp-2 mb-2">
+              <div className="h-[30%] p-3 flex flex-col justify-center border-t border-slate-200 dark:border-white/10">
+                <h3 className="font-bold text-sm text-slate-800 dark:text-white truncate">
                   {episode.name}
                 </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3">
+                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 truncate">
                   {episode.description || '暂无描述'}
                 </p>
               </div>

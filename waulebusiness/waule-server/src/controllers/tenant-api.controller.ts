@@ -1958,13 +1958,23 @@ export const generateText = asyncHandler(async (req: Request, res: Response) => 
   }
 
   try {
+    // 如果 modelId 是 UUID，从数据库查找实际的模型标识符
+    let actualModelId = modelId || 'gemini-2.5-pro';
+    if (modelId && modelId.includes('-') && modelId.length > 30) {
+      const model = await prisma.aIModel.findUnique({ where: { id: modelId } });
+      if (model) {
+        actualModelId = model.modelId;
+        console.log(`[TenantAPI] 模型 UUID ${modelId} -> ${actualModelId}`);
+      }
+    }
+
     // 调用 Gemini 服务生成文本
     const { generateText: geminiGenerateText } = await import('../services/ai/gemini.service');
     
     const text = await geminiGenerateText({
       prompt: prompt || '',
       systemPrompt: systemPrompt || '',
-      modelId: modelId || 'gemini-2.5-pro',
+      modelId: actualModelId,
       temperature: temperature || 0.7,
       maxTokens: maxTokens || 8192,
       imageUrls: imageUrls || [],
@@ -4179,5 +4189,92 @@ export const deleteRole = asyncHandler(async (req: Request, res: Response) => {
   await prisma.tenantAsset.delete({ where: { id: roleId } });
 
   res.json({ success: true, message: '角色已删除' });
+});
+
+/**
+ * 获取可用的文本生成模型（用于工作流智能体节点）
+ */
+export const getAvailableAgentModels = asyncHandler(async (req: Request, res: Response) => {
+  const models = await prisma.aIModel.findMany({
+    where: {
+      isActive: true,
+      type: 'TEXT_GENERATION',
+    },
+    select: {
+      id: true,
+      name: true,
+      provider: true,
+      modelId: true,
+      type: true,
+      pricePerUse: true,
+    },
+    orderBy: { name: 'asc' },
+  });
+  
+  res.json(models);
+});
+
+/**
+ * 提取文档文本（PDF、Word等）
+ */
+export const extractDocumentText = asyncHandler(async (req: Request, res: Response) => {
+  const { filePath } = req.body;
+  
+  if (!filePath) {
+    return res.status(400).json({ success: false, message: 'filePath 是必需的' });
+  }
+
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const axios = (await import('axios')).default;
+    
+    let fileBuffer: Buffer | null = null;
+    let mimeType = '';
+    
+    // 判断是本地路径还是URL
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+      const resp = await axios.get(filePath, { responseType: 'arraybuffer' });
+      fileBuffer = Buffer.from(resp.data);
+      mimeType = resp.headers['content-type'] || '';
+    } else {
+      // 本地文件路径
+      const fullPath = path.join(process.cwd(), filePath);
+      if (fs.existsSync(fullPath)) {
+        fileBuffer = fs.readFileSync(fullPath);
+        // 根据扩展名判断类型
+        const ext = path.extname(filePath).toLowerCase();
+        if (ext === '.pdf') mimeType = 'application/pdf';
+        else if (ext === '.docx') mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        else if (ext === '.doc') mimeType = 'application/msword';
+        else if (ext === '.txt') mimeType = 'text/plain';
+      }
+    }
+    
+    if (!fileBuffer) {
+      return res.status(404).json({ success: false, message: '文件不存在或无法访问' });
+    }
+    
+    let text = '';
+    
+    if (mimeType.includes('pdf')) {
+      const pdfParse = (await import('pdf-parse')).default as any;
+      const pdfData = await pdfParse(fileBuffer);
+      text = String(pdfData?.text || '');
+    } else if (mimeType.includes('wordprocessingml') || mimeType.includes('msword')) {
+      const mammoth = await import('mammoth');
+      const result = await mammoth.extractRawText({ buffer: fileBuffer });
+      text = String(result?.value || '');
+    } else if (mimeType.startsWith('text/') || filePath.endsWith('.txt')) {
+      text = fileBuffer.toString('utf8');
+    } else {
+      return res.status(400).json({ success: false, message: '不支持的文件格式' });
+    }
+    
+    res.json({ success: true, data: { text, mimeType } });
+  } catch (error: any) {
+    console.error('[extractDocumentText] 提取文档失败:', error);
+    res.status(500).json({ success: false, message: error.message || '提取文档失败' });
+  }
 });
 

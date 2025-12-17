@@ -139,6 +139,18 @@ const WorkflowEditorInner = () => {
     const v = Number(searchParams.get('shot'));
     return Number.isFinite(v) && v > 0 ? v : undefined;
   }, [searchParams]);
+  // 从剧集详情页传入的资产
+  const initialAssets = useMemo(() => {
+    try {
+      const assetsStr = searchParams.get('assets');
+      if (assetsStr) {
+        const parsed = JSON.parse(decodeURIComponent(assetsStr));
+        return parsed;
+      }
+    } catch (e) {
+    }
+    return [];
+  }, [searchParams]);
   const { screenToFlowPosition, setCenter, getViewport, fitView } = useReactFlow();
   const { setTitle } = useHeader();
   const authUser = useAuthStore(state => state.user); // 当前登录用户
@@ -155,6 +167,7 @@ const WorkflowEditorInner = () => {
   const currentUserIdRef = useRef<string | null>(null); // ref 版本用于回调中
   const [isSharedWorkflow, setIsSharedWorkflow] = useState(false); // 是否是共享工作流（需要自动刷新）
   const actualWorkflowIdRef = useRef<string | null>(null); // 实际工作流ID（用于自动刷新）
+  const initialAssetsAddedRef = useRef<string | null>(null); // 防止重复添加资产节点（记录 shot 参数）
   const [initialFitDone, setInitialFitDone] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
   const [aiModels, setAiModels] = useState<any[]>([]);
@@ -660,40 +673,183 @@ const WorkflowEditorInner = () => {
     if (!workflowLoaded) return;
 
     const existing = nodeGroups.find(g => g.scene === sceneParam && g.shot === shotParam);
+    const shotKey = `${sceneParam}-${shotParam}`;
     if (existing) {
       setCurrentShotGroupId(existing.id);
       setSelectedGroupId(existing.id);
+      // 脚本节点内容双向同步：以工作流中的内容为准，不覆盖
+      // 只添加新的资产节点（防止重复添加）
       try {
-        const acts = (episode as any)?.scriptJson?.acts || [];
-        const act = Array.isArray(acts) ? acts.find((a: any) => Number(a.actIndex) === Number(sceneParam)) : null;
-        const shot = act ? (act.shots || []).find((s: any) => Number(s.shotIndex) === Number(shotParam)) : null;
-        const makeDocText = () => {
-          if (!shot) return '';
-          const lines = [
-            `画面：${(shot['画面'] || '').trim()}`,
-            `景别/镜头：${(shot['景别/镜头'] || '').trim()}`,
-            `内容/动作：${(shot['内容/动作'] || '').trim()}`,
-            `声音/对话：${(shot['声音/对话'] || '').trim()}`,
-            `时长：${(shot['时长'] || '').trim()}`,
-          ];
-          return lines.join('\n');
-        };
-        const docText = makeDocText();
-        const promptText = (shot && (shot['提示词'] || '').trim()) || '';
-        setNodes((nds) => nds.map((n) => {
-          if (n.type !== 'textPreview') return n;
-          const t = (n.data as any)?.title || '';
-          if (t === '分镜设计') {
-            return { ...n, data: { ...n.data, content: docText || '暂无分镜文本' } } as any;
+        // 检查是否已经为该分镜添加过资产
+        if (initialAssetsAddedRef.current === shotKey) {
+          return;
+        }
+        // 为传入的资产创建节点（即使是已存在的镜头组）
+        if (Array.isArray(initialAssets) && initialAssets.length > 0) {
+          initialAssetsAddedRef.current = shotKey; // 标记已添加
+          const existingNodes = nodes;
+          const newAssetNodes: Node[] = [];
+          
+          // 按类型分组：角色第1列、场景第2列、道具第3列、音频第4列
+          const COL_WIDTH = 280;
+          const ROW_HEIGHT = 320;
+          const START_Y = 350;
+          
+          // 统计已有节点中每种类型的数量（用于计算新节点的起始行）
+          const existingTypeCounts = { role: 0, scene: 0, prop: 0, audio: 0 };
+          existingNodes.forEach(n => {
+            if (n.type === 'assetSelector') {
+              const label = (n.data as any)?.label || '';
+              if (label.startsWith('角色')) existingTypeCounts.role++;
+              else if (label.startsWith('场景')) existingTypeCounts.scene++;
+              else if (label.startsWith('道具')) existingTypeCounts.prop++;
+              else if (label.startsWith('音频')) existingTypeCounts.audio++;
+            }
+          });
+          
+          // 新增节点的计数器（从已有数量开始）
+          const typeCounters = { ...existingTypeCounts };
+          
+          // 用于更新已有节点的URL
+          const nodesToUpdate: { nodeId: string; newUrl: string }[] = [];
+          
+          initialAssets.forEach((asset: any, idx: number) => {
+            const assetUrl = asset.thumbnail || asset.url || '';
+            
+            // 检查是否已存在相同资产的节点（通过ID或名称匹配）
+            let matchedNodeId: string | null = null;
+            const alreadyExists = existingNodes.some(n => {
+              if (n.type !== 'assetSelector') return false;
+              const config = (n.data as any)?.config;
+              const selectedAsset = config?.selectedAsset;
+              // 通过ID匹配
+              if (selectedAsset?.id === asset.id) { matchedNodeId = n.id; return true; }
+              // 通过名称+类型匹配（兼容）
+              const label = (n.data as any)?.label || '';
+              const assetLabel = asset.type === 'role' ? '角色' : asset.type === 'scene' ? '场景' : '道具';
+              if (label === `${assetLabel}: ${asset.name}`) { matchedNodeId = n.id; return true; }
+              if (selectedAsset?.name === asset.name) { matchedNodeId = n.id; return true; }
+              return false;
+            });
+            
+            // 如果已存在，更新其URL（修复之前可能保存错误的URL）
+            if (alreadyExists && matchedNodeId && assetUrl) {
+              nodesToUpdate.push({ nodeId: matchedNodeId, newUrl: assetUrl });
+            }
+            if (alreadyExists) return;
+            
+            const assetType = asset.type as 'role' | 'scene' | 'prop' | 'audio';
+            const colIndex = assetType === 'role' ? 0 : assetType === 'scene' ? 1 : assetType === 'prop' ? 2 : 3;
+            const rowIndex = typeCounters[assetType] || 0;
+            typeCounters[assetType] = (typeCounters[assetType] || 0) + 1;
+            
+            const assetPos = { x: colIndex * COL_WIDTH, y: START_Y + rowIndex * ROW_HEIGHT };
+            const newAssetUrl = asset.thumbnail || asset.url || '';
+            
+            const assetNodeId = `assetSelector-${Date.now()}-${idx}`;
+            const assetLabel = assetType === 'role' ? '角色' : assetType === 'scene' ? '场景' : assetType === 'prop' ? '道具' : '音频';
+            
+            // 角色使用 RoleGroup 格式（支持多图片），场景/道具使用 selectedAsset 格式
+            const metadata = asset.metadata;
+            const hasMultipleImages = assetType === 'role' && metadata?.images;
+            
+            // 构建角色图片数组 - 从 metadata.images 中提取所有图片URL
+            let roleImages: { id: string; url: string; name: string }[] = [];
+            if (hasMultipleImages) {
+              const imgs = metadata.images;
+              if (imgs.frontUrl) roleImages.push({ id: 'front', url: imgs.frontUrl, name: `${asset.name}-正面` });
+              if (imgs.sideUrl) roleImages.push({ id: 'side', url: imgs.sideUrl, name: `${asset.name}-侧面` });
+              if (imgs.backUrl) roleImages.push({ id: 'back', url: imgs.backUrl, name: `${asset.name}-背面` });
+              if (imgs.faceUrl) roleImages.push({ id: 'face', url: imgs.faceUrl, name: `${asset.name}-面部` });
+            }
+            
+            // 根据资产类型构建节点配置
+            let nodeConfig: any;
+            if (hasMultipleImages && roleImages.length > 0) {
+              nodeConfig = {
+                selectedInput: {
+                  id: asset.id,
+                  name: asset.name,
+                  coverUrl: newAssetUrl,
+                  images: roleImages,
+                },
+              };
+            } else if (assetType === 'audio') {
+              nodeConfig = {
+                selectedAsset: {
+                  id: asset.id,
+                  name: asset.name,
+                  originalName: asset.name,
+                  url: asset.url || '',
+                  type: 'AUDIO',
+                  mimeType: 'audio/mpeg',
+                  size: 0,
+                },
+              };
+            } else {
+              nodeConfig = {
+                selectedAsset: {
+                  id: asset.id,
+                  name: asset.name,
+                  originalName: asset.name,
+                  url: newAssetUrl,
+                  type: 'IMAGE',
+                  mimeType: 'image/png',
+                  size: 0,
+                },
+              };
+            }
+            
+            newAssetNodes.push({
+              id: assetNodeId,
+              type: 'assetSelector',
+              position: assetPos,
+              data: {
+                id: assetNodeId,
+                label: `${assetLabel}: ${asset.name}`,
+                config: nodeConfig,
+                freeDrag: true,
+                createdBy: authUser ? { id: authUser.id, nickname: authUser.nickname, avatar: authUser.avatar } : undefined,
+                workflowContext: { project, episode, nodeGroup: existing, nodeGroups },
+              } as any,
+            });
+          });
+          // 更新已有节点的URL（修复之前可能保存错误的URL）
+          if (nodesToUpdate.length > 0) {
+            setNodes((nds) => nds.map(n => {
+              const update = nodesToUpdate.find(u => u.nodeId === n.id);
+              if (update && n.type === 'assetSelector') {
+                const config = (n.data as any)?.config || {};
+                const selectedAsset = config.selectedAsset || {};
+                return {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    config: {
+                      ...config,
+                      selectedAsset: {
+                        ...selectedAsset,
+                        url: update.newUrl,
+                      },
+                    },
+                  },
+                } as any;
+              }
+              return n;
+            }));
           }
-          if (t === '提示词') {
-            return { ...n, data: { ...n.data, content: promptText || '暂无提示词' } } as any;
+          if (newAssetNodes.length > 0) {
+            setNodes((nds) => [...nds, ...newAssetNodes]);
           }
-          return n;
-        }));
+        }
       } catch { }
       return;
     }
+    // 检查是否已经为该分镜添加过资产（新建分镜组情况）
+    if (initialAssetsAddedRef.current === shotKey) {
+      return;
+    }
+    
     const newGroup: NodeGroup = {
       id: `group-${Date.now()}`,
       nodeIds: [],
@@ -707,6 +863,7 @@ const WorkflowEditorInner = () => {
     nodeGroupsRef.current = [...nodeGroupsRef.current, newGroup];
     setCurrentShotGroupId(newGroup.id);
     setSelectedGroupId(newGroup.id);
+    initialAssetsAddedRef.current = shotKey; // 标记已添加
 
     try {
       const acts = (episode as any)?.scriptJson?.acts || [];
@@ -725,8 +882,16 @@ const WorkflowEditorInner = () => {
       };
       const docText = makeDocText();
       const promptText = (shot && (shot['提示词'] || '').trim()) || '';
+      
+      // 布局常量
+      const TEXT_NODE_WIDTH = 500;
+      const TEXT_NODE_GAP = 40;
+      const ASSET_COL_WIDTH = 280;
+      const ASSET_ROW_HEIGHT = 320;
+      const ASSET_START_Y = 350; // 文本节点下方
+      
       const pos1 = { x: 0, y: 0 };
-      const pos2 = { x: 560, y: 0 };
+      const pos2 = { x: TEXT_NODE_WIDTH + TEXT_NODE_GAP, y: 0 };
 
       const nodeId1 = `textPreview-${Date.now()}-a`;
       const nodeId2 = `textPreview-${Date.now()}-b`;
@@ -741,7 +906,7 @@ const WorkflowEditorInner = () => {
             title: '分镜设计',
             id: nodeId1,
             freeDrag: true,
-            createdBy: authUser ? { id: authUser.id, nickname: authUser.nickname, avatar: authUser.avatar } : undefined, // 记录创建者
+            createdBy: authUser ? { id: authUser.id, nickname: authUser.nickname, avatar: authUser.avatar } : undefined,
             workflowContext: { project, episode, nodeGroup: newGroup, nodeGroups: [...nodeGroups, newGroup] },
           } as any,
         },
@@ -755,26 +920,114 @@ const WorkflowEditorInner = () => {
             title: '提示词',
             id: nodeId2,
             freeDrag: true,
-            createdBy: authUser ? { id: authUser.id, nickname: authUser.nickname, avatar: authUser.avatar } : undefined, // 记录创建者
+            createdBy: authUser ? { id: authUser.id, nickname: authUser.nickname, avatar: authUser.avatar } : undefined,
             workflowContext: { project, episode, nodeGroup: newGroup, nodeGroups: [...nodeGroups, newGroup] },
           } as any,
         },
       ];
+      
+      // 为传入的资产创建节点（按类型分列：角色、场景、道具、音频）
+      const assetNodeIds: string[] = [];
+      if (Array.isArray(initialAssets) && initialAssets.length > 0) {
+        const typeCounters: Record<string, number> = { role: 0, scene: 0, prop: 0, audio: 0 };
+        
+        initialAssets.forEach((asset: any, idx: number) => {
+          const assetType = asset.type as 'role' | 'scene' | 'prop' | 'audio';
+          const colIndex = assetType === 'role' ? 0 : assetType === 'scene' ? 1 : assetType === 'prop' ? 2 : 3;
+          const rowIndex = typeCounters[assetType] || 0;
+          typeCounters[assetType] = (typeCounters[assetType] || 0) + 1;
+          
+          const assetPos = { x: colIndex * ASSET_COL_WIDTH, y: ASSET_START_Y + rowIndex * ASSET_ROW_HEIGHT };
+          
+          const assetNodeId = `assetSelector-${Date.now()}-${idx}`;
+          assetNodeIds.push(assetNodeId);
+          const assetLabel = assetType === 'role' ? '角色' : assetType === 'scene' ? '场景' : assetType === 'prop' ? '道具' : '音频';
+          
+          // 角色使用 RoleGroup 格式（支持多图片），其他使用 selectedAsset 格式
+          const assetUrl = asset.thumbnail || asset.url || '';
+          const metadata = asset.metadata;
+          const hasMultipleImages = assetType === 'role' && metadata?.images;
+          
+          // 构建角色图片数组 - 从 metadata.images 中提取所有图片URL
+          let roleImages: { id: string; url: string; name: string }[] = [];
+          if (hasMultipleImages) {
+            const imgs = metadata.images;
+            if (imgs.frontUrl) roleImages.push({ id: 'front', url: imgs.frontUrl, name: `${asset.name}-正面` });
+            if (imgs.sideUrl) roleImages.push({ id: 'side', url: imgs.sideUrl, name: `${asset.name}-侧面` });
+            if (imgs.backUrl) roleImages.push({ id: 'back', url: imgs.backUrl, name: `${asset.name}-背面` });
+            if (imgs.faceUrl) roleImages.push({ id: 'face', url: imgs.faceUrl, name: `${asset.name}-面部` });
+          }
+          
+          // 根据资产类型构建节点配置
+          let nodeConfig: any;
+          if (hasMultipleImages && roleImages.length > 0) {
+            nodeConfig = {
+              selectedInput: {
+                id: asset.id,
+                name: asset.name,
+                coverUrl: assetUrl,
+                images: roleImages,
+              },
+            };
+          } else if (assetType === 'audio') {
+            nodeConfig = {
+              selectedAsset: {
+                id: asset.id,
+                name: asset.name,
+                originalName: asset.name,
+                url: asset.url || '',
+                type: 'AUDIO',
+                mimeType: 'audio/mpeg',
+                size: 0,
+              },
+            };
+          } else {
+            nodeConfig = {
+              selectedAsset: {
+                id: asset.id,
+                name: asset.name,
+                originalName: asset.name,
+                url: assetUrl,
+                type: 'IMAGE',
+                mimeType: 'image/png',
+                size: 0,
+              },
+            };
+          }
+          
+          newNodes.push({
+            id: assetNodeId,
+            type: 'assetSelector',
+            position: assetPos,
+            data: {
+              id: assetNodeId,
+              label: `${assetLabel}: ${asset.name}`,
+              config: nodeConfig,
+              freeDrag: true,
+              createdBy: authUser ? { id: authUser.id, nickname: authUser.nickname, avatar: authUser.avatar } : undefined,
+              workflowContext: { project, episode, nodeGroup: newGroup, nodeGroups: [...nodeGroups, newGroup] },
+            } as any,
+          });
+        });
+      }
+      
       setNodes((nds) => [...nds, ...newNodes]);
+      const allNewNodeIds = [nodeId1, nodeId2, ...assetNodeIds];
       setNodeGroups(prev => prev.map(g => {
         if (g.id !== newGroup.id) return g;
-        const updatedIds = Array.from(new Set([...(g.nodeIds || []), nodeId1, nodeId2]));
+        const updatedIds = Array.from(new Set([...(g.nodeIds || []), ...allNewNodeIds]));
         const b = g.bounds;
         return { ...g, nodeIds: updatedIds, bounds: b } as NodeGroup;
       }));
       nodeGroupsRef.current = nodeGroupsRef.current.map(g => {
         if (g.id !== newGroup.id) return g;
-        const updatedIds = Array.from(new Set([...(g.nodeIds || []), nodeId1, nodeId2]));
+        const updatedIds = Array.from(new Set([...(g.nodeIds || []), ...allNewNodeIds]));
         const b = g.bounds;
         return { ...g, nodeIds: updatedIds, bounds: b } as NodeGroup;
       });
     } catch { }
-  }, [isEpisodeWorkflow, sceneParam, shotParam, episode, project, nodeGroups, setNodes, workflowLoaded]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEpisodeWorkflow, sceneParam, shotParam, episode, project, nodeGroups, setNodes, workflowLoaded, initialAssets]);
 
   // 编组框已经在 ReactFlow 内部，会自动跟随视口变化，不需要强制更新
 
@@ -3566,7 +3819,9 @@ const WorkflowEditorInner = () => {
           <button
             onClick={() => {
               if (isEpisodeWorkflow && projectId && episodeId) {
-                navigate(`/projects/${projectId}/episodes/${episodeId}`);
+                // 如果是分镜工作流，返回时保持当前分镜视图
+                const shotQuery = isShotWorkflow && sceneParam && shotParam ? `?shot=${shotParam}` : '';
+                navigate(`/projects/${projectId}/episodes/${episodeId}${shotQuery}`);
               } else {
                 navigate('/quick');
               }

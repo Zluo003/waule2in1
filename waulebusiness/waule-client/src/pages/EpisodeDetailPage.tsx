@@ -1,8 +1,8 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
+import JSZip from 'jszip'
 import { apiClient, api } from '../lib/api'
-import { generateAssetName } from '../utils/assetNaming'
 
 interface Episode {
   id: string
@@ -29,8 +29,8 @@ type ScriptShot = {
   '声音/对话': string
   '时长': string
   '提示词': string
-  media?: { type?: string; url?: string; aspectRatio?: '16:9' | '9:16' | '1:1'; orientation?: 'horizontal' | 'vertical' | 'square'; nodeId?: string }
-  mediaList?: Array<{ type?: string; url?: string; aspectRatio?: '16:9' | '9:16' | '1:1'; orientation?: 'horizontal' | 'vertical' | 'square'; nodeId?: string }>
+  media?: { type?: string; url?: string; aspectRatio?: '16:9' | '9:16' | '1:1'; orientation?: 'horizontal' | 'vertical' | 'square'; nodeId?: string; isPrimary?: boolean; duration?: number }
+  mediaList?: Array<{ type?: string; url?: string; aspectRatio?: '16:9' | '9:16' | '1:1'; orientation?: 'horizontal' | 'vertical' | 'square'; nodeId?: string; isPrimary?: boolean; duration?: number }>
   // 每个分镜选中的资产
   selectedRoles?: Array<{ id: string; name: string; thumbnail?: string }>
   selectedScenes?: Array<{ id: string; name: string; url?: string }>
@@ -85,18 +85,94 @@ export default function EpisodeDetailPageNew() {
   const [allScenes, setAllScenes] = useState<any[]>([])
   const [allProps, setAllProps] = useState<any[]>([])
   const [allAudios, setAllAudios] = useState<any[]>([])
+  const [allOthers, setAllOthers] = useState<any[]>([])
   
   // 资产选择弹窗
   const [showAssetPicker, setShowAssetPicker] = useState<'role' | 'scene' | 'prop' | 'audio' | null>(null)
+  
+  // 导入素材弹窗
+  const [showMediaImporter, setShowMediaImporter] = useState(false)
+
+  // 导出到剪映弹窗（缺少主素材提示）
+  const [showExportWarning, setShowExportWarning] = useState(false)
+  const [missingShotsForExport, setMissingShotsForExport] = useState<number[]>([])
+
+  // 创建分镜脚本弹窗
+  const [showScriptCreator, setShowScriptCreator] = useState(false)
+  const [scriptCreatorAgents, setScriptCreatorAgents] = useState<any[]>([])
+  const [scriptCreatorRoles, setScriptCreatorRoles] = useState<any[]>([])
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('')
+  const [selectedRoleId, setSelectedRoleId] = useState<string>('')
+  const [scriptFile, setScriptFile] = useState<File | null>(null)
+  const [scriptFileUrl, setScriptFileUrl] = useState<string>('')  // 上传后的文件URL
+  const [scriptFileMimeType, setScriptFileMimeType] = useState<string>('')  // 文件MIME类型
+  const [scriptText, setScriptText] = useState('')
+  const [scriptRequirements, setScriptRequirements] = useState('')
+  const [isGeneratingScript, setIsGeneratingScript] = useState(false)
 
   // 拖拽排序状态
   const [draggedShotIndex, setDraggedShotIndex] = useState<number | null>(null)
   const [dragOverShotIndex, setDragOverShotIndex] = useState<number | null>(null)
+  
+  // 当前选中的素材索引
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0)
+  
+  // 存储每个 shot 的主素材时长
+  const [shotDurations, setShotDurations] = useState<Record<number, number>>({})
 
   // 当前选中的镜头
   const currentShot = useMemo(() => {
     return shots.find(s => s.shotIndex === currentShotIndex) || null
   }, [shots, currentShotIndex])
+
+  // 切换镜头时默认选中主素材，没有主素材则选中第一个
+  useEffect(() => {
+    const currentShot = shots.find(s => s.shotIndex === currentShotIndex)
+    if (currentShot?.mediaList && currentShot.mediaList.length > 0) {
+      const primaryIndex = currentShot.mediaList.findIndex(m => m?.isPrimary)
+      setSelectedMediaIndex(primaryIndex >= 0 ? primaryIndex : 0)
+    } else {
+      setSelectedMediaIndex(0)
+    }
+  }, [currentShotIndex, shots])
+  
+  // 动态获取每个 shot 的主素材时长
+  useEffect(() => {
+    shots.forEach(shot => {
+      const primaryMedia = shot.mediaList?.find(m => m?.isPrimary) || shot.mediaList?.[0] || shot.media
+      if (!primaryMedia?.url) return
+      // 如果已有 duration 字段，直接使用
+      if (primaryMedia.duration && primaryMedia.duration > 0) {
+        setShotDurations(prev => ({ ...prev, [shot.shotIndex]: primaryMedia.duration! }))
+        return
+      }
+      // 如果是图片，默认5秒
+      if (primaryMedia.type === 'image') {
+        setShotDurations(prev => ({ ...prev, [shot.shotIndex]: 5 }))
+        return
+      }
+      // 视频或音频：动态获取时长
+      if (primaryMedia.type === 'video' || !primaryMedia.type) {
+        const video = document.createElement('video')
+        video.src = primaryMedia.url
+        video.preload = 'metadata'
+        video.onloadedmetadata = () => {
+          if (video.duration && isFinite(video.duration)) {
+            setShotDurations(prev => ({ ...prev, [shot.shotIndex]: video.duration }))
+          }
+        }
+      } else if (primaryMedia.type === 'audio') {
+        const audio = document.createElement('audio')
+        audio.src = primaryMedia.url
+        audio.preload = 'metadata'
+        audio.onloadedmetadata = () => {
+          if (audio.duration && isFinite(audio.duration)) {
+            setShotDurations(prev => ({ ...prev, [shot.shotIndex]: audio.duration }))
+          }
+        }
+      }
+    })
+  }, [shots])
 
   // 只读模式
   const canEdit = episode?.canEdit ?? true
@@ -186,6 +262,7 @@ export default function EpisodeDetailPageNew() {
       const sceneLibs = availableLibraries.filter(l => l.category === 'SCENE' && selectedLibraryIds.includes(l.id))
       const propLibs = availableLibraries.filter(l => l.category === 'PROP' && selectedLibraryIds.includes(l.id))
       const audioLibs = availableLibraries.filter(l => l.category === 'AUDIO' && selectedLibraryIds.includes(l.id))
+      const otherLibs = availableLibraries.filter(l => l.category === 'OTHER' && selectedLibraryIds.includes(l.id))
 
       // 加载角色
       const roles: RoleAsset[] = []
@@ -226,6 +303,16 @@ export default function EpisodeDetailPageNew() {
         } catch {}
       }
       setAllAudios(audios)
+
+      // 加载其它素材
+      const others: any[] = []
+      for (const lib of otherLibs) {
+        try {
+          const res = await apiClient.assetLibraries.getAssets(lib.id)
+          if (res.data) others.push(...res.data)
+        } catch {}
+      }
+      setAllOthers(others)
     }
 
     if (availableLibraries.length > 0) {
@@ -279,6 +366,39 @@ export default function EpisodeDetailPageNew() {
     setSelectedLibraryIds(prev => 
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     )
+  }
+
+  // 设置主素材
+  const setPrimaryMedia = (mediaIndex: number) => {
+    if (!currentShot) return
+    const newShots = shots.map(s => {
+      if (s.shotIndex === currentShotIndex) {
+        const mediaList = [...(s.mediaList || [])]
+        // 先清除所有素材的 isPrimary 标记
+        mediaList.forEach(m => { if (m) m.isPrimary = false })
+        // 设置指定素材为主素材
+        if (mediaList[mediaIndex]) {
+          mediaList[mediaIndex].isPrimary = true
+        }
+        return { ...s, mediaList }
+      }
+      return s
+    })
+    setShots(newShots)
+  }
+
+  // 取消主素材
+  const unsetPrimaryMedia = () => {
+    if (!currentShot) return
+    const newShots = shots.map(s => {
+      if (s.shotIndex === currentShotIndex) {
+        const mediaList = [...(s.mediaList || [])]
+        mediaList.forEach(m => { if (m) m.isPrimary = false })
+        return { ...s, mediaList }
+      }
+      return s
+    })
+    setShots(newShots)
   }
 
   // 保存分镜数据（转换回acts格式以保持后端兼容）
@@ -437,24 +557,17 @@ export default function EpisodeDetailPageNew() {
     setDragOverShotIndex(null)
   }
 
-  // 下载视频
-  const downloadVideo = async (videoUrl: string, shotIndex: number, mediaIndex?: number) => {
+  // 下载素材
+  const downloadMedia = async (mediaUrl: string, shotIndex: number, mediaIndex: number, mediaType?: string) => {
     try {
-      let fileName = '视频.mp4'
-      if (project && episode) {
-        const assetName = generateAssetName({
-          project: { id: project.id, name: project.name, type: (project as any).type || 'QUICK' },
-          episode: { id: episode.id, episodeNumber: (episode as any).episodeNumber || 1 },
-          nodeGroup: { id: `shot-${shotIndex}`, scene: 1, shot: shotIndex, nodeIds: [] },
-          nodeId: `video-${shotIndex}-${mediaIndex || 0}`,
-          assetType: 'video',
-          preview: false
-        })
-        if (assetName) fileName = assetName
-      }
+      // 命名规则：剧名_S集数_Shot分镜号_序号
+      const projectName = project?.name || '未命名'
+      const epNumber = (episode as any)?.episodeNumber || 1
+      const ext = mediaType === 'image' ? 'png' : mediaType === 'audio' ? 'mp3' : 'mp4'
+      const fileName = `${projectName}_S${epNumber}_Shot${shotIndex}_${String(mediaIndex + 1).padStart(2, '0')}.${ext}`
       
       const response = await api.get('/assets/proxy-download-with-name', {
-        params: { url: videoUrl, filename: fileName },
+        params: { url: mediaUrl, filename: fileName },
         responseType: 'blob'
       })
       
@@ -466,6 +579,249 @@ export default function EpisodeDetailPageNew() {
       URL.revokeObjectURL(link.href)
     } catch (error: any) {
       toast.error('下载失败: ' + (error.message || '未知错误'))
+    }
+  }
+
+  // 导出全部素材为zip
+  const exportAllMedia = async () => {
+    const projectName = project?.name || '未命名'
+    const epNumber = (episode as any)?.episodeNumber || 1
+    const mainFolderName = `${projectName}_S${epNumber}`
+    const zipFileName = `${projectName}_S${epNumber}_素材.zip`
+    
+    // 收集所有素材
+    const allMedia: Array<{ url: string; shotIndex: number; mediaIndex: number; type: string }> = []
+    for (const shot of shots) {
+      if (shot.mediaList && Array.isArray(shot.mediaList)) {
+        shot.mediaList.forEach((m: any, idx: number) => {
+          if (m?.url) {
+            allMedia.push({
+              url: m.url,
+              shotIndex: shot.shotIndex,
+              mediaIndex: idx,
+              type: m.type || 'video'
+            })
+          }
+        })
+      }
+    }
+    
+    if (allMedia.length === 0) {
+      toast.info('没有可导出的素材')
+      return
+    }
+    
+    const toastId = toast.loading(`正在打包 ${allMedia.length} 个素材...`)
+    
+    try {
+      const zip = new JSZip()
+      const mainFolder = zip.folder(mainFolderName)
+      
+      let completed = 0
+      for (const media of allMedia) {
+        try {
+          // 下载文件
+          const response = await api.get('/assets/proxy-download', {
+            params: { url: media.url },
+            responseType: 'blob'
+          })
+          
+          // 文件命名规则：剧名_S集数_Shot分镜号_序号.ext
+          const ext = media.type === 'image' ? 'png' : media.type === 'audio' ? 'mp3' : 'mp4'
+          const fileName = `${projectName}_S${epNumber}_Shot${media.shotIndex}_${String(media.mediaIndex + 1).padStart(2, '0')}.${ext}`
+          
+          // 分镜文件夹命名：shot01, shot02...
+          const shotFolderName = `shot${String(media.shotIndex).padStart(2, '0')}`
+          const shotFolder = mainFolder?.folder(shotFolderName)
+          shotFolder?.file(fileName, response.data)
+          
+          completed++
+          toast.loading(`正在打包 ${completed}/${allMedia.length}...`, { id: toastId })
+        } catch (e) {
+          console.error(`下载素材失败: ${media.url}`, e)
+        }
+      }
+      
+      // 生成zip并下载
+      toast.loading('正在生成压缩包...', { id: toastId })
+      const content = await zip.generateAsync({ type: 'blob' })
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(content)
+      link.download = zipFileName
+      link.click()
+      URL.revokeObjectURL(link.href)
+      
+      toast.success(`已导出 ${completed} 个素材`, { id: toastId })
+    } catch (error: any) {
+      toast.error('导出失败: ' + (error.message || '未知错误'), { id: toastId })
+    }
+  }
+
+  // 导出到剪映 - 检查主素材
+  const handleExportToJianying = () => {
+    // 检查哪些分镜没有设置主素材
+    const missingShots: number[] = []
+    for (const shot of shots) {
+      const hasPrimary = shot.mediaList?.some((m: any) => m?.isPrimary && m?.url)
+      if (!hasPrimary) {
+        missingShots.push(shot.shotIndex)
+      }
+    }
+    
+    if (missingShots.length > 0) {
+      setMissingShotsForExport(missingShots)
+      setShowExportWarning(true)
+    } else {
+      // 所有分镜都有主素材，直接导出
+      doExportToJianying()
+    }
+  }
+
+  // 执行导出到剪映
+  const doExportToJianying = async () => {
+    const projectName = project?.name || '未命名'
+    const epNumber = (episode as any)?.episodeNumber || 1
+    const draftName = `${projectName}_S${epNumber}`
+    const zipFileName = `${draftName}_剪映项目.zip`
+    
+    // 收集所有主素材（按分镜顺序）
+    const primaryMedia: Array<{ url: string; shotIndex: number; type: string; duration?: number }>  = []
+    for (const shot of shots.sort((a, b) => a.shotIndex - b.shotIndex)) {
+      const primary = shot.mediaList?.find((m: any) => m?.isPrimary && m?.url)
+      if (primary && primary.url) {
+        primaryMedia.push({
+          url: primary.url!,
+          shotIndex: shot.shotIndex,
+          type: primary.type || 'video',
+          duration: primary.duration || 5
+        })
+      }
+    }
+    
+    if (primaryMedia.length === 0) {
+      toast.info('没有可导出的主素材')
+      return
+    }
+    
+    setShowExportWarning(false)
+    const toastId = toast.loading(`正在生成剪映项目...`)
+    
+    try {
+      const zip = new JSZip()
+      const draftFolder = zip.folder(draftName)
+      
+      // 生成 UUID
+      const genId = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16).toUpperCase()
+      })
+      
+      // 下载素材并构建项目结构
+      const videos: any[] = []
+      const segments: any[] = []
+      let completed = 0
+      let totalDuration = 0
+      let timelinePosition = 0
+      
+      for (const media of primaryMedia) {
+        try {
+          toast.loading(`正在下载素材 ${completed + 1}/${primaryMedia.length}...`, { id: toastId })
+          
+          const response = await api.get('/assets/proxy-download', {
+            params: { url: media.url },
+            responseType: 'blob'
+          })
+          
+          const ext = media.type === 'image' ? 'png' : media.type === 'audio' ? 'mp3' : 'mp4'
+          const fileName = `${String(completed + 1).padStart(3, '0')}_Shot${String(media.shotIndex).padStart(2, '0')}.${ext}`
+          
+          // 保存素材文件
+          draftFolder?.file(fileName, response.data)
+          
+          // 素材时长（微秒）
+          const durationUs = Math.round((media.duration || 5) * 1000000)
+          const materialId = genId()
+          
+          // 添加到素材库
+          videos.push({
+            id: materialId,
+            type: media.type === 'audio' ? 'audio' : 'video',
+            duration: durationUs,
+            path: fileName,
+            material_name: fileName
+          })
+          
+          // 添加到时间轴
+          segments.push({
+            id: genId(),
+            material_id: materialId,
+            source_timerange: { duration: durationUs, start: 0 },
+            target_timerange: { duration: durationUs, start: timelinePosition }
+          })
+          
+          timelinePosition += durationUs
+          totalDuration += media.duration || 5
+          completed++
+        } catch (e) {
+          console.error(`下载素材失败: ${media.url}`, e)
+        }
+      }
+      
+      toast.loading('正在生成项目文件...', { id: toastId })
+      
+      // 生成 draft_content.json
+      const draftContent = {
+        id: genId(),
+        name: draftName,
+        duration: timelinePosition,
+        materials: { videos },
+        tracks: [{ id: genId(), type: 'video', segments }]
+      }
+      draftFolder?.file('draft_content.json', JSON.stringify(draftContent, null, 2))
+      
+      // 生成 draft_meta_info.json
+      const draftMetaInfo = {
+        draft_id: draftContent.id,
+        draft_name: draftName,
+        draft_root_path: '',
+        tm_draft_create: Date.now(),
+        tm_draft_modified: Date.now()
+      }
+      draftFolder?.file('draft_meta_info.json', JSON.stringify(draftMetaInfo, null, 2))
+      
+      // 生成使用说明
+      const readmeLines = [
+        '# ' + draftName + ' - 剪映素材包',
+        '',
+        '## 导入方法',
+        '',
+        '1. 打开剪映专业版，新建项目',
+        '2. 全选素材文件夹中的所有文件',
+        '3. 拖入剪映时间轴',
+        '',
+        '素材已按顺序命名（001_Shot01, 002_Shot02...），拖入后会自动按正确顺序排列。',
+        '',
+        '## 素材列表',
+        ...primaryMedia.map((m, i) => '- ' + String(i + 1).padStart(3, '0') + '_Shot' + String(m.shotIndex).padStart(2, '0') + ': ' + (m.type === 'image' ? '图片' : m.type === 'audio' ? '音频' : '视频') + ' (' + (m.duration || 5) + '秒)'),
+        '',
+        '共 ' + completed + ' 个素材，总时长约 ' + Math.round(totalDuration) + ' 秒'
+      ]
+      const readme = readmeLines.join('\r\n')
+      
+      // 说明文档放在素材文件夹内
+      draftFolder?.file('使用说明.txt', readme)
+      
+      // 生成zip并下载
+      const content = await zip.generateAsync({ type: 'blob' })
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(content)
+      link.download = zipFileName
+      link.click()
+      URL.revokeObjectURL(link.href)
+      
+      toast.success(`已导出剪映项目（${completed} 个素材）`, { id: toastId })
+    } catch (error: any) {
+      toast.error('导出失败: ' + (error.message || '未知错误'), { id: toastId })
     }
   }
 
@@ -497,6 +853,187 @@ export default function EpisodeDetailPageNew() {
 
   const projectName = project?.name || ''
   const epNo = episode?.episodeNumber && episode.episodeNumber > 0 ? episode.episodeNumber : undefined
+
+  // 打开创建分镜脚本弹窗
+  const openScriptCreator = async () => {
+    setShowScriptCreator(true)
+    setSelectedAgentId('')
+    setSelectedRoleId('')
+    setScriptFile(null)
+    setScriptFileUrl('')
+    setScriptFileMimeType('')
+    setScriptText('')
+    setScriptRequirements('')
+    setScriptCreatorRoles([])
+    
+    // 加载剧集创作类型的智能体
+    try {
+      const response = await apiClient.agents.getAll()
+      const agentList = response?.data || response || []
+      // 只显示启用且使用场景为"剧集创作"的智能体
+      const episodeAgents = agentList.filter((a: any) => a.isActive && a.usageScene === 'episode')
+      setScriptCreatorAgents(episodeAgents)
+    } catch (error) {
+      console.error('加载智能体失败:', error)
+      toast.error('加载智能体列表失败')
+    }
+  }
+
+  // 选择智能体后加载角色列表
+  const handleAgentSelect = async (agentId: string) => {
+    setSelectedAgentId(agentId)
+    setSelectedRoleId('')
+    setScriptCreatorRoles([])
+    
+    if (!agentId) return
+    
+    try {
+      const response = await apiClient.agents.roles.listByAgent(agentId)
+      const roleList = response?.data || response || []
+      // 只显示启用的角色
+      const activeRoles = roleList.filter((r: any) => r.isActive)
+      setScriptCreatorRoles(activeRoles)
+    } catch (error) {
+      console.error('加载角色列表失败:', error)
+      toast.error('加载角色列表失败')
+    }
+  }
+
+  // 处理脚本文件上传
+  const handleScriptFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    setScriptFile(file)
+    setScriptFileUrl('')
+    setScriptFileMimeType('')
+    
+    // 如果是文本文件，直接读取内容
+    if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+      const text = await file.text()
+      setScriptText(text)
+    } else {
+      // 对于PDF、Word等，上传文件后直接传给AI模型
+      setScriptText('')
+      const toastId = toast.loading('正在上传文档...')
+      try {
+        const uploadRes = await apiClient.assets.upload(file)
+        const fileUrl = uploadRes?.data?.url || uploadRes?.url
+        if (fileUrl) {
+          setScriptFileUrl(fileUrl)
+          setScriptFileMimeType(file.type)
+          toast.success('文档上传成功，将直接传给AI分析', { id: toastId })
+        } else {
+          toast.error('文件上传失败', { id: toastId })
+        }
+      } catch (error) {
+        console.error('上传文档失败:', error)
+        toast.error('文档上传失败，请重试', { id: toastId })
+      }
+    }
+  }
+
+  // 生成分镜脚本
+  const generateStoryboardScript = async () => {
+    if (!selectedRoleId) {
+      toast.error('请选择一个创作风格（角色）')
+      return
+    }
+    if (!scriptText && !scriptFileUrl) {
+      toast.error('请上传剧本/故事文件或输入文本')
+      return
+    }
+    
+    setIsGeneratingScript(true)
+    const toastId = toast.loading('正在生成分镜脚本...')
+    
+    try {
+      // 构建用户提示词（简洁，主要内容在文档里）
+      const prompt = scriptText || '请根据我上传的文档内容创建分镜脚本，严格按照JSON格式输出。'
+      
+      // 构建附加系统提示词（创作需求 + 输出格式要求，放到智能体提示词后面）
+      let additionalSystemPrompt = ''
+      if (scriptRequirements) {
+        additionalSystemPrompt += `\n\n对于这一集，我具体的需求是：${scriptRequirements}`
+      }
+      additionalSystemPrompt += `\n\n【输出格式要求】
+你必须严格按照以下JSON格式输出分镜脚本，不要输出任何其他内容：
+{
+  "shots": [
+    {
+      "画面": "详细的画面描述",
+      "景别/镜头": "远景/中景/近景/特写等",
+      "内容/动作": "人物动作和内容描述",
+      "声音/对话": "台词、旁白或音效描述",
+      "时长": "建议时长如5s",
+      "提示词": "用于AI生成视频的中文提示词，包含主体、动作、环境、风格等"
+    }
+  ]
+}`
+      
+      // 构建文档文件参数（如果有上传的文档）
+      const documentFiles = scriptFileUrl ? [{ filePath: scriptFileUrl, mimeType: scriptFileMimeType }] : undefined
+      
+      // 调用智能体角色执行API（systemPrompt会追加到角色的系统提示词后面）
+      const response = await apiClient.agents.roles.execute(selectedRoleId, {
+        prompt,
+        systemPrompt: additionalSystemPrompt,
+        maxTokens: 16384,
+        documentFiles,
+      })
+      
+      const result = response?.data || response
+      let generatedText = result?.text || result?.content || ''
+      
+      // 尝试解析JSON
+      try {
+        // 提取JSON部分
+        const jsonMatch = generatedText.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0])
+          const newShots: ScriptShot[] = (parsed.shots || []).map((s: any, index: number) => ({
+            shotIndex: index + 1,
+            '画面': s['画面'] || s.scene || '',
+            '景别/镜头': s['景别/镜头'] || s.shotType || '',
+            '内容/动作': s['内容/动作'] || s.action || '',
+            '声音/对话': s['声音/对话'] || s.dialogue || '',
+            '时长': s['时长'] || s.duration || '5s',
+            '提示词': s['提示词'] || s.prompt || '',
+          }))
+          
+          if (newShots.length > 0) {
+            // 询问用户是替换还是追加
+            const shouldReplace = shots.length === 0 || window.confirm(`当前已有 ${shots.length} 个分镜，是否替换？\n点击"确定"替换，点击"取消"追加到末尾`)
+            
+            if (shouldReplace) {
+              setShots(newShots)
+              setCurrentShotIndex(1)
+            } else {
+              const startIndex = shots.length > 0 ? Math.max(...shots.map(s => s.shotIndex)) + 1 : 1
+              const appendedShots = newShots.map((s, i) => ({ ...s, shotIndex: startIndex + i }))
+              setShots([...shots, ...appendedShots])
+            }
+            
+            toast.success(`成功生成 ${newShots.length} 个分镜`, { id: toastId })
+            setShowScriptCreator(false)
+          } else {
+            toast.error('生成的分镜脚本为空', { id: toastId })
+          }
+        } else {
+          toast.error('无法解析生成的内容，请重试', { id: toastId })
+          console.error('生成内容:', generatedText)
+        }
+      } catch (parseError) {
+        console.error('解析JSON失败:', parseError, generatedText)
+        toast.error('解析分镜脚本失败，请重试', { id: toastId })
+      }
+    } catch (error: any) {
+      console.error('生成分镜脚本失败:', error)
+      toast.error(error?.message || '生成失败，请重试', { id: toastId })
+    } finally {
+      setIsGeneratingScript(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -542,34 +1079,7 @@ export default function EpisodeDetailPageNew() {
           {/* 第二组：脚本操作 */}
           <div className="group relative">
             <button 
-              onClick={() => {
-                // TODO: 实现下载分镜脚本模板功能
-                toast.info('下载分镜脚本模板功能开发中')
-              }}
-              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
-            >
-              <span className="material-symbols-outlined text-lg">download</span>
-            </button>
-            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">下载分镜脚本模板</span>
-          </div>
-          <div className="group relative">
-            <button 
-              onClick={() => {
-                // TODO: 实现导入分镜脚本功能
-                toast.info('导入分镜脚本功能开发中')
-              }}
-              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
-            >
-              <span className="material-symbols-outlined text-lg">upload_file</span>
-            </button>
-            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">导入分镜脚本</span>
-          </div>
-          <div className="group relative">
-            <button 
-              onClick={() => {
-                // TODO: 实现创建分镜脚本功能
-                toast.info('创建分镜脚本功能开发中')
-              }}
+              onClick={openScriptCreator}
               className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
             >
               <span className="material-symbols-outlined text-lg">edit_note</span>
@@ -581,21 +1091,23 @@ export default function EpisodeDetailPageNew() {
           {/* 第三组：导出 */}
           <div className="group relative">
             <button 
-              onClick={() => toast.info('导出到剪映功能开发中')}
+              onClick={handleExportToJianying}
               className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
             >
               <span className="material-symbols-outlined text-lg">content_cut</span>
             </button>
             <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">导出到剪映</span>
           </div>
+          {/* 分隔线 */}
+          <div className="h-5 w-px bg-slate-300 dark:bg-white/20"></div>
           <div className="group relative">
             <button 
-              onClick={() => toast.info('导出功能开发中')}
+              onClick={exportAllMedia}
               className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
             >
               <span className="material-symbols-outlined text-lg">ios_share</span>
             </button>
-            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">导出全部素材</span>
+            <span className="absolute top-full right-0 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">导出全部素材</span>
           </div>
         </div>
       </header>
@@ -603,35 +1115,109 @@ export default function EpisodeDetailPageNew() {
       {/* Main Content - Three Columns */}
       <div className="flex-1 grid grid-cols-[320px_1fr_420px] min-h-0 overflow-hidden">
         {/* Left Sidebar - Materials */}
-        <div className="border-r border-slate-400 dark:border-white/20 flex flex-col bg-white/70 dark:bg-black/30 backdrop-blur-xl">
-          <div className="h-10 flex items-center px-4 border-b border-slate-400 dark:border-white/20">
+        <div className="border-r border-slate-400 dark:border-white/20 flex flex-col bg-white/70 dark:bg-black/30 backdrop-blur-xl min-h-0 overflow-hidden">
+          <div className="h-10 shrink-0 flex items-center px-4 border-b border-slate-400 dark:border-white/20">
             <span className="text-text-light-primary dark:text-text-dark-primary font-bold text-sm">素材列表</span>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-0 scrollbar-thin" style={{ scrollbarWidth: 'thin' }}>
             {currentShot && (
               <>
                 {/* 显示当前镜头的媒体 */}
                 {Array.isArray(currentShot.mediaList) && currentShot.mediaList.length > 0 ? (
-                  currentShot.mediaList.map((m, idx) => (
-                    <div key={idx} className="group relative flex gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-card-dark-hover cursor-pointer transition-colors border border-transparent hover:border-border-light dark:hover:border-border-dark">
+                  (() => {
+                    const hasPrimary = currentShot.mediaList.some(m => m?.isPrimary)
+                    return currentShot.mediaList.map((m, idx) => (
+                    <div 
+                      key={idx} 
+                      onClick={() => setSelectedMediaIndex(idx)}
+                      className={`group relative flex gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                        selectedMediaIndex === idx 
+                          ? 'bg-purple-500/5 dark:bg-purple-500/5' 
+                          : 'hover:bg-slate-100 dark:hover:bg-card-dark-hover'
+                      }`}
+                      style={selectedMediaIndex === idx ? { border: '2px solid', borderImage: 'linear-gradient(to bottom right, rgb(168,85,247), rgb(236,72,153)) 1' } : {}}>
                       <div className="w-24 aspect-video bg-slate-200 dark:bg-border-dark rounded overflow-hidden relative">
                         {m?.type === 'video' && m?.url ? (
                           <video src={m.url} className="w-full h-full object-cover" />
+                        ) : m?.type === 'image' && m?.url ? (
+                          <img src={m.url} alt="" className="w-full h-full object-cover" />
+                        ) : m?.type === 'audio' && m?.url ? (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-pink-500/20">
+                            <span className="material-symbols-outlined text-2xl text-purple-500">music_note</span>
+                          </div>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">movie</span>
                           </div>
                         )}
+                        {/* 主素材标记 */}
+                        {m?.isPrimary && (
+                          <div className="absolute top-1 left-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">主</div>
+                        )}
                       </div>
-                      <div className="flex flex-col justify-center min-w-0">
-                        <p className="text-sm font-medium text-text-light-primary dark:text-text-dark-primary truncate">视频 {idx + 1}</p>
+                      <div className="flex flex-col justify-center min-w-0 flex-1">
+                        <p className="text-sm font-medium text-text-light-primary dark:text-text-dark-primary truncate">
+                          {m?.type === 'video' ? '视频' : m?.type === 'image' ? '图片' : m?.type === 'audio' ? '音频' : '素材'} {idx + 1}
+                        </p>
                         <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-[14px] text-text-light-secondary dark:text-text-dark-secondary">videocam</span>
-                          <p className="text-text-light-secondary dark:text-text-dark-secondary text-xs">{m.aspectRatio || '16:9'}</p>
+                          <span className="material-symbols-outlined text-[14px] text-text-light-secondary dark:text-text-dark-secondary">
+                            {m?.type === 'video' ? 'videocam' : m?.type === 'image' ? 'image' : m?.type === 'audio' ? 'music_note' : 'attachment'}
+                          </span>
+                          <p className="text-text-light-secondary dark:text-text-dark-secondary text-xs">{m.aspectRatio || (m?.type === 'audio' ? '音频' : '16:9')}</p>
                         </div>
                       </div>
+                      {/* 设为主素材按钮 */}
+                      {m?.isPrimary ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); unsetPrimaryMedia() }}
+                          className="shrink-0 self-center w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all opacity-0 group-hover:opacity-100"
+                          title="取消主素材"
+                        >
+                          <span className="material-symbols-outlined text-base">star</span>
+                        </button>
+                      ) : !hasPrimary && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setPrimaryMedia(idx) }}
+                          className="shrink-0 self-center w-7 h-7 flex items-center justify-center bg-slate-200 dark:bg-border-dark text-text-light-secondary dark:text-text-dark-secondary rounded-lg hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                          title="设为主素材"
+                        >
+                          <span className="material-symbols-outlined text-base">star_outline</span>
+                        </button>
+                      )}
+                      {/* 下载按钮 */}
+                      {m?.url && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); downloadMedia(m.url!, currentShotIndex, idx, m.type) }}
+                          className="shrink-0 self-center w-7 h-7 flex items-center justify-center bg-slate-200 dark:bg-border-dark text-text-light-secondary dark:text-text-dark-secondary rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-all opacity-0 group-hover:opacity-100"
+                          title="下载素材"
+                        >
+                          <span className="material-symbols-outlined text-base">download</span>
+                        </button>
+                      )}
+                      {/* 删除按钮 - 主素材不显示 */}
+                      {!m?.isPrimary && (
+                        <button
+                          onClick={(e) => { 
+                            e.stopPropagation()
+                            // 从 mediaList 中移除该素材
+                            setShots(prev => prev.map(s => 
+                              s.shotIndex === currentShotIndex 
+                                ? { ...s, mediaList: s.mediaList?.filter((_, i) => i !== idx) }
+                                : s
+                            ))
+                            // 调整选中索引
+                            if (selectedMediaIndex >= idx && selectedMediaIndex > 0) {
+                              setSelectedMediaIndex(selectedMediaIndex - 1)
+                            }
+                          }}
+                          className="shrink-0 self-center w-7 h-7 flex items-center justify-center bg-slate-200 dark:bg-border-dark text-text-light-secondary dark:text-text-dark-secondary rounded-lg hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                          title="删除素材"
+                        >
+                          <span className="material-symbols-outlined text-base">delete</span>
+                        </button>
+                      )}
                     </div>
-                  ))
+                  ))})()
                 ) : currentShot.media?.url ? (
                   <div className="group relative flex gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-card-dark-hover cursor-pointer transition-colors border border-transparent hover:border-border-light dark:hover:border-border-dark">
                     <div className="w-24 aspect-video bg-slate-200 dark:bg-border-dark rounded overflow-hidden relative">
@@ -657,23 +1243,31 @@ export default function EpisodeDetailPageNew() {
         </div>
 
         {/* Center - Preview */}
-        <div className="bg-white/70 dark:bg-black/30 backdrop-blur-xl flex flex-col relative">
-          <div className="h-10 flex items-center justify-between px-4 border-b border-slate-400 dark:border-white/20">
+        <div className="bg-white/70 dark:bg-black/30 backdrop-blur-xl flex flex-col relative overflow-hidden h-full">
+          <div className="h-10 shrink-0 flex items-center justify-between px-4 border-b border-slate-400 dark:border-white/20">
             <div className="flex items-center gap-3 text-text-light-secondary dark:text-text-dark-secondary text-sm">
               <span className="font-bold text-text-light-primary dark:text-text-dark-primary">分镜头 {currentShotIndex.toString().padStart(2, '0')}</span>
               <span>/</span>
               <span>共 {shots.length} 镜</span>
             </div>
             <div className="flex items-center gap-2">
-              {currentShot && (currentShot.mediaList?.[0]?.url || currentShot.media?.url) && (
-                <button 
-                  onClick={() => downloadVideo(currentShot.mediaList?.[0]?.url || currentShot.media?.url || '', currentShotIndex)}
-                  className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-border-dark text-text-light-secondary dark:text-text-dark-secondary transition-colors"
-                >
-                  <span className="material-symbols-outlined text-lg">download</span>
-                </button>
-              )}
               <div className="group relative">
+                <button 
+                  onClick={() => {
+                    if (selectedLibraryIds.length === 0) {
+                      toast.info('请先配置资产库')
+                      setShowConfigModal(true)
+                    } else {
+                      setShowMediaImporter(true)
+                    }
+                  }}
+                  className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+                >
+                  <span className="material-symbols-outlined text-lg">library_add</span>
+                </button>
+                <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">导入素材</span>
+              </div>
+              <div className="group relative ml-2">
                 <button 
                   onClick={enterWorkflow}
                   className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
@@ -685,24 +1279,35 @@ export default function EpisodeDetailPageNew() {
             </div>
           </div>
           
-          {/* Video Preview */}
-          <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
-            <div className="max-w-full max-h-full aspect-video bg-slate-900 rounded-lg shadow-2xl relative overflow-hidden group border border-border-light dark:border-border-dark">
-              {currentShot && (currentShot.mediaList?.[0]?.url || currentShot.media?.url) ? (
-                <video 
-                  src={currentShot.mediaList?.[0]?.url || currentShot.media?.url} 
-                  controls 
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
-                  <div className="text-center">
-                    <span className="material-symbols-outlined text-6xl text-slate-500 mb-2">movie</span>
-                    <p className="text-slate-400 text-sm">暂无视频</p>
-                  </div>
+          {/* Media Preview */}
+          <div className="flex-1 flex items-center justify-center p-4 min-h-0 min-w-0 overflow-hidden">
+            {currentShot && (currentShot.mediaList?.[selectedMediaIndex]?.url || currentShot.mediaList?.[0]?.url || currentShot.media?.url) ? (
+              (() => {
+                const media = currentShot.mediaList?.[selectedMediaIndex] || currentShot.mediaList?.[0] || currentShot.media;
+                const mediaType = media?.type || 'video';
+                const mediaUrl = media?.url;
+                if (mediaType === 'video') {
+                  return <video src={mediaUrl} controls className="max-w-full max-h-full rounded-lg object-contain" />;
+                } else if (mediaType === 'image') {
+                  return <img src={mediaUrl} alt="" className="max-w-full max-h-full rounded-lg object-contain" />;
+                } else if (mediaType === 'audio') {
+                  return (
+                    <div className="w-80 p-8 rounded-lg bg-gradient-to-br from-purple-900/50 to-pink-900/50 flex flex-col items-center justify-center">
+                      <span className="material-symbols-outlined text-6xl text-purple-400 mb-4">music_note</span>
+                      <audio src={mediaUrl} controls className="w-full" />
+                    </div>
+                  );
+                }
+                return <video src={mediaUrl} controls className="max-w-full max-h-full rounded-lg object-contain" />;
+              })()
+            ) : (
+              <div className="flex items-center justify-center">
+                <div className="text-center">
+                  <span className="material-symbols-outlined text-4xl text-slate-400 dark:text-slate-500 mb-2">movie</span>
+                  <p className="text-slate-400 dark:text-slate-500 text-sm">暂无素材</p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -800,31 +1405,45 @@ export default function EpisodeDetailPageNew() {
                   : 'opacity-60 hover:opacity-100'
               } ${draggedShotIndex === shot.shotIndex ? 'opacity-50 scale-95' : ''} ${dragOverShotIndex === shot.shotIndex ? 'ring-2 ring-primary-500 ring-offset-2' : ''}`}
             >
-              <div className={`w-32 h-24 bg-slate-200 dark:bg-border-dark rounded-lg overflow-hidden relative ${
-                shot.shotIndex === currentShotIndex 
-                  ? 'ring-2 ring-purple-500 dark:ring-purple-400 shadow-[0_0_20px_-3px_rgba(168,85,247,0.5)]' 
-                  : 'ring-1 ring-slate-200 dark:ring-white/10 hover:ring-purple-400/50 dark:hover:ring-purple-400/30'
-              }`}>
-                {(shot.mediaList?.[0]?.url || shot.media?.url) ? (
-                  <video 
-                    src={shot.mediaList?.[0]?.url || shot.media?.url} 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span className="material-symbols-outlined text-3xl text-text-light-secondary dark:text-text-dark-secondary">movie</span>
-                  </div>
-                )}
+              <div 
+                className={`w-32 h-24 rounded-lg overflow-hidden relative ${
+                  shot.shotIndex === currentShotIndex 
+                    ? 'bg-gradient-to-br from-purple-500 to-pink-500 p-[2px] shadow-[0_0_20px_-3px_rgba(168,85,247,0.5)]' 
+                    : 'bg-slate-200 dark:bg-border-dark ring-1 ring-slate-200 dark:ring-white/10 hover:ring-purple-400/50 dark:hover:ring-purple-400/30'
+                }`}>
+                <div className={`w-full h-full rounded-md overflow-hidden ${shot.shotIndex === currentShotIndex ? 'bg-slate-200 dark:bg-border-dark' : ''}`}>
+                {(() => {
+                  // 优先显示主素材，否则显示第一个素材
+                  const primaryMedia = shot.mediaList?.find(m => m?.isPrimary) || shot.mediaList?.[0] || shot.media
+                  if (primaryMedia?.url) {
+                    if (primaryMedia.type === 'image') {
+                      return <img src={primaryMedia.url} alt="" className="w-full h-full object-cover" />
+                    } else if (primaryMedia.type === 'audio') {
+                      return (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-pink-500/20">
+                          <span className="material-symbols-outlined text-2xl text-purple-500">music_note</span>
+                        </div>
+                      )
+                    }
+                    return <video src={primaryMedia.url} className="w-full h-full object-cover" />
+                  }
+                  return (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="material-symbols-outlined text-3xl text-text-light-secondary dark:text-text-dark-secondary">movie</span>
+                    </div>
+                  )
+                })()}
                 {shot.shotIndex === currentShotIndex && (
                   <div className="absolute top-1 right-1 size-2 bg-primary-500 rounded-full animate-pulse"></div>
                 )}
+                </div>
               </div>
               <span className={`text-[10px] text-center ${
                 shot.shotIndex === currentShotIndex 
                   ? 'text-primary-500 font-bold' 
                   : 'text-text-light-secondary dark:text-text-dark-secondary'
               }`}>
-                Shot {shot.shotIndex.toString().padStart(2, '0')} - {shot['时长'] || '0s'}
+                Shot {shot.shotIndex.toString().padStart(2, '0')} - {shotDurations[shot.shotIndex] ? `${Math.round(shotDurations[shot.shotIndex])}s` : (shot['时长'] || '0s')}
               </span>
             </div>
           ))}
@@ -874,8 +1493,8 @@ export default function EpisodeDetailPageNew() {
             <div className="flex gap-3 overflow-x-auto pb-2">
               {/* 已选角色 */}
               {(currentShot?.selectedRoles || []).map((role: any) => (
-                <div key={role.id} className="shrink-0 flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity group relative">
-                  <div className="size-12 rounded-lg border-2 border-slate-400 dark:border-purple-400 overflow-hidden bg-slate-100 dark:bg-border-dark">
+                <div key={role.id} className="shrink-0 flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity group relative mt-2">
+                  <div className="size-12 rounded overflow-hidden bg-purple-500/5">
                     {role.thumbnail ? (
                       <img src={role.thumbnail} alt={role.name} className="w-full h-full object-cover object-top" />
                     ) : (
@@ -904,12 +1523,12 @@ export default function EpisodeDetailPageNew() {
                     setShowAssetPicker('role')
                   }
                 }}
-                className="shrink-0 flex flex-col items-center gap-1 cursor-pointer opacity-50 hover:opacity-100 transition-opacity"
+                className="shrink-0 flex flex-col items-center gap-1 cursor-pointer opacity-50 hover:opacity-100 transition-opacity mt-2"
               >
-                <div className="size-12 rounded-lg border-2 border-dashed border-border-light dark:border-border-dark p-0.5 flex items-center justify-center hover:border-primary-500">
+                <div className="size-12 rounded border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center hover:border-primary-500">
                   <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">add</span>
                 </div>
-                <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary">{selectedLibraryIds.length > 0 ? '添加' : '配置'}</span>
+                <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary">添加</span>
               </div>
             </div>
           </div>
@@ -924,7 +1543,7 @@ export default function EpisodeDetailPageNew() {
             <div className="flex gap-3 overflow-x-auto">
               {/* 已选场景 */}
               {(currentShot?.selectedScenes || []).map((scene: any) => (
-                <div key={scene.id} className="relative w-24 h-14 rounded-lg overflow-hidden border-2 border-slate-400 dark:border-purple-400 cursor-pointer transition-colors shrink-0 bg-slate-100 dark:bg-border-dark group">
+                <div key={scene.id} className="relative w-24 h-14 rounded overflow-hidden cursor-pointer transition-colors shrink-0 group bg-purple-500/5 mt-2">
                   {scene.url ? (
                     <img src={scene.url} alt={scene.name} className="w-full h-full object-cover" />
                   ) : (
@@ -950,9 +1569,12 @@ export default function EpisodeDetailPageNew() {
                     setShowAssetPicker('scene')
                   }
                 }}
-                className="relative w-24 h-14 rounded-lg overflow-hidden border border-dashed border-border-light dark:border-border-dark cursor-pointer hover:border-primary-500 transition-colors flex items-center justify-center"
+                className="shrink-0 flex flex-col items-center gap-1 cursor-pointer opacity-50 hover:opacity-100 transition-opacity mt-2"
               >
-                <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">add</span>
+                <div className="size-12 rounded border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center hover:border-primary-500">
+                  <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">add</span>
+                </div>
+                <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary">添加</span>
               </div>
             </div>
           </div>
@@ -967,7 +1589,7 @@ export default function EpisodeDetailPageNew() {
             <div className="flex gap-3 overflow-x-auto">
               {/* 已选道具 */}
               {(currentShot?.selectedProps || []).map((prop: any) => (
-                <div key={prop.id} className="size-14 rounded-lg bg-slate-100 dark:bg-border-dark border-2 border-slate-400 dark:border-purple-400 overflow-hidden cursor-pointer transition-colors shrink-0 relative group">
+                <div key={prop.id} className="size-14 rounded overflow-hidden cursor-pointer transition-colors shrink-0 relative group bg-purple-500/5 mt-2">
                   {prop.url ? (
                     <img src={prop.url} alt={prop.name} className="w-full h-full object-cover" />
                   ) : (
@@ -993,9 +1615,12 @@ export default function EpisodeDetailPageNew() {
                     setShowAssetPicker('prop')
                   }
                 }}
-                className="size-14 rounded-lg bg-slate-100 dark:bg-border-dark border border-dashed border-border-light dark:border-border-dark flex items-center justify-center cursor-pointer hover:border-primary-500 transition-colors"
+                className="shrink-0 flex flex-col items-center gap-1 cursor-pointer opacity-50 hover:opacity-100 transition-opacity mt-2"
               >
-                <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">add</span>
+                <div className="size-12 rounded border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center hover:border-primary-500">
+                  <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">add</span>
+                </div>
+                <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary">添加</span>
               </div>
             </div>
           </div>
@@ -1010,8 +1635,8 @@ export default function EpisodeDetailPageNew() {
             <div className="flex gap-3 overflow-x-auto">
               {/* 已选音频 */}
               {(currentShot?.selectedAudios || []).map((audio: any) => (
-                <div key={audio.id} className="shrink-0 flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity group relative">
-                  <div className="size-12 rounded-lg border-2 border-slate-400 dark:border-purple-400 overflow-hidden bg-slate-100 dark:bg-border-dark flex items-center justify-center">
+                <div key={audio.id} className="shrink-0 flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity group relative mt-2">
+                  <div className="size-12 rounded overflow-hidden flex items-center justify-center bg-purple-500/5">
                     <span className="material-symbols-outlined text-primary-500">music_note</span>
                   </div>
                   <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary truncate max-w-[50px]">{audio.name}</span>
@@ -1034,12 +1659,12 @@ export default function EpisodeDetailPageNew() {
                     setShowAssetPicker('audio')
                   }
                 }}
-                className="shrink-0 flex flex-col items-center gap-1 cursor-pointer opacity-50 hover:opacity-100 transition-opacity"
+                className="shrink-0 flex flex-col items-center gap-1 cursor-pointer opacity-50 hover:opacity-100 transition-opacity mt-2"
               >
-                <div className="size-12 rounded-lg border-2 border-dashed border-border-light dark:border-border-dark p-0.5 flex items-center justify-center hover:border-primary-500">
+                <div className="size-12 rounded border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center hover:border-primary-500">
                   <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">add</span>
                 </div>
-                <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary">{selectedLibraryIds.length > 0 ? '添加' : '配置'}</span>
+                <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary">添加</span>
               </div>
             </div>
           </div>
@@ -1402,6 +2027,48 @@ export default function EpisodeDetailPageNew() {
                       )}
                     </div>
                   </div>
+
+                  {/* 其它库 */}
+                  <div>
+                    <h3 className="text-sm font-bold text-text-light-primary dark:text-text-dark-primary mb-3 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-lg">folder</span> 其它素材库
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {availableLibraries.filter(l => l.category === 'OTHER').map(lib => (
+                        <label 
+                          key={lib.id}
+                          className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                            selectedLibraryIds.includes(lib.id) 
+                              ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10' 
+                              : 'border-border-light dark:border-border-dark hover:border-primary-300'
+                          }`}
+                        >
+                          <input 
+                            type="checkbox" 
+                            checked={selectedLibraryIds.includes(lib.id)}
+                            onChange={() => toggleLibrary(lib.id)}
+                            className="sr-only"
+                          />
+                          <div className="size-10 rounded-lg bg-slate-100 dark:bg-border-dark overflow-hidden shrink-0">
+                            {lib.thumbnail ? (
+                              <img src={lib.thumbnail} alt={lib.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">folder</span>
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-sm font-medium text-text-light-primary dark:text-text-dark-primary truncate">{lib.name}</span>
+                          {selectedLibraryIds.includes(lib.id) && (
+                            <span className="material-symbols-outlined text-primary-500 ml-auto">check_circle</span>
+                          )}
+                        </label>
+                      ))}
+                      {availableLibraries.filter(l => l.category === 'OTHER').length === 0 && (
+                        <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary col-span-2">暂无其它素材库</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -1418,6 +2085,291 @@ export default function EpisodeDetailPageNew() {
                 className="px-4 py-2 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600 transition-colors"
               >
                 确认配置
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 导入素材弹窗 */}
+      {showMediaImporter && selectedLibraryIds.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowMediaImporter(false)}>
+          <div className="bg-card-light dark:bg-card-dark rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">导入素材</h2>
+                <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary mt-1">从资产库导入图片/视频/音频到当前分镜 (Shot {currentShotIndex})</p>
+              </div>
+              <button onClick={() => setShowMediaImporter(false)} className="text-text-light-secondary dark:text-text-dark-secondary hover:text-text-light-primary dark:hover:text-text-dark-primary">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {/* 其它素材库资产 */}
+              {allOthers.length > 0 ? (
+                <div className="grid grid-cols-4 gap-3">
+                  {allOthers.filter(item => item.url).map((item) => {
+                    // 根据 URL 判断类型
+                    const isVideo = item.url?.match(/\.(mp4|webm|mov|avi)$/i)
+                    const isAudio = item.url?.match(/\.(mp3|wav|ogg|m4a)$/i)
+                    const mediaType = isVideo ? 'video' : isAudio ? 'audio' : 'image'
+                    
+                    return (
+                      <div 
+                        key={item.id}
+                        onClick={() => {
+                          const newMedia = { type: mediaType as 'image' | 'video' | 'audio', url: item.url, nodeId: `imported-${item.id}` }
+                          setShots(prev => prev.map(s => 
+                            s.shotIndex === currentShotIndex 
+                              ? { ...s, mediaList: [...(s.mediaList || []), newMedia] }
+                              : s
+                          ))
+                          toast.success('素材已导入')
+                        }}
+                        className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all group"
+                      >
+                        {isVideo ? (
+                          <video src={item.url} className="w-full h-full object-cover" />
+                        ) : isAudio ? (
+                          <div className="w-full h-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-3xl text-purple-500">music_note</span>
+                          </div>
+                        ) : (
+                          <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
+                        )}
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <span className="material-symbols-outlined text-white text-2xl">add_circle</span>
+                        </div>
+                        <span className="absolute bottom-1 left-1 right-1 text-[10px] text-white bg-black/50 px-1 py-0.5 rounded truncate">{item.name}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-text-light-secondary dark:text-text-dark-secondary">
+                  <span className="material-symbols-outlined text-4xl mb-2 block">inventory_2</span>
+                  <p>暂无可导入的素材</p>
+                  <p className="text-sm mt-1">请先配置并添加"其它素材库"</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-border-light dark:border-border-dark flex justify-end">
+              <button 
+                onClick={() => setShowMediaImporter(false)}
+                className="px-4 py-2 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600 transition-colors"
+              >
+                完成
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 导出到剪映警告弹窗 */}
+      {/* 创建分镜脚本弹窗 */}
+      {showScriptCreator && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b border-border-light dark:border-border-dark shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-white">edit_note</span>
+                  </div>
+                  <h2 className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">AI 创建分镜脚本</h2>
+                </div>
+                <button 
+                  onClick={() => setShowScriptCreator(false)}
+                  className="text-text-light-tertiary dark:text-text-dark-tertiary hover:text-text-light-primary dark:hover:text-text-dark-primary"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              {/* 选择智能体 */}
+              <div>
+                <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
+                  选择创作智能体 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedAgentId}
+                  onChange={(e) => handleAgentSelect(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-800 text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">请选择智能体</option>
+                  {scriptCreatorAgents.map((agent: any) => (
+                    <option key={agent.id} value={agent.id}>{agent.name}</option>
+                  ))}
+                </select>
+                {scriptCreatorAgents.length === 0 && (
+                  <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                    暂无可用的剧集创作智能体，请先在管理后台配置
+                  </p>
+                )}
+              </div>
+
+              {/* 选择角色（风格） */}
+              {selectedAgentId && (
+                <div>
+                  <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
+                    选择创作风格 <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {scriptCreatorRoles.map((role: any) => (
+                      <label
+                        key={role.id}
+                        className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                          selectedRoleId === role.id
+                            ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10'
+                            : 'border-border-light dark:border-border-dark hover:border-primary-300'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="scriptRole"
+                          value={role.id}
+                          checked={selectedRoleId === role.id}
+                          onChange={(e) => setSelectedRoleId(e.target.value)}
+                          className="sr-only"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-text-light-primary dark:text-text-dark-primary">{role.name}</div>
+                          {role.description && (
+                            <div className="text-xs text-text-light-tertiary dark:text-text-dark-tertiary mt-1 line-clamp-2">{role.description}</div>
+                          )}
+                        </div>
+                        {selectedRoleId === role.id && (
+                          <span className="material-symbols-outlined text-primary-500">check_circle</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                  {scriptCreatorRoles.length === 0 && (
+                    <p className="text-sm text-text-light-tertiary dark:text-text-dark-tertiary">
+                      该智能体暂无可用角色
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* 上传剧本/故事 */}
+              <div>
+                <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
+                  上传剧本/故事 <span className="text-red-500">*</span>
+                </label>
+                <div className={`border-2 border-dashed rounded-xl p-4 text-center ${scriptFileUrl ? 'border-green-500 bg-green-50 dark:bg-green-500/10' : 'border-border-light dark:border-border-dark'}`}>
+                  <input
+                    type="file"
+                    accept=".txt,.pdf,.doc,.docx"
+                    onChange={handleScriptFileChange}
+                    className="hidden"
+                    id="script-file-input"
+                  />
+                  <label htmlFor="script-file-input" className="cursor-pointer">
+                    <span className={`material-symbols-outlined text-4xl ${scriptFileUrl ? 'text-green-500' : 'text-text-light-tertiary dark:text-text-dark-tertiary'}`}>
+                      {scriptFileUrl ? 'check_circle' : 'upload_file'}
+                    </span>
+                    <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary mt-2">
+                      {scriptFile ? scriptFile.name : '点击上传文件（支持 TXT、PDF、Word）'}
+                    </p>
+                    {scriptFileUrl && (
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ 已上传，将直接传给AI分析</p>
+                    )}
+                  </label>
+                </div>
+              </div>
+
+              {/* 创作需求（可选） */}
+              <div>
+                <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
+                  创作需求（可选）
+                </label>
+                <textarea
+                  value={scriptRequirements}
+                  onChange={(e) => setScriptRequirements(e.target.value)}
+                  placeholder="例如：分镜数量约20个、画风偏卡通、节奏明快..."
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-800 text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-border-light dark:border-border-dark flex gap-3 justify-end shrink-0">
+              <button
+                onClick={() => setShowScriptCreator(false)}
+                className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-white/10 text-text-light-primary dark:text-text-dark-primary text-sm font-medium hover:bg-slate-200 dark:hover:bg-white/20 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={generateStoryboardScript}
+                disabled={isGeneratingScript || !selectedRoleId || !scriptFile}
+                className="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isGeneratingScript ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+                    生成中...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-lg">auto_awesome</span>
+                    生成分镜脚本
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExportWarning && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="p-6 border-b border-border-light dark:border-border-dark">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">warning</span>
+                </div>
+                <h2 className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">部分分镜缺少主素材</h2>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-text-light-secondary dark:text-text-dark-secondary mb-4">
+                以下分镜尚未设置主素材，导出到剪映需要为每个分镜设置主素材：
+              </p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {missingShotsForExport.map(shotIndex => (
+                  <span 
+                    key={shotIndex}
+                    className="px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-sm font-medium"
+                  >
+                    Shot {String(shotIndex).padStart(2, '0')}
+                  </span>
+                ))}
+              </div>
+              <p className="text-sm text-text-light-tertiary dark:text-text-dark-tertiary">
+                您可以选择忽略这些空镜头继续导出，或返回设置主素材。
+              </p>
+            </div>
+
+            <div className="p-6 border-t border-border-light dark:border-border-dark flex gap-3 justify-end">
+              <button 
+                onClick={() => setShowExportWarning(false)}
+                className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-white/10 text-text-light-primary dark:text-text-dark-primary text-sm font-medium hover:bg-slate-200 dark:hover:bg-white/20 transition-colors"
+              >
+                去设置主素材
+              </button>
+              <button 
+                onClick={() => doExportToJianying()}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium hover:shadow-lg transition-all"
+              >
+                仍要导出
               </button>
             </div>
           </div>

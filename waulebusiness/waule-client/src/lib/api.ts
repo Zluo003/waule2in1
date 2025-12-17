@@ -764,7 +764,7 @@ export const apiClient = {
       isActive: boolean;
     }>) => apiClient.put(`/agents/${id}`, data),
     delete: (id: string) => apiClient.delete(`/agents/${id}`),
-    getAvailableModels: () => apiClient.get('/agents/models'),
+    getAvailableModels: () => apiClient.tenant.get('/agents/models'),
     roles: {
       list: () => apiClient.get('/agent-roles'),
       listByAgent: (agentId: string) => apiClient.tenant.get(`/agent-roles/by-agent/${agentId}`),
@@ -778,8 +778,8 @@ export const apiClient = {
 
   // 文档服务API
   documents: {
-    extractText: (filePath: string) => apiClient.post('/documents/extract-text', { filePath }),
-    getBase64: (filePath: string) => apiClient.post('/documents/base64', { filePath }),
+    extractText: (filePath: string) => apiClient.tenant.post('/documents/extract-text', { filePath }),
+    getBase64: (filePath: string) => apiClient.tenant.post('/documents/base64', { filePath }),
   },
 
   // Midjourney API

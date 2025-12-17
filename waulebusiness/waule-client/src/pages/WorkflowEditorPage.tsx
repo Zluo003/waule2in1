@@ -1809,11 +1809,14 @@ const WorkflowEditorInner = () => {
 
   const loadAgents = async () => {
     try {
-      const data = await apiClient.agents.getAll();
-      const activeAgents = data.filter((a: any) => a.isActive);
+      const response = await apiClient.agents.getAll();
+      // API 返回格式为 { success: true, data: [...] }
+      const agentList = response?.data || response || [];
+      // 只显示启用且使用场景为"工作流"的智能体
+      const activeAgents = agentList.filter((a: any) => a.isActive && (a.usageScene === 'workflow' || !a.usageScene));
       setAgents(activeAgents);
     } catch (error) {
-      
+      console.error('加载智能体失败:', error);
     }
   };
 

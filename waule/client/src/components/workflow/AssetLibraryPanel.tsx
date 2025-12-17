@@ -9,7 +9,7 @@ interface AssetLibrary {
   name: string;
   description?: string;
   thumbnail?: string;
-  category?: 'ROLE' | 'SCENE' | 'PROP' | 'OTHER';
+  category?: 'ROLE' | 'SCENE' | 'PROP' | 'AUDIO' | 'OTHER';
   _count: {
     assets: number;
   };
@@ -50,7 +50,7 @@ const AssetLibraryPanel = ({ isOpen, onClose, onAssetSelect }: AssetLibraryPanel
   const [roleGroups, setRoleGroups] = useState<RoleGroup[]>([]);
   const [loadingAssets, setLoadingAssets] = useState(false);
   const [selectedType, setSelectedType] = useState<string>('ALL');
-  const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'ROLE' | 'SCENE' | 'PROP' | 'OTHER'>('ALL');
+  const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'ROLE' | 'SCENE' | 'PROP' | 'AUDIO' | 'OTHER'>('ALL');
 
   // 加载资产库列表
   useEffect(() => {
@@ -230,8 +230,8 @@ const AssetLibraryPanel = ({ isOpen, onClose, onAssetSelect }: AssetLibraryPanel
                 </div>
                 <div className="grid grid-cols-[96px,1fr] gap-2 items-center">
                   <label className="text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary whitespace-nowrap">库类别</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {(['ROLE','SCENE','PROP','OTHER'] as const).map((cat) => (
+                  <div className="grid grid-cols-5 gap-1">
+                    {(['ROLE','SCENE','PROP','AUDIO','OTHER'] as const).map((cat) => (
                       <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
@@ -241,7 +241,7 @@ const AssetLibraryPanel = ({ isOpen, onClose, onAssetSelect }: AssetLibraryPanel
                             : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border-slate-200 dark:border-white/10 hover:border-purple-400 dark:hover:border-purple-400/50'
                         }`}
                       >
-                        {cat === 'ROLE' ? '角色库' : cat === 'SCENE' ? '场景库' : cat === 'PROP' ? '道具库' : '分镜资产'}
+                        {cat === 'ROLE' ? '角色' : cat === 'SCENE' ? '场景' : cat === 'PROP' ? '道具' : cat === 'AUDIO' ? '音频' : '其他'}
                       </button>
                     ))}
                   </div>

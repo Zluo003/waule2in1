@@ -6,11 +6,19 @@ interface Agent {
   id: string;
   name: string;
   description?: string;
+  usageScene: string; // workflow | episode | advertisement
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
   roles?: AgentRole[];
 }
+
+// 使用场景选项
+const USAGE_SCENE_OPTIONS = [
+  { value: 'workflow', label: '工作流' },
+  { value: 'episode', label: '剧集创作' },
+  { value: 'advertisement', label: '广告创作' },
+];
 
 interface AIModel {
   id: string;
@@ -51,6 +59,7 @@ export default function AgentsPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    usageScene: 'workflow',
     isActive: true,
   });
   const [roleForm, setRoleForm] = useState({
@@ -106,6 +115,7 @@ export default function AgentsPage() {
     setFormData({
       name: '',
       description: '',
+      usageScene: 'workflow',
       isActive: true,
     });
     setShowModal(true);
@@ -116,6 +126,7 @@ export default function AgentsPage() {
     setFormData({
       name: agent.name,
       description: agent.description || '',
+      usageScene: agent.usageScene || 'workflow',
       isActive: agent.isActive,
     });
     setShowModal(true);
@@ -292,8 +303,18 @@ export default function AgentsPage() {
                   </p>
                 )}
               </div>
-              <div className={`px-2 py-1 rounded text-xs ${agent.isActive ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
-                {agent.isActive ? '启用' : '禁用'}
+              <div className="flex items-center gap-2">
+                <div className={`px-2 py-1 rounded text-xs ${
+                  agent.usageScene === 'workflow' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+                  agent.usageScene === 'episode' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' :
+                  agent.usageScene === 'advertisement' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' :
+                  'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                }`}>
+                  {USAGE_SCENE_OPTIONS.find(o => o.value === agent.usageScene)?.label || '工作流'}
+                </div>
+                <div className={`px-2 py-1 rounded text-xs ${agent.isActive ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
+                  {agent.isActive ? '启用' : '禁用'}
+                </div>
               </div>
             </div>
 
@@ -428,7 +449,29 @@ export default function AgentsPage() {
                 />
               </div>
 
-              {/* 空壳智能体无需提示词与模型，改由角色定义 */}
+              <div>
+                <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
+                  使用场景 <span className="text-red-500">*</span>
+                </label>
+                <div className="flex flex-wrap gap-4">
+                  {USAGE_SCENE_OPTIONS.map((option) => (
+                    <label key={option.value} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="usageScene"
+                        value={option.value}
+                        checked={formData.usageScene === option.value}
+                        onChange={(e) => setFormData({ ...formData, usageScene: e.target.value })}
+                        className="w-4 h-4 text-primary-600 bg-background-light dark:bg-background-dark border-border-light dark:border-border-dark focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-text-light-primary dark:text-text-dark-primary">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-text-light-tertiary dark:text-text-dark-tertiary mt-1">
+                  决定该智能体在哪个功能模块中使用
+                </p>
+              </div>
 
               <div className="flex items-center gap-2">
                 <input

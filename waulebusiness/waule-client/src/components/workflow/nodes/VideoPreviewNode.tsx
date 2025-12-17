@@ -62,6 +62,38 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
   const location = useLocation();
   const isEpisodeWorkflow = !!((data as any)?.workflowContext?.episode) || location.pathname.includes('/episodes/');
 
+  // 检查当前节点是否已添加到分镜素材（根据实际 mediaList 判断）
+  useEffect(() => {
+    const checkIfInMediaList = async () => {
+      if (!isEpisodeWorkflow) return;
+      try {
+        const ctx = (data as any)?.workflowContext || {};
+        const ep = ctx.episode;
+        const sp = new URLSearchParams(window.location.search);
+        const shot = Number(sp.get('shot')) || 1;
+        const parts = location.pathname.split('/').filter(Boolean);
+        const pIdx = parts.indexOf('projects');
+        const eIdx = parts.indexOf('episodes');
+        const projectId = ctx.project?.id || ep?.projectId || (pIdx >= 0 ? parts[pIdx + 1] : undefined);
+        const episodeId = ep?.id || (eIdx >= 0 ? parts[eIdx + 1] : undefined);
+        if (!projectId || !episodeId) return;
+        
+        const res = await apiClient.episodes.getById(projectId, episodeId);
+        const root: any = (res as any)?.data ?? res;
+        const episodeObj: any = (root as any)?.data ?? root;
+        const acts: any[] = Array.isArray(episodeObj?.scriptJson?.acts) ? episodeObj.scriptJson.acts : [];
+        const act = acts.find((a: any) => a.actIndex === 1);
+        const shotItem = act?.shots?.find((s: any) => Number(s.shotIndex) === shot);
+        const mediaList = Array.isArray(shotItem?.mediaList) ? shotItem.mediaList : [];
+        const isInList = mediaList.some((m: any) => m?.nodeId === id);
+        
+        // 同步 addedToStoryboard 状态
+        setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, addedToStoryboard: isInList } } : n));
+      } catch {}
+    };
+    checkIfInMediaList();
+  }, [id, isEpisodeWorkflow, location.pathname]);
+
   // 当打开资产库选择器时，加载资产库并生成名称
   useEffect(() => {
     if (showLibrarySelector) {
@@ -381,46 +413,36 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
               const url = data.videoUrl;
               const ctx = data.workflowContext || {};
               const ep = ctx.episode;
-              const fallbackParams = (() => {
-                try {
-                  const sp = new URLSearchParams(window.location.search);
-                  return {
-                    scene: Number(sp.get('scene')),
-                    shot: Number(sp.get('shot')),
-                  };
-                } catch { return { scene: undefined, shot: undefined }; }
-              })();
-              const ng = ctx.nodeGroup || findNodeGroup(id, ctx.nodeGroups || []);
-              const scene = ng?.scene ?? fallbackParams.scene;
-              const shot = ng?.shot ?? fallbackParams.shot;
-              const idsFromPath = (() => {
-                try {
-                  const parts = location.pathname.split('/').filter(Boolean);
-                  const pIdx = parts.indexOf('projects');
-                  const eIdx = parts.indexOf('episodes');
-                  const pid = pIdx >= 0 ? parts[pIdx + 1] : undefined;
-                  const eid = eIdx >= 0 ? parts[eIdx + 1] : undefined;
-                  return { pid, eid };
-                } catch { return { pid: undefined, eid: undefined }; }
-              })();
-              const projectId = ctx.project?.id || ep?.projectId || idsFromPath.pid;
-              const episodeId = ep?.id || idsFromPath.eid;
-              if (!projectId || !episodeId || !scene || !shot) {
-                toast.error('缺少剧集或编组上下文，无法写回分镜');
+              // 从 URL 参数获取 shot
+              const sp = new URLSearchParams(window.location.search);
+              const shot = Number(sp.get('shot')) || 1;
+              // 从 URL 路径获取 projectId 和 episodeId
+              const parts = location.pathname.split('/').filter(Boolean);
+              const pIdx = parts.indexOf('projects');
+              const eIdx = parts.indexOf('episodes');
+              const projectId = ctx.project?.id || ep?.projectId || (pIdx >= 0 ? parts[pIdx + 1] : undefined);
+              const episodeId = ep?.id || (eIdx >= 0 ? parts[eIdx + 1] : undefined);
+              if (!projectId || !episodeId) {
+                toast.error('缺少剧集上下文，无法写回分镜');
                 return;
               }
               const res = await apiClient.episodes.getById(projectId, episodeId);
               const root: any = (res as any)?.data ?? res;
               const episodeObj: any = (root as any)?.data ?? root;
-              const acts: any[] = Array.isArray(episodeObj?.scriptJson?.acts) ? [...episodeObj.scriptJson.acts] : [];
-              let act = acts.find((a: any) => Number(a.actIndex) === Number(scene));
-              if (!act) { act = { actIndex: Number(scene), shots: [] }; acts.push(act); }
+              // 使用 acts 结构（与 EpisodeDetailPage 保持一致）
+              let acts: any[] = Array.isArray(episodeObj?.scriptJson?.acts) ? [...episodeObj.scriptJson.acts] : [];
+              let act = acts.find((a: any) => a.actIndex === 1);
+              if (!act) { act = { actIndex: 1, shots: [] }; acts.push(act); }
               act.shots = Array.isArray(act.shots) ? [...act.shots] : [];
-              let shotItem = act.shots.find((s: any) => Number(s.shotIndex) === Number(shot));
-              if (!shotItem) { shotItem = { shotIndex: Number(shot), mediaList: [] }; act.shots.push(shotItem); }
+              let shotItem = act.shots.find((s: any) => Number(s.shotIndex) === shot);
+              if (!shotItem) { 
+                shotItem = { shotIndex: shot, mediaList: [] }; 
+                act.shots.push(shotItem); 
+              }
               const list = Array.isArray(shotItem.mediaList) ? shotItem.mediaList.slice() : [];
-              if (list.length >= 4) { toast.error('该分镜已达到4个视频上限'); return; }
-              list.push({ type: 'video', url, nodeId: id });
+              // 获取视频时长
+              const duration = videoElRef.current?.duration || 0;
+              list.push({ type: 'video', url, nodeId: id, duration });
               shotItem.mediaList = list;
               const scriptJson = { ...(episodeObj.scriptJson || {}), acts };
               await apiClient.episodes.update(projectId, episodeId, { scriptJson });
@@ -430,13 +452,13 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
                 setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, addedToStoryboard: true } } : n));
               } catch { }
               
-              toast.success('已添加到分镜脚本');
+              toast.success('已添加到分镜素材');
             } catch (e: any) {
-              toast.error(e?.message || '添加到分镜脚本失败');
+              toast.error(e?.message || '添加到分镜素材失败');
             }
           }}
           className={`w-7 h-7 flex items-center justify-center ${(data as any)?.addedToStoryboard ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/90 dark:to-pink-600/90'} hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95 relative`}
-          title={(data as any)?.addedToStoryboard ? '已添加到分镜脚本' : '添加到分镜脚本'}
+          title={(data as any)?.addedToStoryboard ? '已添加到分镜素材' : '添加到分镜素材'}
           disabled={(data as any)?.addedToStoryboard}
         >
           <span className="material-symbols-outlined text-sm">playlist_add</span>

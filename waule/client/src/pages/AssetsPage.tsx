@@ -102,7 +102,7 @@ interface AssetLibrary {
   name: string;
   description?: string;
   thumbnail?: string;
-  category?: 'ROLE' | 'SCENE' | 'PROP' | 'OTHER';
+  category?: 'ROLE' | 'SCENE' | 'PROP' | 'AUDIO' | 'OTHER';
   createdAt: string;
   updatedAt: string;
   _count: {
@@ -119,7 +119,7 @@ interface AssetLibrary {
 type LibraryFormData = {
   name: string;
   description: string;
-  category?: 'ROLE' | 'SCENE' | 'PROP' | 'OTHER';
+  category?: 'ROLE' | 'SCENE' | 'PROP' | 'AUDIO' | 'OTHER';
 };
 
 interface LibraryModalProps {
@@ -450,23 +450,23 @@ const LibraryModal: React.FC<LibraryModalProps> = ({
             <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">
               分类
             </label>
-            <div className="grid grid-cols-4 gap-2">
-              {(['ROLE','SCENE','PROP','OTHER'] as const).map(cat => (
+            <div className="grid grid-cols-5 gap-2">
+              {(['ROLE','SCENE','PROP','AUDIO','OTHER'] as const).map(cat => (
                 <button
                   key={cat}
                   type="button"
                   onClick={() => setFormData((prev: any) => ({ ...prev, category: cat }))}
-                  className={`px-2 py-2 rounded-md border transition-all text-center ${
+                  className={`py-3 rounded-lg border transition-all text-center ${
                     formData.category === cat
                       ? 'border-purple-500 bg-purple-500/10'
                       : 'border-slate-200 dark:border-white/10 hover:border-purple-400'
                   }`}
                 >
                   <span className="material-symbols-outlined text-slate-800 dark:text-white text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>
-                    {cat === 'ROLE' ? 'person' : cat === 'SCENE' ? 'landscape' : cat === 'PROP' ? 'inventory_2' : 'widgets'}
+                    {cat === 'ROLE' ? 'person' : cat === 'SCENE' ? 'landscape' : cat === 'PROP' ? 'inventory_2' : cat === 'AUDIO' ? 'music_note' : 'widgets'}
                   </span>
                   <div className="text-xs font-medium text-slate-800 dark:text-white mt-1">
-                    {cat === 'ROLE' ? '角色库' : cat === 'SCENE' ? '场景库' : cat === 'PROP' ? '道具库' : '分镜资产'}
+                    {cat === 'ROLE' ? '角色' : cat === 'SCENE' ? '场景' : cat === 'PROP' ? '道具' : cat === 'AUDIO' ? '音频' : '其他'}
                   </div>
                 </button>
               ))}
@@ -504,7 +504,7 @@ const AssetsPage = () => {
   const [thumbnail, setThumbnail] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [creating, setCreating] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'ROLE' | 'SCENE' | 'PROP' | 'OTHER'>('ALL');
+  const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'ROLE' | 'SCENE' | 'PROP' | 'AUDIO' | 'OTHER'>('ALL');
   const [formData, setFormData] = useState<any>({
     name: '',
     description: '',
@@ -516,9 +516,11 @@ const AssetsPage = () => {
   const [soraCharacterCount, setSoraCharacterCount] = useState(0);
   const [soraLibraryCover, setSoraLibraryCover] = useState<string | null>(() => {
     try {
-      return localStorage.getItem('soraLibraryCover');
+      const saved = localStorage.getItem('soraLibraryCover');
+      // 如果没有自定义封面，使用默认图片
+      return saved || '/sora-library.jpg';
     } catch {
-      return null;
+      return '/sora-library.jpg';
     }
   });
   const [showSoraEditModal, setShowSoraEditModal] = useState(false);
@@ -782,6 +784,7 @@ const AssetsPage = () => {
                 { value: 'ROLE', label: '角色库' },
                 { value: 'SCENE', label: '场景库' },
                 { value: 'PROP', label: '道具库' },
+                { value: 'AUDIO', label: '音频库' },
                 { value: 'OTHER', label: '其它' },
               ]}
             />
@@ -789,13 +792,15 @@ const AssetsPage = () => {
         </div>
 
         {/* 创建按钮 */}
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white font-medium rounded-lg transition-all flex items-center gap-2 active:scale-95 whitespace-nowrap"
-        >
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>add</span>
-          创建资产库
-        </button>
+        <div className="group relative">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+          >
+            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
+          </button>
+          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">创建资产库</span>
+        </div>
       </div>
 
       {/* 资产库列表 */}
@@ -847,7 +852,7 @@ const AssetsPage = () => {
               <div className="h-[70%] bg-slate-100 dark:bg-white/5 relative overflow-hidden flex items-center justify-center">
                 {soraLibraryCover ? (
                   <img
-                    src={soraLibraryCover.startsWith('data:') || soraLibraryCover.startsWith('http') ? soraLibraryCover : `${API_URL}${soraLibraryCover}`}
+                    src={soraLibraryCover.startsWith('data:') || soraLibraryCover.startsWith('http') || soraLibraryCover.startsWith('/') ? soraLibraryCover : `${API_URL}${soraLibraryCover}`}
                     alt="Sora角色库"
                     className="w-full h-full object-cover"
                   />
@@ -879,7 +884,7 @@ const AssetsPage = () => {
               </div>
 
               {/* 信息区域 */}
-              <div className="h-[30%] p-3 flex flex-col justify-center">
+              <div className="h-[30%] p-3 flex flex-col justify-center border-t border-slate-200 dark:border-white/10">
                 <h3 className="font-bold text-sm text-slate-800 dark:text-white truncate">
                   Sora角色库
                 </h3>
@@ -909,7 +914,7 @@ const AssetsPage = () => {
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <span className="material-symbols-outlined text-3xl text-tiffany-300 dark:text-white/30">
-                      {(library.category ?? 'OTHER') === 'ROLE' ? 'person' : (library.category ?? 'OTHER') === 'SCENE' ? 'landscape' : (library.category ?? 'OTHER') === 'PROP' ? 'inventory_2' : 'widgets'}
+                      {(library.category ?? 'OTHER') === 'ROLE' ? 'person' : (library.category ?? 'OTHER') === 'SCENE' ? 'landscape' : (library.category ?? 'OTHER') === 'PROP' ? 'inventory_2' : (library.category ?? 'OTHER') === 'AUDIO' ? 'music_note' : 'widgets'}
                     </span>
                   </div>
                 )}
@@ -958,9 +963,10 @@ const AssetsPage = () => {
                 <div className={`absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-semibold text-white backdrop-blur-sm ${
                   (library.category ?? 'OTHER') === 'ROLE' ? 'bg-purple-600/80' :
                   (library.category ?? 'OTHER') === 'SCENE' ? 'bg-emerald-600/80' :
-                  (library.category ?? 'OTHER') === 'PROP' ? 'bg-amber-500/80' : 'bg-gray-600/80'
+                  (library.category ?? 'OTHER') === 'PROP' ? 'bg-amber-500/80' :
+                  (library.category ?? 'OTHER') === 'AUDIO' ? 'bg-pink-500/80' : 'bg-gray-600/80'
                 }`}>
-                  {(library.category ?? 'OTHER') === 'ROLE' ? '角色库' : (library.category ?? 'OTHER') === 'SCENE' ? '场景库' : (library.category ?? 'OTHER') === 'PROP' ? '道具库' : '分镜资产'}
+                  {(library.category ?? 'OTHER') === 'ROLE' ? '角色库' : (library.category ?? 'OTHER') === 'SCENE' ? '场景库' : (library.category ?? 'OTHER') === 'PROP' ? '道具库' : (library.category ?? 'OTHER') === 'AUDIO' ? '音频库' : '其他'}
                 </div>
 
                 {/* 资产数量标记 */}
@@ -971,11 +977,11 @@ const AssetsPage = () => {
               </div>
 
               {/* 资产库信息 */}
-              <div className="h-[40%] p-4 bg-slate-50 dark:bg-white/5 flex flex-col justify-start border-t border-slate-200 dark:border-white/10">
-                <h3 className="text-base font-bold text-slate-800 dark:text-white line-clamp-2 mb-2">
+              <div className="h-[30%] p-3 flex flex-col justify-center border-t border-slate-200 dark:border-white/10">
+                <h3 className="font-bold text-sm text-slate-800 dark:text-white truncate">
                   {library.name}
                 </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3">
+                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 line-clamp-1">
                   {library.description || '暂无描述'}
                 </p>
               </div>
@@ -1051,22 +1057,26 @@ const AssetsPage = () => {
                 {soraLibraryCover ? (
                   <div className="relative">
                     <img
-                      src={soraLibraryCover.startsWith('data:') || soraLibraryCover.startsWith('http') ? soraLibraryCover : `${API_URL}${soraLibraryCover}`}
+                      src={soraLibraryCover.startsWith('data:') || soraLibraryCover.startsWith('http') || soraLibraryCover.startsWith('/') ? soraLibraryCover : `${API_URL}${soraLibraryCover}`}
                       alt="Sora角色库封面"
                       className="w-full aspect-[16/9] object-cover rounded-md border-2 border-slate-200 dark:border-white/10"
                     />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSoraLibraryCover(null);
-                        try {
-                          localStorage.removeItem('soraLibraryCover');
-                        } catch {}
-                      }}
-                      className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full transition-all opacity-0 group-hover:opacity-100 shadow-md"
-                    >
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>close</span>
-                    </button>
+                    {/* 仅当不是默认图片时显示删除按钮 */}
+                    {soraLibraryCover !== '/sora-library.jpg' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // 恢复为默认图片
+                          setSoraLibraryCover('/sora-library.jpg');
+                          try {
+                            localStorage.removeItem('soraLibraryCover');
+                          } catch {}
+                        }}
+                        className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full transition-all opacity-0 group-hover:opacity-100 shadow-md"
+                      >
+                        <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>close</span>
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <label className="w-full aspect-[16/9] border-2 border-dashed border-slate-300 dark:border-white/20 rounded-md hover:border-purple-400 dark:hover:border-purple-400/50 transition-colors flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5 cursor-pointer">

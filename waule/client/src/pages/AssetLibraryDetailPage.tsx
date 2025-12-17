@@ -104,7 +104,7 @@ interface AssetLibrary {
   name: string;
   description?: string;
   thumbnail?: string;
-  category?: 'ROLE' | 'SCENE' | 'PROP' | 'OTHER';
+  category?: 'ROLE' | 'SCENE' | 'PROP' | 'AUDIO' | 'OTHER';
   _count: {
     assets: number;
   };
@@ -154,6 +154,102 @@ const AssetLibraryDetailPage = () => {
   const [editOpt1File, setEditOpt1File] = useState<File | null>(null);
   const [editOpt2File, setEditOpt2File] = useState<File | null>(null);
   const [editIds, setEditIds] = useState<{ front?: string | null; side?: string | null; back?: string | null }>({});
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 根据资产库类别获取文件接受类型
+  const getAcceptTypes = () => {
+    switch (library?.category) {
+      case 'AUDIO':
+        return 'audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/x-m4a,.mp3,.wav,.ogg,.m4a';
+      case 'SCENE':
+      case 'PROP':
+        return 'image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp';
+      case 'OTHER':
+      default:
+        return 'image/*,video/*,audio/*,.pdf,.txt,.doc,.docx';
+    }
+  };
+
+  // 根据资产库类别和文件类型获取最大文件大小(MB)
+  const getMaxFileSize = (file: File) => {
+    const isVideo = file.type.startsWith('video/');
+    const isDocument = file.type.includes('pdf') || file.type.includes('text') || file.type.includes('document') || file.name.endsWith('.doc') || file.name.endsWith('.docx') || file.name.endsWith('.txt');
+    
+    if (library?.category === 'OTHER') {
+      if (isVideo) return 20; // 视频20MB
+      if (isDocument) return 10; // 文档10MB
+    }
+    return 10; // 默认10MB
+  };
+
+  // 验证文件
+  const validateFile = (file: File): string | null => {
+    const maxSizeMB = getMaxFileSize(file);
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+    
+    if (file.size > maxSizeBytes) {
+      return `文件大小超过限制（最大${maxSizeMB}MB）`;
+    }
+
+    const category = library?.category;
+    const fileType = file.type;
+    const fileName = file.name.toLowerCase();
+    
+    if (category === 'AUDIO') {
+      if (!fileType.startsWith('audio/') && !fileName.match(/\.(mp3|wav|ogg|m4a)$/)) {
+        return '音频库只支持上传音频文件（MP3、WAV、OGG、M4A）';
+      }
+    } else if (category === 'SCENE' || category === 'PROP') {
+      if (!fileType.startsWith('image/') && !fileName.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+        return `${category === 'SCENE' ? '场景库' : '道具库'}只支持上传图片文件（JPG、PNG、GIF、WEBP）`;
+      }
+    }
+    // OTHER类别允许所有类型
+    
+    return null;
+  };
+
+  // 处理文件上传
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0 || !id) return;
+    
+    setIsUploading(true);
+    let successCount = 0;
+    let failCount = 0;
+    
+    try {
+      for (const file of Array.from(files)) {
+        const error = validateFile(file);
+        if (error) {
+          toast.error(`${file.name}: ${error}`);
+          failCount++;
+          continue;
+        }
+        
+        try {
+          await apiClient.assetLibraries.uploadAsset(id, file);
+          successCount++;
+        } catch (err: any) {
+          toast.error(`上传失败: ${file.name}`);
+          failCount++;
+        }
+      }
+      
+      if (successCount > 0) {
+        toast.success(`成功上传 ${successCount} 个文件`);
+        loadAssets();
+      }
+      if (failCount > 0 && successCount === 0) {
+        toast.error(`上传失败 ${failCount} 个文件`);
+      }
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   useEffect(() => {
     if (id) {
@@ -472,7 +568,7 @@ const AssetLibraryDetailPage = () => {
           >
             <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
           </button>
-          <h1 className="text-4xl font-bold text-text-light-primary dark:text-text-dark-primary whitespace-nowrap">
+          <h1 className="text-xl font-bold text-text-light-primary dark:text-text-dark-primary whitespace-nowrap">
             {library.name}
           </h1>
         </div>
@@ -520,6 +616,33 @@ const AssetLibraryDetailPage = () => {
             <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>person_add</span>
             创建角色
           </button>
+        )}
+        {/* 上传按钮 - 非角色库所有者可见 */}
+        {(library.isOwner !== false) && library.category !== 'ROLE' && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={getAcceptTypes()}
+              multiple
+              className="hidden"
+              onChange={(e) => handleFileUpload(e.target.files)}
+            />
+            <div className="group relative">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>
+                  {isUploading ? 'progress_activity' : 'upload'}
+                </span>
+              </button>
+              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                {isUploading ? '上传中...' : '上传素材'}
+              </span>
+            </div>
+          </>
         )}
         {/* 协作者标识 */}
         {library.isShared && (

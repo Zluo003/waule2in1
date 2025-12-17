@@ -647,6 +647,19 @@ export const confirmDirectUpload = async (req: Request, res: Response) => {
 
     logger.info(`Direct upload confirmed: ${asset.name} (${asset.id}) by user ${userId}`);
 
+    // 清除资产库缓存（如果上传到了资产库）
+    if (assetLibraryId) {
+      try {
+        const keys = await redis.keys(`lib:assets:${assetLibraryId}:*`);
+        if (keys.length > 0) {
+          await redis.del(...keys);
+          logger.info(`[Cache] Cleared ${keys.length} cache keys for library ${assetLibraryId}`);
+        }
+      } catch (cacheError: any) {
+        logger.warn(`[Cache] Failed to clear cache: ${cacheError.message}`);
+      }
+    }
+
     res.status(201).json({
       success: true,
       data: asset,

@@ -30,7 +30,7 @@ const renderApp = () => {
         <QueryClientProvider client={queryClient}>
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <App />
-            <Toaster position="top-right" richColors />
+            <Toaster position="top-center" richColors />
           </BrowserRouter>
         </QueryClientProvider>
       </HeaderProvider>

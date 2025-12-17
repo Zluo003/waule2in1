@@ -401,9 +401,9 @@ export const apiClient = {
     getAll: (params?: any, config?: AxiosRequestConfig) =>
       apiClient.get('/asset-libraries', { ...(config || {}), params }),
     getById: (id: string) => apiClient.get(`/asset-libraries/${id}`),
-    create: (data: { name: string; description?: string; thumbnail?: string; category?: 'ROLE' | 'SCENE' | 'PROP' | 'OTHER' }) =>
+    create: (data: { name: string; description?: string; thumbnail?: string; category?: 'ROLE' | 'SCENE' | 'PROP' | 'AUDIO' | 'OTHER' }) =>
       apiClient.post('/asset-libraries', data),
-    update: (id: string, data: { name?: string; description?: string; thumbnail?: string; category?: 'ROLE' | 'SCENE' | 'PROP' | 'OTHER' }) =>
+    update: (id: string, data: { name?: string; description?: string; thumbnail?: string; category?: 'ROLE' | 'SCENE' | 'PROP' | 'AUDIO' | 'OTHER' }) =>
       apiClient.put(`/asset-libraries/${id}`, data),
     delete: (id: string) => apiClient.delete(`/asset-libraries/${id}`),
     getAssets: (id: string) => apiClient.get(`/asset-libraries/${id}/assets`),
@@ -735,11 +735,13 @@ export const apiClient = {
     create: (data: {
       name: string;
       description?: string;
+      usageScene?: string;
       isActive?: boolean;
     }) => apiClient.post('/agents', data),
     update: (id: string, data: Partial<{
       name: string;
       description?: string;
+      usageScene?: string;
       isActive: boolean;
     }>) => apiClient.put(`/agents/${id}`, data),
     delete: (id: string) => apiClient.delete(`/agents/${id}`),
@@ -751,6 +753,8 @@ export const apiClient = {
       create: (data: { agentId: string; name: string; description?: string; systemPrompt: string; aiModelId: string; temperature?: number; maxTokens?: number; isActive?: boolean; }) => apiClient.post('/agent-roles', data),
       update: (id: string, data: Partial<{ name: string; description?: string; systemPrompt: string; aiModelId: string; temperature?: number; maxTokens?: number; isActive?: boolean; order?: number; }>) => apiClient.put(`/agent-roles/${id}`, data),
       delete: (id: string) => apiClient.delete(`/agent-roles/${id}`),
+      execute: (id: string, data: { prompt: string; systemPrompt?: string; temperature?: number; maxTokens?: number; documentFiles?: Array<{ filePath: string; mimeType: string }>; imageUrls?: string[]; videoUrls?: string[] }) => 
+        api.post(`/agent-roles/${id}/execute`, data, { timeout: 300000 }).then((res) => res.data),
     },
   },
 

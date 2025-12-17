@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 import { NodeProps, Position } from 'reactflow';
 import CustomHandle from '../CustomHandle';
 import { useReactFlow } from 'reactflow';
@@ -32,6 +33,41 @@ interface NodeData {
 const AudioPreviewNode = ({ data, id }: NodeProps<NodeData>) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { getNode, setNodes } = useReactFlow();
+  const location = useLocation();
+  const isEpisodeWorkflow = !!((data as any)?.workflowContext?.episode) || location.pathname.includes('/episodes/');
+
+  // 检查当前节点是否已添加到分镜素材（根据实际 mediaList 判断）
+  useEffect(() => {
+    const checkIfInMediaList = async () => {
+      if (!isEpisodeWorkflow) return;
+      try {
+        const ctx = (data as any)?.workflowContext || {};
+        const ep = ctx.episode;
+        const sp = new URLSearchParams(window.location.search);
+        const shot = Number(sp.get('shot')) || 1;
+        const parts = location.pathname.split('/').filter(Boolean);
+        const pIdx = parts.indexOf('projects');
+        const eIdx = parts.indexOf('episodes');
+        const projectId = ctx.project?.id || ep?.projectId || (pIdx >= 0 ? parts[pIdx + 1] : undefined);
+        const episodeId = ep?.id || (eIdx >= 0 ? parts[eIdx + 1] : undefined);
+        if (!projectId || !episodeId) return;
+        
+        const res = await apiClient.episodes.getById(projectId, episodeId);
+        const root: any = (res as any)?.data ?? res;
+        const episodeObj: any = (root as any)?.data ?? root;
+        const acts: any[] = Array.isArray(episodeObj?.scriptJson?.acts) ? episodeObj.scriptJson.acts : [];
+        const act = acts.find((a: any) => a.actIndex === 1);
+        const shotItem = act?.shots?.find((s: any) => Number(s.shotIndex) === shot);
+        const mediaList = Array.isArray(shotItem?.mediaList) ? shotItem.mediaList : [];
+        const isInList = mediaList.some((m: any) => m?.nodeId === id);
+        
+        // 同步 addedToStoryboard 状态
+        setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, addedToStoryboard: isInList } } : n));
+      } catch {}
+    };
+    checkIfInMediaList();
+  }, [id, isEpisodeWorkflow, location.pathname]);
+
   const [showLibrarySelector, setShowLibrarySelector] = useState(false);
   const [libraries, setLibraries] = useState<AssetLibrary[]>([]);
   const [selectedLibraryId, setSelectedLibraryId] = useState<string>('');
@@ -302,6 +338,70 @@ const AudioPreviewNode = ({ data, id }: NodeProps<NodeData>) => {
 
         {/* 操作按钮（hover时显示） */}
         <div className="nodrag absolute bottom-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* 添加到分镜素材按钮 - 仅在剧集工作流中显示 */}
+          {isEpisodeWorkflow && (
+          <button
+            onClick={async () => {
+              try {
+                const url = data.audioUrl;
+                const ctx = data.workflowContext || {};
+                const ep = ctx.episode;
+                // 从 URL 参数获取 shot
+                const sp = new URLSearchParams(window.location.search);
+                const shot = Number(sp.get('shot')) || 1;
+                // 从 URL 路径获取 projectId 和 episodeId
+                const parts = location.pathname.split('/').filter(Boolean);
+                const pIdx = parts.indexOf('projects');
+                const eIdx = parts.indexOf('episodes');
+                const projectId = ctx.project?.id || ep?.projectId || (pIdx >= 0 ? parts[pIdx + 1] : undefined);
+                const episodeId = ep?.id || (eIdx >= 0 ? parts[eIdx + 1] : undefined);
+                if (!projectId || !episodeId) {
+                  toast.error('缺少剧集上下文，无法写回分镜');
+                  return;
+                }
+                const res = await apiClient.episodes.getById(projectId, episodeId);
+                const root: any = (res as any)?.data ?? res;
+                const episodeObj: any = (root as any)?.data ?? root;
+                // 使用 acts 结构（与 EpisodeDetailPage 保持一致）
+                let acts: any[] = Array.isArray(episodeObj?.scriptJson?.acts) ? [...episodeObj.scriptJson.acts] : [];
+                let act = acts.find((a: any) => a.actIndex === 1);
+                if (!act) { act = { actIndex: 1, shots: [] }; acts.push(act); }
+                act.shots = Array.isArray(act.shots) ? [...act.shots] : [];
+                let shotItem = act.shots.find((s: any) => Number(s.shotIndex) === shot);
+                if (!shotItem) { 
+                  shotItem = { shotIndex: shot, mediaList: [] }; 
+                  act.shots.push(shotItem); 
+                }
+                const list = Array.isArray(shotItem.mediaList) ? shotItem.mediaList.slice() : [];
+                // 获取音频时长
+                const duration = audioRef.current?.duration || 0;
+                list.push({ type: 'audio', url, nodeId: id, duration });
+                shotItem.mediaList = list;
+                const scriptJson = { ...(episodeObj.scriptJson || {}), acts };
+                await apiClient.episodes.update(projectId, episodeId, { scriptJson });
+                
+                // 标记为已添加到分镜脚本
+                try {
+                  setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, addedToStoryboard: true } } : n));
+                } catch { }
+                
+                toast.success('已添加到分镜素材');
+              } catch (e: any) {
+                toast.error(e?.message || '添加到分镜素材失败');
+              }
+            }}
+            className={`w-7 h-7 flex items-center justify-center ${(data as any)?.addedToStoryboard ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/90 dark:to-pink-600/90'} hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95 relative`}
+            title={(data as any)?.addedToStoryboard ? '已添加到分镜素材' : '添加到分镜素材'}
+            disabled={(data as any)?.addedToStoryboard}
+          >
+            <span className="material-symbols-outlined text-sm">playlist_add</span>
+            {(data as any)?.addedToStoryboard && (
+              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-white rounded-full flex items-center justify-center shadow-sm">
+                <span className="material-symbols-outlined text-green-600 leading-none" style={{ fontVariationSettings: '"FILL" 1, "wght" 300', fontSize: '10px' }}>check_circle</span>
+              </span>
+            )}
+          </button>
+          )}
           {/* 添加到资产库按钮 - 已添加后变绿色+对钩+禁用 */}
           <button
             onClick={() => {

@@ -219,6 +219,10 @@ router.get('/tasks', tenantApiController.getUserTasks);
 // 获取代理列表
 router.get('/agents', tenantApiController.getAgents);
 
+// 获取可用的文本生成模型（用于工作流智能体节点）
+// 注意：此路由必须在 /agents/:id 之前定义，否则会被 :id 参数匹配
+router.get('/agents/models', tenantApiController.getAvailableAgentModels);
+
 // 获取代理详情
 router.get('/agents/:id', tenantApiController.getAgent);
 
@@ -330,6 +334,11 @@ router.post('/assets/recycle/:id/restore', tenantApiController.restoreRecycleIte
 
 // 永久删除
 router.delete('/assets/recycle/:id/permanent', tenantApiController.permanentDeleteRecycleItem);
+
+// ==================== 文档处理 ====================
+
+// 提取文档文本（PDF、Word等）
+router.post('/documents/extract-text', tenantApiController.extractDocumentText);
 
 // ==================== 本地存储支持 ====================
 

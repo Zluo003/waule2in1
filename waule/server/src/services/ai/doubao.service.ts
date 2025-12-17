@@ -130,7 +130,7 @@ export async function generateImage(options: DoubaoImageGenerateOptions): Promis
   if (!API_KEY) {
     const wauleApiClient = getGlobalWauleApiClient();
     if (wauleApiClient) {
-      console.log('🌐 [Doubao] apiKey 为空，使用 waule-api 网关生成图片');
+      console.log('🌐 [Doubao] apiKey 为空，使用 waule-api 网关生成图片, maxImages:', maxImages);
       const r = await wauleApiClient.generateImage({
         model: modelId,
         prompt,
@@ -138,6 +138,16 @@ export async function generateImage(options: DoubaoImageGenerateOptions): Promis
         reference_images: referenceImages || undefined,
         max_images: maxImages,
       });
+      
+      // 组图模式：返回所有图片URL
+      if (maxImages > 1 && r?.data && r.data.length > 1) {
+        const imageUrls = r.data.map((item: any) => item?.url).filter(Boolean);
+        console.log(`🖼️ [Doubao] waule-api 组图生成完成，共 ${imageUrls.length} 张图片`);
+        if (imageUrls.length === 0) throw new Error('waule-api 未返回图片数据');
+        return imageUrls;
+      }
+      
+      // 单图模式
       const imageUrl = r?.data?.[0]?.url;
       if (!imageUrl) throw new Error('waule-api 未返回图片数据');
       return imageUrl;
