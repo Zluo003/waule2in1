@@ -630,8 +630,13 @@ export const createRole = async (req: Request, res: Response) => {
     const { name, faceAssetId, frontAssetId, sideAssetId, backAssetId, voiceAssetId, documentAssetId } = req.body;
     if (!userId) return res.status(401).json({ message: '未授权' });
     if (!name || !String(name).trim()) return res.status(400).json({ message: '角色名称不能为空' });
+    
+    // 检查是否是所有者或协作者
     const library = await prisma.assetLibrary.findFirst({ where: { id, userId } });
-    if (!library) return res.status(404).json({ message: '资产库不存在' });
+    if (!library) {
+      const share = await prisma.assetLibraryShare.findFirst({ where: { assetLibraryId: id, targetUserId: userId } });
+      if (!share) return res.status(403).json({ message: '没有权限在此资产库创建角色' });
+    }
     const hasAnyAsset = Boolean(faceAssetId || frontAssetId || sideAssetId || backAssetId || voiceAssetId || documentAssetId);
     if (!hasAnyAsset) return res.status(400).json({ message: '至少上传一项素材' });
     const findAsset = async (aid?: string | null) => (aid ? await prisma.asset.findFirst({ where: { id: aid, userId } }) : null);

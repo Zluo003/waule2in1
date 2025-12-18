@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typography Choice - Waule</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;700&family=Space+Grotesk:wght@400;500;600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- HarmonyOS Sans (Simulated with system stack closest match if not available, usually requires local file) -->
+    
+    <style>
+        :root {
+            --bg: #09090b;
+            --text: #fafafa;
+            --text-sub: #a1a1aa;
+            --border: #27272a;
+            --card: #141416;
+        }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 40px;
+        }
+
+        h1 { font-family: 'Inter', sans-serif; font-weight: 300; font-size: 32px; margin-bottom: 40px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+        
+        .section { margin-bottom: 60px; }
+        .label { 
+            font-family: 'JetBrains Mono', monospace; 
+            font-size: 11px; 
+            color: var(--text-sub); 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .font-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 24px;
+        }
+
+        .font-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+        }
+        
+        .font-name { font-size: 18px; font-weight: 600; }
+        .font-tag { font-size: 12px; background: #27272a; padding: 4px 8px; border-radius: 4px; color: #fff; }
+
+        .demo-title { font-size: 32px; margin: 0 0 16px 0; line-height: 1.2; }
+        .demo-text { font-size: 15px; line-height: 1.6; color: var(--text-sub); max-width: 600px; margin: 0 0 24px 0; }
+        .demo-ui { 
+            display: flex; gap: 12px; align-items: center; 
+            padding: 16px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border);
+        }
+        .demo-btn { padding: 8px 16px; background: #fff; color: #000; border-radius: 6px; border: none; font-size: 13px; font-weight: 500; }
+
+        /* OPTION 1: INTER + NOTO SANS */
+        .opt-1 { font-family: 'Inter', 'Noto Sans SC', sans-serif; }
+        .opt-1 .demo-title { font-weight: 600; letter-spacing: -0.5px; }
+
+        /* OPTION 2: DM SANS + NOTO SANS */
+        .opt-2 { font-family: 'DM Sans', 'Noto Sans SC', sans-serif; }
+        .opt-2 .demo-title { letter-spacing: -0.5px; }
+
+        /* OPTION 3: SPACE GROTESK + SPACE MONO */
+        .opt-3-title { font-family: 'Space Grotesk', sans-serif; }
+        .opt-3-body { font-family: 'Space Mono', monospace; font-size: 13px; }
+        
+        /* OPTION 4: SYSTEM (APPLE/WINDOWS DEFAULT) */
+        .opt-4 { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+    </style>
+</head>
+<body>
+
+    <h1>Typography Selection</h1>
+
+    <div class="section">
+        <span class="label">Option 1: The Standard (Modern, Clean, Neutral)</span>
+        <div class="font-card opt-1">
+            <div class="font-header">
+                <span class="font-name">Inter + Noto Sans SC</span>
+                <span class="font-tag">Highly Recommended</span>
+            </div>
+            <h2 class="demo-title">Create without limits.<br>打造无限创意。</h2>
+            <p class="demo-text">Inter is a variable font family carefully crafted & designed for computer screens. It features a tall x-height to aid in readability of mixed-case and lower-case text.<br>Inter 是一款专为电脑屏幕设计的可变字体家族。它具有较高的 x-height，有助于提高混合大小写和作为 UI 界面的易读性。</p>
+            <div class="demo-ui">
+                <button class="demo-btn">Start Project</button>
+                <span style="font-size: 13px; color: #a1a1aa;">Cancel</span>
+                <span style="margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #71717a;">ID: 8AF2</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <span class="label">Option 2: Humanist (Friendly, Sophisticated)</span>
+        <div class="font-card opt-2">
+            <div class="font-header">
+                <span class="font-name">DM Sans + Noto Sans SC</span>
+                <span class="font-tag">Elegant Choice</span>
+            </div>
+            <h2 class="demo-title">Create without limits.<br>打造无限创意。</h2>
+            <p class="demo-text">DM Sans is a low-contrast geometric sans serif design, intended for use at smaller text sizes. It gives a more friendly and open feeling compared to Inter.<br>DM Sans 是一款低对比度的几何无衬线设计，旨在用于较小的文本尺寸。与 Inter 相比，它给人一种更友好、更开放的感觉。</p>
+            <div class="demo-ui">
+                <button class="demo-btn">Start Project</button>
+                <span style="font-size: 13px; color: #a1a1aa;">Cancel</span>
+                <span style="margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #71717a;">ID: 8AF2</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <span class="label">Option 3: Industrial / Tech (Brutalist, Distinctive)</span>
+        <div class="font-card">
+            <div class="font-header">
+                <span class="font-name" style="font-family: 'Space Grotesk'">Space Grotesk + Space Mono</span>
+                <span class="font-tag" style="font-family: 'Space Mono'">Unique Choice</span>
+            </div>
+            <h2 class="demo-title opt-3-title">Create without limits.<br>打造无限创意。</h2>
+            <p class="demo-text opt-3-body">Space Grotesk is a proportional sans-serif typeface based on Colophon Foundry's Space Mono. It retains the monospace's idiosyncratic details.<br>Space Grotesk 是基于 Colophon Foundry 的 Space Mono 的比例无衬线字体。它保留了等宽字体的独特细节。</p>
+            <div class="demo-ui" style="font-family: 'Space Grotesk'">
+                <button class="demo-btn">START PROJECT</button>
+                <span style="font-size: 13px; color: #a1a1aa;">CANCEL</span>
+                <span style="margin-left: auto; font-family: 'Space Mono', monospace; font-size: 12px; color: #71717a;">ID: 8AF2</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <span class="label">Technical Font (For Data & Code)</span>
+        <div class="font-card" style="font-family: 'JetBrains Mono', monospace;">
+            <div class="font-header">
+                <span class="font-name">JetBrains Mono</span>
+                <span class="font-tag">Code / Data</span>
+            </div>
+            <div style="background: #111; padding: 20px; border-radius: 8px; color: #a9b7c6; font-size: 13px; line-height: 1.6;">
+                <span style="color: #cc7832">const</span> <span style="color: #ffc66d">calculate</span> = (value) => {<br>
+                &nbsp;&nbsp;<span style="color: #cc7832">return</span> value >= <span style="color: #6897bb">100</span> ? <span style="color: #6a8759">'High'</span> : <span style="color: #6a8759">'Low'</span>;<br>
+                }
+            </div>
+            <p style="margin-top: 16px; font-size: 13px; color: #71717a;">
+                Notice the ligatures: -> >= <= === != <br>
+                Increased height for better readability.
+            </p>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -803,44 +803,39 @@ const ProjectsPage = () => {
   // 已移除顶部筛选标签，统计不再使用
 
   return (
-    <div className="p-8">
-      {/* 顶部区域 - 标题、搜索、按钮垂直居中 */}
-      <div className="flex items-center justify-between gap-8 mb-12 h-12">
-        {/* 标题 */}
-        <h1 className="text-4xl font-bold text-text-light-primary dark:text-text-dark-primary whitespace-nowrap m-0 leading-none flex items-center h-full">
-          {activeTab === 'QUICK' ? '快速创作' : activeTab === 'DRAMA' ? '剧集创作' : '我的项目'}
-        </h1>
-
-        {/* 搜索栏 - 胶囊状 */}
-        <div className="flex-1 flex items-center justify-center h-full">
-          <div className="relative w-full max-w-md flex items-center">
-            <span className="material-symbols-outlined absolute left-4 text-text-light-tertiary dark:text-text-dark-tertiary">
-              search
-            </span>
-            <input
-              type="text"
-              placeholder="搜索项目..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 pr-4 h-12 w-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
-              style={{ outline: 'none', boxShadow: 'none' }}
-            />
-          </div>
-        </div>
-
-        {/* 创建按钮 */}
-        <div className="group relative">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
-          >
-            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
-          </button>
-          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">创建新项目</span>
+    <div className="pr-8 pb-8">
+      {/* 搜索栏 - 居中 */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex items-center h-[72px]">
+        <div className="relative w-80 flex items-center">
+          <span className="material-symbols-outlined absolute left-4 text-text-light-tertiary dark:text-text-dark-tertiary">
+            search
+          </span>
+          <input
+            type="text"
+            placeholder="搜索项目..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-12 pr-4 h-12 w-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
+            style={{ outline: 'none', boxShadow: 'none' }}
+          />
         </div>
       </div>
 
-      {/* 项目列表 */}
+      {/* 创建按钮 - 左侧工具栏下方悬浮 */}
+      <div className="fixed left-[24px] bottom-8 z-50">
+        <div className="group relative">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
+          >
+            <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
+          </button>
+          <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">创建新项目</span>
+        </div>
+      </div>
+
+      {/* 项目列表 - 顶部留出header空间 */}
+      <div className="pt-36">
       {loading ? (
         <div className="text-center py-12 text-text-light-secondary dark:text-text-dark-secondary">
           加载中...
@@ -898,59 +893,59 @@ const ProjectsPage = () => {
                   navigate(`/projects/${project.id}/episodes`);
                 }
               }}
-              className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-purple-400 dark:hover:border-purple-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3] flex flex-col"
+              className="relative border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3]"
             >
-              {/* 缩略图 */}
-              <div className="h-[70%] bg-slate-100 dark:bg-white/5 relative overflow-hidden">
+              {/* 缩略图 - 充满整个卡片 */}
+              <div className="absolute inset-0">
                 <ProjectCover thumbnail={project.thumbnail} name={project.name} />
-
-                {/* 操作按钮组 - 仅所有者可见 */}
-                {(project.isOwner !== false) && (
-                  <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditModal(project);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
-                      title="编辑项目"
-                    >
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(project.id);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center bg-red-500 hover:bg-red-600 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
-                      title="删除项目"
-                    >
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>delete</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* 共享状态标识 */}
-                {project.isShared && (
-                  <div className="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-semibold text-white bg-blue-500/80 backdrop-blur-sm flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">group</span>
-                    共享
-                  </div>
-                )}
-                {project.hasCollaborators && !project.isShared && (
-                  <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg text-xs font-semibold text-white bg-green-500/80 backdrop-blur-sm flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">share</span>
-                    已共享
-                  </div>
-                )}
               </div>
 
-              {/* 项目信息 */}
-              <div className="h-[30%] p-3 flex flex-col justify-center">
-                <h3 className="font-bold text-sm text-slate-800 dark:text-white truncate">
+              {/* 操作按钮组 - 仅所有者可见 */}
+              {(project.isOwner !== false) && (
+                <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditModal(project);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+                    title="编辑项目"
+                  >
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(project.id);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+                    title="删除项目"
+                  >
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>delete</span>
+                  </button>
+                </div>
+              )}
+
+              {/* 共享状态标识 */}
+              {project.isShared && (
+                <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium text-white bg-black/50 dark:bg-white/20 backdrop-blur-sm flex items-center gap-1 z-10">
+                  <span className="material-symbols-outlined text-xs">group</span>
+                  共享
+                </div>
+              )}
+              {project.hasCollaborators && !project.isShared && (
+                <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium text-white bg-black/50 dark:bg-white/20 backdrop-blur-sm flex items-center gap-1 z-10">
+                  <span className="material-symbols-outlined text-xs">share</span>
+                  已共享
+                </div>
+              )}
+
+              {/* 项目信息 - 悬浮于图片上方，半透明磨砂效果 */}
+              <div className="absolute bottom-3 left-3 right-3 p-3 bg-white/50 dark:bg-black/50 backdrop-blur-md rounded-xl z-10">
+                <h3 className="font-semibold text-sm text-neutral-900 dark:text-white truncate">
                   {project.name}
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 truncate">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 truncate">
                   {project.description || '暂无描述'}
                 </p>
               </div>
@@ -997,6 +992,7 @@ const ProjectsPage = () => {
           }}
         />
       )}
+      </div>
     </div>
   );
 };
@@ -1034,8 +1030,8 @@ const ProjectCover: React.FC<{ thumbnail?: string | null; name: string }> = ({ t
   
   if (!thumbnail || failed || !current) {
     return (
-      <div className="w-full h-full flex items-center justify-center">
-        <span className="material-symbols-outlined text-3xl text-tiffany-300 dark:text-white/30">movie</span>
+      <div className="w-full h-full flex items-center justify-center bg-neutral-100 dark:bg-[#27272a]">
+        <span className="material-symbols-outlined text-3xl text-neutral-400 dark:text-neutral-500">movie</span>
       </div>
     );
   }

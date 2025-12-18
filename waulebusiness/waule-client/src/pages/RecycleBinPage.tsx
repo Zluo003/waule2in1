@@ -50,7 +50,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options })
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute right-0 top-0 bottom-0 px-4 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 rounded-r-full text-xs cursor-pointer flex items-center gap-1 min-w-[100px] justify-center"
+        className="absolute right-0 top-0 bottom-0 px-4 bg-neutral-200 dark:bg-neutral-700 rounded-r-full text-xs cursor-pointer flex items-center gap-1 min-w-[100px] justify-center"
         style={{ outline: 'none !important', boxShadow: 'none !important', border: 'none', color: isDark ? 'white' : 'black' } as any}
       >
         <span className="whitespace-nowrap" style={{ color: isDark ? 'white' : 'black' }}>{selectedOption?.label}</span>
@@ -203,54 +203,48 @@ const RecycleBinPage = () => {
       );
     }
     return (
-      <div className="w-full bg-card-dark flex items-center justify-center" style={{ aspectRatio: '16/9' }}>
-        <span className="material-symbols-outlined text-5xl text-text-dark-secondary">insert_drive_file</span>
+      <div className="w-full bg-neutral-100 dark:bg-[#27272a] flex items-center justify-center" style={{ aspectRatio: '16/9' }}>
+        <span className="material-symbols-outlined text-5xl text-neutral-400 dark:text-neutral-500">insert_drive_file</span>
       </div>
     );
   };
 
   return (
-    <div className="p-8">
-      {/* 顶部区域 - 标题、搜索（含筛选）、三个按钮 */}
-      <div className="flex items-center justify-between gap-8 mb-12">
-        {/* 标题 */}
-        <h1 className="text-4xl font-bold text-text-light-primary dark:text-text-dark-primary whitespace-nowrap">
-          回收站
-        </h1>
-
-        {/* 搜索栏 - 胶囊状，内部包含筛选下拉框 */}
-        <div className="flex-1 flex justify-center">
-          <div className="relative w-full max-w-md flex items-center">
-            <span className="material-symbols-outlined absolute left-4 text-text-light-tertiary dark:text-text-dark-tertiary">
-              search
-            </span>
-            <input
-              type="text"
-              placeholder="搜索项目名或文件名..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="pl-12 pr-28 py-2.5 w-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
-              style={{ outline: 'none', boxShadow: 'none' }}
-            />
-            {/* 自定义下拉菜单 - 在搜索栏内部右侧 */}
-            <CustomSelect
-              value={typeFilter}
-              onChange={(value) => setTypeFilter(value as any)}
-              options={[
-                { value: 'ALL', label: '全部' },
-                { value: 'IMAGE', label: '图片' },
-                { value: 'VIDEO', label: '视频' },
-                { value: 'AUDIO', label: '音频' },
-              ]}
-            />
-          </div>
+    <div className="pr-8 pb-8">
+      {/* 搜索栏 - 居中 */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex items-center h-[72px]">
+        <div className="relative w-80 flex items-center">
+          <span className="material-symbols-outlined absolute left-4 text-text-light-tertiary dark:text-text-dark-tertiary">
+            search
+          </span>
+          <input
+            type="text"
+            placeholder="搜索项目名或文件名..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-12 pr-28 py-2.5 w-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
+            style={{ outline: 'none', boxShadow: 'none' }}
+          />
+          {/* 自定义下拉菜单 - 在搜索栏内部右侧 */}
+          <CustomSelect
+            value={typeFilter}
+            onChange={(value) => setTypeFilter(value as any)}
+            options={[
+              { value: 'ALL', label: '全部' },
+              { value: 'IMAGE', label: '图片' },
+              { value: 'VIDEO', label: '视频' },
+              { value: 'AUDIO', label: '音频' },
+            ]}
+          />
         </div>
+      </div>
 
-        {/* 三个按钮 */}
+      {/* 操作按钮 - 右侧 */}
+      <div className="fixed top-4 right-8 z-40 flex items-center h-[72px]">
         <div className="flex items-center gap-2 whitespace-nowrap">
           <button
             onClick={() => { setSelectionMode(!selectionMode); if (!selectionMode) setSelectedIds([]); }}
-            className={`px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${selectionMode ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-slate-200 dark:border-white/10 hover:border-purple-400'}`}
+            className={`px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${selectionMode ? 'bg-black dark:bg-white text-white dark:text-black' : 'bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent'}`}
           >
             <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>check_box</span>
             选择
@@ -259,7 +253,7 @@ const RecycleBinPage = () => {
           <button
             onClick={() => { clearSelection(); setSelectionMode(false); }}
             disabled={!selectionMode}
-            className={`px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${selectionMode ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-slate-200 dark:border-white/10'} disabled:opacity-50`}
+            className="px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>close</span>
             取消
@@ -268,7 +262,7 @@ const RecycleBinPage = () => {
           <button
             onClick={bulkPermanentDelete}
             disabled={!selectionMode || selectedIds.length === 0}
-            className={`px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${selectionMode && selectedIds.length > 0 ? 'bg-red-500 hover:bg-red-600 text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-slate-200 dark:border-white/10'} disabled:opacity-50`}
+            className={`px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${selectionMode && selectedIds.length > 0 ? 'bg-black dark:bg-white text-white dark:text-black' : 'bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700'} disabled:opacity-50`}
           >
             <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>delete_forever</span>
             清空
@@ -276,6 +270,8 @@ const RecycleBinPage = () => {
         </div>
       </div>
 
+      {/* 内容区域 - 顶部留出header空间 */}
+      <div className="pt-36">
       {loading ? (
         <div className="text-center py-12 text-text-light-secondary dark:text-text-dark-secondary">加载中...</div>
       ) : items.length === 0 ? (
@@ -291,7 +287,7 @@ const RecycleBinPage = () => {
           {items.map((item) => (
             <div 
               key={item.id} 
-              className={`relative group mb-4 bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 ${selectedIds.includes(item.id) ? 'border-purple-500 dark:border-purple-400' : 'border-slate-200 dark:border-white/10'} rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:border-purple-400 dark:hover:border-purple-400/50`} 
+              className={`relative group mb-4 bg-white/80 dark:bg-black/60 backdrop-blur-xl border ${selectedIds.includes(item.id) ? 'border-black dark:border-white' : 'border-neutral-200 dark:border-neutral-800'} rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:border-neutral-400 dark:hover:border-neutral-600`} 
               style={{ breakInside: 'avoid' }} 
               onClick={() => { if (selectionMode) { toggleSelect(item.id); } else { setPreviewItem(item); } }}
               onMouseEnter={(e) => handleCardHover(e.currentTarget, true)}
@@ -306,17 +302,16 @@ const RecycleBinPage = () => {
               
               {/* 选中时的右上角勾选标识 */}
               {selectedIds.includes(item.id) && (
-                <div className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 rounded-full shadow-lg">
-                  <span className="material-symbols-outlined text-white text-lg" style={{ fontVariationSettings: '"FILL" 1, "wght" 400' }}>check</span>
+                <div className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-black dark:bg-white rounded-full shadow-lg">
+                  <span className="material-symbols-outlined text-white dark:text-black text-lg" style={{ fontVariationSettings: '"FILL" 1, "wght" 400' }}>check</span>
                 </div>
               )}
               
-              <div className="absolute inset-0 bg-gradient-to-b from-white/0 to-white/0 group-hover:from-black/10 group-hover:to-black/0 transition-opacity"></div>
-              
+                            
               {/* 下载按钮 - 仅在非选择模式下显示 */}
               {!selectionMode && (
                 <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <a href={item.url} download={item.originalName || item.name} onClick={(e) => e.stopPropagation()} className="w-8 h-8 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95">
+                  <a href={item.url} download={item.originalName || item.name} onClick={(e) => e.stopPropagation()} className="w-8 h-8 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all shadow-md active:scale-95">
                     <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>download</span>
                   </a>
                 </div>
@@ -358,13 +353,14 @@ const RecycleBinPage = () => {
               )}
             </div>
             <div className="absolute bottom-4 right-4">
-              <a href={previewItem.url} download={previewItem.originalName || previewItem.name} className="w-10 h-10 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95">
+              <a href={previewItem.url} download={previewItem.originalName || previewItem.name} className="w-10 h-10 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all shadow-md active:scale-95">
                 <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>download</span>
               </a>
             </div>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

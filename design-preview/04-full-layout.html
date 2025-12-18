@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>完整布局 - 黑白灰高级感</title>
+  <style>
+    :root {
+      --bg-primary: #0a0a0b;
+      --bg-secondary: #111113;
+      --bg-tertiary: #18181b;
+      --surface-1: #141414;
+      --surface-2: #1a1a1c;
+      --surface-3: #222224;
+      --surface-hover: #2a2a2d;
+      --border-subtle: #1f1f1f;
+      --border-default: #2a2a2d;
+      --border-strong: #3a3a3d;
+      --text-primary: #ffffff;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #666666;
+      --text-muted: #4a4a4d;
+      --status-success: #22c55e;
+      --status-warning: #eab308;
+      --status-error: #ef4444;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    
+    /* 整体布局 */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    
+    /* 顶部标题栏 */
+    .title-bar {
+      height: 40px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      -webkit-app-region: drag;
+    }
+    
+    .title-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .app-logo {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+    
+    .title-bar-divider {
+      width: 1px;
+      height: 16px;
+      background: var(--border-default);
+    }
+    
+    .project-name {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    
+    .title-bar-center {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .tab-btn {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      -webkit-app-region: no-drag;
+    }
+    
+    .tab-btn:hover {
+      color: var(--text-secondary);
+      background: var(--surface-1);
+    }
+    
+    .tab-btn.active {
+      color: var(--text-primary);
+      background: var(--surface-2);
+    }
+    
+    .title-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .credits-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      -webkit-app-region: no-drag;
+    }
+    
+    .credits-icon {
+      font-size: 12px;
+    }
+    
+    .user-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--surface-3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      -webkit-app-region: no-drag;
+    }
+    
+    /* 主内容区 */
+    .main-content {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    
+    /* 左侧导航 */
+    .nav-sidebar {
+      width: 56px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      gap: 8px;
+    }
+    
+    .nav-item {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    
+    .nav-item:hover {
+      background: var(--surface-1);
+      color: var(--text-secondary);
+    }
+    
+    .nav-item.active {
+      background: var(--surface-2);
+      color: var(--text-primary);
+    }
+    
+    .nav-spacer {
+      flex: 1;
+    }
+    
+    /* 项目列表面板 */
+    .projects-panel {
+      width: 280px;
+      background: var(--surface-1);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .panel-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .panel-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .panel-action {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface-3);
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .panel-action:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+    }
+    
+    .panel-search {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    
+    .search-box {
+      width: 100%;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--text-primary);
+      outline: none;
+    }
+    
+    .search-box::placeholder {
+      color: var(--text-muted);
+    }
+    
+    .search-box:focus {
+      border-color: var(--border-default);
+    }
+    
+    .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+    
+    .project-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    
+    .project-card:hover {
+      border-color: var(--border-default);
+    }
+    
+    .project-card.active {
+      border-color: var(--text-primary);
+    }
+    
+    .project-thumbnail {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+    
+    .project-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .project-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .project-date {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    
+    /* 工作区 */
+    .workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-primary);
+    }
+    
+    /* 工具栏 */
+    .toolbar {
+      height: 48px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+    }
+    
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .tool-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: var(--text-tertiary);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    
+    .tool-btn:hover {
+      background: var(--surface-1);
+      color: var(--text-secondary);
+    }
+    
+    .tool-btn.active {
+      background: var(--surface-2);
+      color: var(--text-primary);
+    }
+    
+    .tool-divider {
+      width: 1px;
+      height: 24px;
+      background: var(--border-subtle);
+      margin: 0 8px;
+    }
+    
+    .toolbar-center {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .zoom-control {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 4px;
+    }
+    
+    .zoom-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--text-tertiary);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .zoom-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text-secondary);
+    }
+    
+    .zoom-value {
+      font-size: 12px;
+      color: var(--text-secondary);
+      min-width: 40px;
+      text-align: center;
+    }
+    
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .action-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    
+    .action-btn-secondary {
+      background: var(--surface-2);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+    
+    .action-btn-secondary:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+      border-color: var(--border-default);
+    }
+    
+    .action-btn-primary {
+      background: var(--text-primary);
+      color: var(--bg-primary);
+    }
+    
+    .action-btn-primary:hover {
+      background: #e5e5e5;
+    }
+    
+    /* 画布区域 */
+    .canvas-area {
+      flex: 1;
+      background: 
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 40px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* 画布中的模拟内容 */
+    .canvas-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    
+    .canvas-placeholder {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    
+    .canvas-hint {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    
+    /* 底部状态栏 */
+    .status-bar {
+      height: 28px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--status-success);
+    }
+    
+    .status-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    /* 设计说明浮层 */
+    .design-notes {
+      position: fixed;
+      bottom: 40px;
+      right: 20px;
+      width: 320px;
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    
+    .design-notes h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+    
+    .design-notes ul {
+      list-style: none;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+    
+    .design-notes li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    
+    .design-notes li::before {
+      content: '•';
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- 标题栏 -->
+    <div class="title-bar">
+      <div class="title-bar-left">
+        <span class="app-logo">Waule</span>
+        <div class="title-bar-divider"></div>
+        <span class="project-name">未命名项目</span>
+      </div>
+      <div class="title-bar-center">
+        <button class="tab-btn active">工作流</button>
+        <button class="tab-btn">分镜</button>
+        <button class="tab-btn">资产</button>
+      </div>
+      <div class="title-bar-right">
+        <div class="credits-badge">
+          <span class="credits-icon">💎</span>
+          <span>1,280</span>
+        </div>
+        <div class="user-avatar">U</div>
+      </div>
+    </div>
+    
+    <!-- 主内容 -->
+    <div class="main-content">
+      <!-- 导航栏 -->
+      <div class="nav-sidebar">
+        <div class="nav-item active">🏠</div>
+        <div class="nav-item">📁</div>
+        <div class="nav-item">🎨</div>
+        <div class="nav-item">⚙️</div>
+        <div class="nav-spacer"></div>
+        <div class="nav-item">❓</div>
+      </div>
+      
+      <!-- 项目面板 -->
+      <div class="projects-panel">
+        <div class="panel-header">
+          <span class="panel-title">项目</span>
+          <button class="panel-action">+</button>
+        </div>
+        <div class="panel-search">
+          <input type="text" class="search-box" placeholder="搜索项目...">
+        </div>
+        <div class="panel-content">
+          <div class="project-card active">
+            <div class="project-thumbnail">16:9 预览图</div>
+            <div class="project-info">
+              <span class="project-name">品牌宣传片</span>
+              <span class="project-date">今天</span>
+            </div>
+          </div>
+          <div class="project-card">
+            <div class="project-thumbnail">16:9 预览图</div>
+            <div class="project-info">
+              <span class="project-name">产品展示</span>
+              <span class="project-date">昨天</span>
+            </div>
+          </div>
+          <div class="project-card">
+            <div class="project-thumbnail">16:9 预览图</div>
+            <div class="project-info">
+              <span class="project-name">测试项目</span>
+              <span class="project-date">3 天前</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 工作区 -->
+      <div class="workspace">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <button class="tool-btn active">🖱️</button>
+            <button class="tool-btn">✋</button>
+            <div class="tool-divider"></div>
+            <button class="tool-btn">↩️</button>
+            <button class="tool-btn">↪️</button>
+          </div>
+          <div class="toolbar-center">
+            <div class="zoom-control">
+              <button class="zoom-btn">−</button>
+              <span class="zoom-value">100%</span>
+              <button class="zoom-btn">+</button>
+            </div>
+          </div>
+          <div class="toolbar-right">
+            <button class="action-btn action-btn-secondary">预览</button>
+            <button class="action-btn action-btn-primary">导出</button>
+          </div>
+        </div>
+        
+        <div class="canvas-area">
+          <div class="canvas-content">
+            <div class="canvas-placeholder">从左侧拖拽节点到画布开始创作</div>
+            <div class="canvas-hint">或点击 + 添加节点</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 状态栏 -->
+    <div class="status-bar">
+      <div class="status-left">
+        <div class="status-item">
+          <span class="status-dot"></span>
+          <span>已连接</span>
+        </div>
+        <span>节点: 0</span>
+        <span>连接: 0</span>
+      </div>
+      <div class="status-right">
+        <span>自动保存: 开启</span>
+        <span>v1.0.0</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 设计说明 -->
+  <div class="design-notes">
+    <h3>设计要点</h3>
+    <ul>
+      <li>纯黑白灰配色，无彩色装饰</li>
+      <li>微妙的明度层级区分区域</li>
+      <li>统一的圆角和间距系统</li>
+      <li>hover 状态仅改变明度</li>
+      <li>功能色仅用于状态指示</li>
+      <li>大量呼吸空间，不拥挤</li>
+    </ul>
+  </div>
+</body>
+</html>

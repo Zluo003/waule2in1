@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactions - Waule Mono</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Dark Theme */
+            --bg-base: #09090b;
+            --bg-subtle: #141416;
+            --bg-element: #1c1c1e;
+            --bg-overlay: rgba(0,0,0,0.7);
+            
+            --border-light: #27272a;
+            --border-hover: #3f3f46;
+            
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-tertiary: #52525b;
+            --text-inverse: #09090b;
+            
+            --accent: #ffffff;
+            --success: #22c55e; /* Muted green for status only */
+            --error: #ef4444;   /* Muted red for status only */
+            
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1);
+        }
+
+        html.light {
+            /* Light Theme */
+            --bg-base: #ffffff;
+            --bg-subtle: #f9f9f9;
+            --bg-element: #ffffff;
+            --bg-overlay: rgba(255,255,255,0.8);
+            
+            --border-light: #e5e5e5;
+            --border-hover: #d4d4d4;
+            
+            --text-primary: #171717;
+            --text-secondary: #737373;
+            --text-tertiary: #a3a3a3;
+            --text-inverse: #ffffff;
+            
+            --accent: #171717;
+        }
+
+        * { box-sizing: border-box; }
+        
+        body {
+            margin: 0;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .showcase-container {
+            width: 100%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .section-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-tertiary);
+            margin-bottom: 24px;
+            display: block;
+        }
+
+        /* MODAL */
+        .modal-wrapper {
+            position: relative;
+            height: 300px;
+            background: var(--bg-subtle);
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .modal {
+            width: 320px;
+            background: var(--bg-element);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow-xl);
+            position: relative;
+            z-index: 10;
+            animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } }
+
+        .modal-title { font-size: 16px; font-weight: 600; margin: 0 0 8px 0; }
+        .modal-text { font-size: 14px; color: var(--text-secondary); margin: 0 0 24px 0; line-height: 1.5; }
+        
+        .modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+        
+        .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid transparent; }
+        .btn-primary { background: var(--text-primary); color: var(--bg-base); }
+        .btn-secondary { background: transparent; border-color: var(--border-light); color: var(--text-primary); }
+        .btn-secondary:hover { border-color: var(--text-secondary); }
+
+        .overlay-backdrop {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-overlay);
+            backdrop-filter: blur(2px);
+            z-index: 5;
+        }
+
+        /* TOASTS */
+        .toast-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-element);
+            border: 1px solid var(--border-light);
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-md);
+            width: 320px;
+            font-size: 13px;
+        }
+
+        .toast-content { display: flex; align-items: center; gap: 12px; }
+        .toast-icon { width: 16px; height: 16px; border-radius: 50%; border: 1px solid currentColor; display:flex; align-items:center; justify-content:center; font-size: 10px; }
+        .toast-success .toast-icon { color: var(--success); }
+        .toast-error .toast-icon { color: var(--error); border-color: var(--error); }
+        .toast-info .toast-icon { color: var(--text-primary); border-color: var(--text-primary); }
+
+        .toast-close { color: var(--text-tertiary); cursor: pointer; font-size: 16px; }
+        .toast-close:hover { color: var(--text-primary); }
+
+        /* CONTEXT MENU */
+        .context-menu {
+            width: 200px;
+            background: var(--bg-element);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 4px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        .menu-item:hover { background: var(--text-primary); color: var(--bg-base); }
+        .menu-item:hover .kbd { color: var(--bg-base); border-color: rgba(0,0,0,0.2); }
+
+        .kbd {
+            font-family: 'Inter', sans-serif;
+            font-size: 10px;
+            padding: 1px 4px;
+            border: 1px solid var(--border-light);
+            border-radius: 3px;
+            color: var(--text-tertiary);
+        }
+        
+        .menu-divider { height: 1px; background: var(--border-light); margin: 4px 0; }
+        .menu-item.danger:hover { background: var(--error); color: white; }
+
+        /* SKELETON LOADING */
+        .skeleton-card {
+            background: var(--bg-element);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+        }
+        
+        .skeleton {
+            background: var(--border-light);
+            border-radius: 4px;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* TOOLTIP */
+        .tooltip-demo {
+            display: inline-flex;
+            position: relative;
+        }
+        .tooltip-trigger {
+            border-bottom: 1px dotted var(--text-secondary);
+            cursor: help;
+        }
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-8px);
+            background: var(--text-primary);
+            color: var(--bg-base);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            font-weight: 500;
+            box-shadow: var(--shadow-md);
+        }
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%; left: 50%;
+            margin-left: -4px;
+            border-width: 4px;
+            border-style: solid;
+            border-color: var(--text-primary) transparent transparent transparent;
+        }
+
+    </style>
+</head>
+<body>
+    <button onclick="document.documentElement.classList.toggle('light')" style="position:fixed; top:20px; right:20px; z-index:100; background:var(--bg-element); border:1px solid var(--border-light); color:var(--text-primary); padding:8px 12px; border-radius:6px; cursor:pointer;">Theme</button>
+
+    <div class="showcase-container">
+        <!-- LEFT COLUMN -->
+        <div style="display: flex; flex-direction: column; gap: 40px;">
+            
+            <!-- MODALS -->
+            <div>
+                <span class="section-label">Modal / Dialog</span>
+                <div class="modal-wrapper">
+                    <div class="overlay-backdrop"></div>
+                    <div class="modal">
+                        <div class="modal-title">Delete Workflow?</div>
+                        <p class="modal-text">This action cannot be undone. All generated assets associated with this workflow will be permanently removed.</p>
+                        <div class="modal-actions">
+                            <button class="btn btn-secondary">Cancel</button>
+                            <button class="btn btn-primary">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LOADING STATES -->
+            <div>
+                <span class="section-label">Skeleton Loading</span>
+                <div class="skeleton-card">
+                    <div style="display: flex; gap: 16px; align-items: center; margin-bottom: 16px;">
+                        <div class="skeleton" style="width: 48px; height: 48px; border-radius: 50%;"></div>
+                        <div style="flex: 1;">
+                            <div class="skeleton" style="width: 60%; height: 16px; margin-bottom: 8px;"></div>
+                            <div class="skeleton" style="width: 40%; height: 12px;"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton" style="width: 100%; height: 100px; border-radius: 8px;"></div>
+                    <div style="margin-top: 16px; display: flex; justify-content: space-between;">
+                        <div class="skeleton" style="width: 60px; height: 24px;"></div>
+                        <div class="skeleton" style="width: 80px; height: 24px;"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div style="display: flex; flex-direction: column; gap: 40px;">
+            
+            <!-- TOASTS -->
+            <div>
+                <span class="section-label">Toast Notifications</span>
+                <div class="toast-stack">
+                    <div class="toast toast-success">
+                        <div class="toast-content">
+                            <div class="toast-icon">✓</div>
+                            <span>Export completed successfully</span>
+                        </div>
+                        <div class="toast-close">×</div>
+                    </div>
+                    <div class="toast toast-info">
+                        <div class="toast-content">
+                            <div class="toast-icon">i</div>
+                            <span>New model version available</span>
+                        </div>
+                        <div class="toast-close">×</div>
+                    </div>
+                    <div class="toast toast-error">
+                        <div class="toast-content">
+                            <div class="toast-icon">!</div>
+                            <span>Connection lost. Retrying...</span>
+                        </div>
+                        <div class="toast-close">×</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTEXT MENUS -->
+            <div>
+                <span class="section-label">Context Menu</span>
+                <div style="padding: 20px; background: var(--bg-subtle); border-radius: 12px; height: 200px; display: flex; align-items: center; justify-content: center;">
+                    <div class="context-menu">
+                        <div class="menu-item">
+                            <span>Open in New Tab</span>
+                        </div>
+                        <div class="menu-item">
+                            <span>Copy Link</span>
+                            <span class="kbd">⌘C</span>
+                        </div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-item">
+                            <span>Rename...</span>
+                            <span class="kbd">F2</span>
+                        </div>
+                        <div class="menu-item">
+                            <span>Duplicate</span>
+                            <span class="kbd">⌘D</span>
+                        </div>
+                        <div class="menu-divider"></div>
+                        <div class="menu-item danger">
+                            <span>Delete</span>
+                            <span class="kbd">Del</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TOOLTIPS & MICRO -->
+            <div>
+                <span class="section-label">Micro-interactions</span>
+                <div class="card" style="background: var(--bg-element); padding: 20px; border: 1px solid var(--border-light); border-radius: 8px;">
+                    <p style="color: var(--text-secondary); margin: 0;">
+                        Hover over this <span class="tooltip-demo">
+                            <span class="tooltip-trigger">keyword</span>
+                            <div class="tooltip">Parameter definition</div>
+                        </span> to see a tooltip. The design focuses on <span style="color: var(--text-primary); font-weight: 500;">immediate feedback</span> and clarity.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

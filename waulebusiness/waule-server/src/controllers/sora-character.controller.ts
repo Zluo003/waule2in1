@@ -57,16 +57,20 @@ export class SoraCharacterController {
       // 如果需要包含共享给我的角色
       let sharedCharacters: any[] = [];
       if (includeShared === 'true' || includeShared === '1') {
-        const shares = await prisma.soraCharacterShare.findMany({
+        // 使用 TenantSoraCharacterShare
+        const shares = await prisma.tenantSoraCharacterShare.findMany({
           where: { targetUserId: userId },
-          include: {
-            owner: { select: { id: true, nickname: true, avatar: true } },
-          },
         });
 
         if (shares.length > 0) {
           const sharedOwnerIds = shares.map(s => s.ownerUserId);
-          const ownerMap = new Map(shares.map(s => [s.ownerUserId, s.owner]));
+          
+          // 获取所有者用户信息
+          const owners = await prisma.tenantUser.findMany({
+            where: { id: { in: sharedOwnerIds } },
+            select: { id: true, nickname: true, avatar: true },
+          });
+          const ownerMap = new Map(owners.map(o => [o.id, o]));
           
           const sharedWhere: any = {
             userId: { in: sharedOwnerIds },
@@ -128,8 +132,8 @@ export class SoraCharacterController {
       const searchTerm = (q as string || '').trim();
       const limitNum = parseInt(limit as string, 10);
 
-      // 获取共享给我的用户 ID 列表
-      const shares = await prisma.soraCharacterShare.findMany({
+      // 获取共享给我的用户 ID 列表（使用 TenantSoraCharacterShare）
+      const shares = await prisma.tenantSoraCharacterShare.findMany({
         where: { targetUserId: userId },
         select: { ownerUserId: true },
       });
@@ -393,13 +397,13 @@ export class SoraCharacterController {
         },
       });
 
-      // 如果没找到，查共享给我的
+      // 如果没找到，查共享给我的（使用 TenantSoraCharacterShare）
       if (!character) {
-        const shares = await prisma.soraCharacterShare.findMany({
+        const shares = await prisma.tenantSoraCharacterShare.findMany({
           where: { targetUserId: userId },
           select: { ownerUserId: true },
         });
-        const sharedOwnerIds = shares.map(s => s.ownerUserId);
+        const sharedOwnerIds = shares.map((s: any) => s.ownerUserId);
         
         if (sharedOwnerIds.length > 0) {
           character = await prisma.soraCharacter.findFirst({
@@ -485,25 +489,35 @@ export class SoraCharacterController {
    */
   async getCollaborators(req: Request, res: Response) {
     try {
-      const userId = (req as any).tenantUser?.id || (req as any).user?.id;
-      if (!userId) {
+      const tenantUser = (req as any).tenantUser;
+      if (!tenantUser) {
         return res.status(401).json({ error: '未授权' });
       }
+      const userId = tenantUser.id;
 
-      const shares = await prisma.soraCharacterShare.findMany({
+      // 使用 TenantSoraCharacterShare
+      const shares = await prisma.tenantSoraCharacterShare.findMany({
         where: { ownerUserId: userId },
-        include: {
-          target: { select: { id: true, nickname: true, avatar: true } },
-        },
         orderBy: { createdAt: 'desc' },
       });
 
-      const collaborators = shares.map(share => ({
-        id: share.target.id,
-        nickname: share.target.nickname,
-        avatar: share.target.avatar,
-        sharedAt: share.createdAt,
-      }));
+      // 获取协作者用户信息
+      const targetUserIds = shares.map(s => s.targetUserId);
+      const targetUsers = await prisma.tenantUser.findMany({
+        where: { id: { in: targetUserIds } },
+        select: { id: true, nickname: true, avatar: true },
+      });
+      const userMap = new Map(targetUsers.map(u => [u.id, u]));
+
+      const collaborators = shares.map(share => {
+        const user = userMap.get(share.targetUserId);
+        return {
+          id: share.targetUserId,
+          nickname: user?.nickname || null,
+          avatar: user?.avatar || null,
+          sharedAt: share.createdAt,
+        };
+      });
 
       res.json({ success: true, data: collaborators });
     } catch (error: any) {
@@ -517,10 +531,12 @@ export class SoraCharacterController {
    */
   async addCollaborator(req: Request, res: Response) {
     try {
-      const userId = (req as any).tenantUser?.id || (req as any).user?.id;
-      if (!userId) {
+      const tenantUser = (req as any).tenantUser;
+      if (!tenantUser) {
         return res.status(401).json({ error: '未授权' });
       }
+      const userId = tenantUser.id;
+      const tenantId = tenantUser.tenantId;
 
       const { targetUserId } = req.body;
 
@@ -532,18 +548,18 @@ export class SoraCharacterController {
         return res.status(400).json({ error: '不能将自己添加为协作者' });
       }
 
-      // 验证目标用户存在（商业版使用 TenantUser）
+      // 验证目标用户存在（使用 TenantUser）
       const targetUser = await prisma.tenantUser.findUnique({
         where: { id: targetUserId },
-        select: { id: true, nickname: true, avatar: true },
+        select: { id: true, nickname: true, avatar: true, tenantId: true },
       });
 
-      if (!targetUser) {
+      if (!targetUser || targetUser.tenantId !== tenantId) {
         return res.status(404).json({ error: '用户不存在' });
       }
 
-      // 检查是否已经共享
-      const existingShare = await prisma.soraCharacterShare.findFirst({
+      // 检查是否已经共享（使用 TenantSoraCharacterShare）
+      const existingShare = await prisma.tenantSoraCharacterShare.findFirst({
         where: { ownerUserId: userId, targetUserId },
       });
 
@@ -551,20 +567,18 @@ export class SoraCharacterController {
         return res.status(400).json({ error: '该用户已是协作者' });
       }
 
-      // 创建共享记录
-      const share = await prisma.soraCharacterShare.create({
+      // 创建共享记录（使用 TenantSoraCharacterShare）
+      const share = await prisma.tenantSoraCharacterShare.create({
         data: {
+          tenantId,
           ownerUserId: userId,
           targetUserId,
-        },
-        include: {
-          target: { select: { id: true, nickname: true, avatar: true } },
         },
       });
 
       logger.info(`[SoraCharacter] 添加协作者成功: owner=${userId}, target=${targetUserId}`);
 
-      res.json({ success: true, data: share });
+      res.json({ success: true, data: { ...share, target: targetUser } });
     } catch (error: any) {
       logger.error('[SoraCharacter] 添加协作者失败:', error);
       res.status(500).json({ error: error.message });
@@ -576,10 +590,11 @@ export class SoraCharacterController {
    */
   async removeCollaborator(req: Request, res: Response) {
     try {
-      const userId = (req as any).tenantUser?.id || (req as any).user?.id;
-      if (!userId) {
+      const tenantUser = (req as any).tenantUser;
+      if (!tenantUser) {
         return res.status(401).json({ error: '未授权' });
       }
+      const userId = tenantUser.id;
 
       const { targetUserId } = req.body;
 
@@ -587,8 +602,8 @@ export class SoraCharacterController {
         return res.status(400).json({ error: '请指定要移除的协作者' });
       }
 
-      // 删除共享记录
-      const deleted = await prisma.soraCharacterShare.deleteMany({
+      // 删除共享记录（使用 TenantSoraCharacterShare）
+      const deleted = await prisma.tenantSoraCharacterShare.deleteMany({
         where: { ownerUserId: userId, targetUserId },
       });
 
@@ -610,12 +625,14 @@ export class SoraCharacterController {
    */
   async getShareInfo(req: Request, res: Response) {
     try {
-      const userId = (req as any).tenantUser?.id || (req as any).user?.id;
-      if (!userId) {
+      const tenantUser = (req as any).tenantUser;
+      if (!tenantUser) {
         return res.status(401).json({ error: '未授权' });
       }
+      const userId = tenantUser.id;
 
-      const shareCount = await prisma.soraCharacterShare.count({
+      // 使用 TenantSoraCharacterShare
+      const shareCount = await prisma.tenantSoraCharacterShare.count({
         where: { ownerUserId: userId },
       });
 

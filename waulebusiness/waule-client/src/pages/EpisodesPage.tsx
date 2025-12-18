@@ -451,26 +451,20 @@ const EpisodesPage = () => {
   };
 
   return (
-    <div className="p-8">
-      {/* 顶部区域 */}
-      <div className="flex items-center justify-between gap-8 mb-12">
-        {/* 返回按钮 + 项目名称 */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/drama')}
-            className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-all"
-          >
-            <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
-          </button>
-          <h1 className="text-4xl font-bold text-text-light-primary dark:text-text-dark-primary whitespace-nowrap">
-            {project?.name}
-          </h1>
-        </div>
+    <div className="pr-8 pb-8">
+      {/* 返回按钮 + 项目标题 - 固定在左上角 */}
+      <div className="fixed top-4 left-[136px] z-40 flex items-center gap-4 h-[72px]">
+        <button
+          onClick={() => navigate('/drama')}
+          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent rounded-lg transition-all"
+        >
+          <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
+        </button>
+        <span className="text-2xl font-semibold text-neutral-900 dark:text-white font-display">{project?.name || '剧集列表'}</span>
+      </div>
 
-        {/* 占位空间 */}
-        <div className="flex-1"></div>
-
-        {/* 新建剂集按钮 */}
+      {/* 新建剧集按钮 - 左侧工具栏下方悬浮 */}
+      <div className="fixed left-[24px] bottom-8 z-50">
         <div className="group relative">
           <button
             onClick={() => {
@@ -481,15 +475,16 @@ const EpisodesPage = () => {
               });
               setShowCreateModal(true);
             }}
-            className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+            className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
           >
-            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
+            <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
           </button>
-          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">新建剧集</span>
+          <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">新建剧集</span>
         </div>
       </div>
 
-      {/* 剧集列表 */}
+      {/* 剧集列表 - 顶部留出header空间 */}
+      <div className="pt-36">
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-tiffany-500 border-t-transparent"></div>
@@ -526,64 +521,62 @@ const EpisodesPage = () => {
             <div
               key={episode.id}
               onClick={() => navigate(`/projects/${projectId}/episodes/${episode.id}`)}
-              className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-purple-400 dark:hover:border-purple-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3] flex flex-col"
+              className="relative border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3]"
             >
-              {/* 缩略图 */}
-              <div className="h-[65%] bg-slate-100 dark:bg-white/5 relative overflow-hidden">
+              {/* 缩略图 - 充满整个卡片 */}
+              <div className="absolute inset-0">
                 <EpisodeCover thumbnail={episode.thumbnail || ''} name={episode.name} episodeNumber={episode.episodeNumber} />
-              
-                {/* 操作按钮组 - 仅所有者可见 */}
-                {project?.isOwner !== false && (
-                  <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditModal(episode);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
-                      title="编辑剧集"
-                    >
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openPermissionModal(episode);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center bg-green-500 hover:bg-green-600 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
-                      title="权限管理"
-                    >
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>group</span>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(episode.id);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center bg-red-500 hover:bg-red-600 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
-                      title="删除剧集"
-                    >
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>delete</span>
-                    </button>
-                  </div>
-                )}
-                
-                {/* 状态标签 */}
-                <div className="absolute top-2 right-2">
-                  {episode.status !== 'DRAFT' && (
-                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(episode.status)}`}>
-                      {getStatusLabel(episode.status)}
-                    </span>
-                  )}
-                </div>
               </div>
+              
+              {/* 操作按钮组 - 仅所有者可见 */}
+              {project?.isOwner !== false && (
+                <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditModal(episode);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+                    title="编辑剧集"
+                  >
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openPermissionModal(episode);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+                    title="权限管理"
+                  >
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>group</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(episode.id);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+                    title="删除剧集"
+                  >
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>delete</span>
+                  </button>
+                </div>
+              )}
+              
+              {/* 状态标签 */}
+              {episode.status !== 'DRAFT' && (
+                <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium text-white bg-black/50 dark:bg-white/20 backdrop-blur-sm z-10">
+                  {getStatusLabel(episode.status)}
+                </div>
+              )}
 
-              {/* 剧集信息 */}
-              <div className="h-[30%] p-3 flex flex-col justify-center">
-                <h3 className="font-bold text-sm text-slate-800 dark:text-white truncate">
+              {/* 剧集信息 - 悬浮于图片上方，半透明磨砂效果 */}
+              <div className="absolute bottom-3 left-3 right-3 p-3 bg-white/50 dark:bg-black/50 backdrop-blur-md rounded-xl z-10">
+                <h3 className="font-semibold text-sm text-neutral-900 dark:text-white truncate">
                   {episode.name}
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 truncate">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 truncate">
                   {episode.description || '暂无描述'}
                 </p>
               </div>
@@ -726,6 +719,7 @@ const EpisodesPage = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
@@ -763,10 +757,10 @@ const EpisodeCover: React.FC<{ thumbnail: string; name: string; episodeNumber: n
   // 显示 fallback：无 thumbnail、加载失败、或无有效候选
   if (!thumbnail || failed || !current) {
     return (
-      <div className="episode-fallback w-full h-full flex items-center justify-center">
+      <div className="w-full h-full flex items-center justify-center bg-neutral-100 dark:bg-[#27272a]">
         <div className="text-center">
-          <span className="material-symbols-outlined text-5xl text-tiffany-300 dark:text-white/30 mb-2 block">movie</span>
-          <div className="text-2xl font-bold text-tiffany-400 dark:text-white/40">第 {episodeNumber} 集</div>
+          <span className="material-symbols-outlined text-5xl text-neutral-400 dark:text-neutral-500 mb-2 block">movie</span>
+          <div className="text-lg font-semibold text-neutral-500 dark:text-neutral-400">第 {episodeNumber} 集</div>
         </div>
       </div>
     );

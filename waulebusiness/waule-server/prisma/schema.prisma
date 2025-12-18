@@ -902,6 +902,20 @@ model TenantAssetLibraryCollaborator {
   @@map("tenant_asset_library_collaborators")
 }
 
+// Sora角色库协作者（租户版）
+model TenantSoraCharacterShare {
+  id              String   @id @default(uuid())
+  tenantId        String
+  ownerUserId     String   // 所有者的 TenantUser ID
+  targetUserId    String   // 协作者的 TenantUser ID
+  createdAt       DateTime @default(now())
+
+  @@unique([ownerUserId, targetUserId])
+  @@index([targetUserId])
+  @@index([tenantId])
+  @@map("tenant_sora_character_shares")
+}
+
 model TenantAsset {
   id           String              @id @default(uuid())
   tenantId     String

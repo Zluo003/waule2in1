@@ -1,9 +1,11 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useTenantAuthStore } from '../../store/tenantAuthStore';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const MainLayout = () => {
   const location = useLocation();
   const { user } = useTenantAuthStore();
+  const { theme } = useTheme();
 
   const navigation = [
     { name: '快速创作', path: '/quick', icon: 'bolt' },
@@ -12,85 +14,79 @@ const MainLayout = () => {
     { name: '回收站', path: '/recycle-bin', icon: 'delete' },
   ];
 
-  return (
-    <div className="h-full flex bg-background-light dark:bg-background-dark">
-      {/* Sidebar with Logo */}
-      <aside className="w-24 flex-shrink-0 bg-card-light dark:bg-card-dark flex flex-col relative">
-        {/* Gradient border on right */}
-        <div className="absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-purple-500/30 via-pink-500/50 to-cyan-500/30"></div>
-        {/* Logo at Top - 与顶部和侧边边距相同 */}
-        <div className="pt-4 pb-2 flex items-center justify-center">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-purple-500/30">
-            <span className="text-white text-lg font-bold">W</span>
-          </div>
-        </div>
+  // 根据当前路由获取页面标题（仅主导航页面显示，子页面不显示）
+  const getPageTitle = () => {
+    // 检查是否是子页面（路径中有更多层级）
+    const isSubPage = navigation.some(item => {
+      if (!location.pathname.startsWith(item.path)) return false;
+      const remaining = location.pathname.slice(item.path.length);
+      return remaining.length > 0 && remaining !== '/';
+    });
+    if (isSubPage) return '';
+    
+    const currentNav = navigation.find(item => location.pathname.startsWith(item.path));
+    return currentNav?.name || '';
+  };
 
-        {/* Navigation */}
-        <nav className="flex flex-col gap-2 flex-1 px-2 pt-2 pb-4">
-          {navigation.map((item) => {
-            const isActive = location.pathname.startsWith(item.path);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all duration-200 ${isActive
-                    ? ''
-                    : 'text-slate-700 dark:text-text-dark-secondary hover:bg-card-light-hover dark:hover:bg-card-dark-hover hover:text-slate-900 dark:hover:text-text-dark-primary'
-                  }`}
+  return (
+    <div className="h-full bg-[#fdfdfd] dark:bg-[#010101]">
+      {/* Floating Logo + Title - 左上角 */}
+      <div className="fixed top-4 left-4 z-50 flex items-center">
+        <img 
+          src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'} 
+          alt="Waule Logo" 
+          className="w-[72px] h-[72px] object-contain"
+        />
+        <span className="ml-12 text-2xl font-semibold text-neutral-900 dark:text-white font-display">{getPageTitle()}</span>
+      </div>
+
+      {/* Floating Toolbar - 左侧垂直居中，与logo水平居中对齐 */}
+      <nav className="fixed left-[24px] top-1/2 -translate-y-1/2 z-50 flex flex-col gap-1 p-2 rounded-2xl bg-white dark:bg-[#18181b] shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
+        {navigation.map((item) => {
+          const isActive = location.pathname.startsWith(item.path);
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 ${
+                isActive
+                  ? 'bg-black dark:bg-white text-white dark:text-black'
+                  : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white'
+              }`}
+              title={item.name}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: '20px', fontVariationSettings: '"FILL" 0, "wght" 300' }}
               >
-                <span
-                  className={`material-symbols-outlined ${isActive ? 'bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent' : ''}`}
-                  style={{ fontSize: '25px', fontVariationSettings: '"FILL" 0, "wght" 200' }}
-                >
-                  {item.icon}
-                </span>
-                <span className={`text-[10px] font-medium ${isActive ? 'bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent' : ''}`}>
-                  {item.name}
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
+                {item.icon}
+              </span>
+            </Link>
+          );
+        })}
+
+        {/* 分隔线 */}
+        <div className="h-px bg-neutral-200 dark:bg-neutral-700 my-1" />
 
         {/* Theme Toggle */}
-        <div className="flex flex-col items-center px-2 py-2">
-          <ThemeToggleButton />
-        </div>
-
-        {/* Credits Display - 商业版显示租户积分（只读） */}
-        <div
-          className="flex flex-col items-center justify-center px-2 py-2 mx-2 rounded-lg bg-gradient-to-r from-amber-500/5 to-orange-500/5"
-          title="租户积分余额"
-        >
-          <span className="material-symbols-outlined text-amber-500" style={{ fontSize: '20px', fontVariationSettings: '"FILL" 1, "wght" 300' }}>
-            toll
-          </span>
-          <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 mt-0.5">
-            {user?.tenant?.credits?.toLocaleString() || 0}
-          </span>
-          <span className="text-[8px] text-slate-400 dark:text-gray-500">
-            积分
-          </span>
-        </div>
+        <ThemeToggleButton />
 
         {/* User Avatar */}
-        <div className="flex items-center justify-center px-2 py-3">
-          <Link
-            to="/settings"
-            className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer overflow-hidden hover:ring-2 hover:ring-purple-500/50 transition-all"
-            title={user?.nickname || user?.username}
-          >
-            {user?.avatar ? (
-              <img src={user.avatar} alt={user.nickname || user.username} className="h-full w-full rounded-full object-cover" />
-            ) : (
-              <span className="material-symbols-outlined text-slate-700 dark:text-white" style={{ fontSize: '28px', fontVariationSettings: '"FILL" 0, "wght" 200' }}>account_circle</span>
-            )}
-          </Link>
-        </div>
-      </aside>
+        <Link
+          to="/settings"
+          className="flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          title={user?.nickname || user?.username || '设置'}
+        >
+          {user?.avatar ? (
+            <img src={user.avatar} alt={user.nickname || user.username} className="w-6 h-6 rounded-full object-cover" />
+          ) : (
+            <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: '"FILL" 0, "wght" 300' }}>account_circle</span>
+          )}
+        </Link>
+      </nav>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto scrollbar-hide bg-background-light dark:bg-background-dark global-gradient-bg">
+      {/* Main Content - 左侧留出空间与标题对齐 */}
+      <main className="h-full overflow-auto scrollbar-hide pl-[136px]">
         <Outlet />
       </main>
     </div>
@@ -99,19 +95,17 @@ const MainLayout = () => {
 
 export default MainLayout;
 
-// 内联主题切换按钮，保持轻量依赖
-import { useTheme } from '../../contexts/ThemeContext';
-
+// 内联主题切换按钮
 const ThemeToggleButton = () => {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
   return (
     <button
       onClick={toggleTheme}
-      className={`flex items-center justify-center w-12 h-12 rounded-lg transition-all duration-200 ${isDark ? 'text-white hover:bg-white/10' : 'text-slate-700 hover:bg-slate-200'}`}
+      className="flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white"
       title={isDark ? '切换到明亮模式' : '切换到暗色模式'}
     >
-      <span className="material-symbols-outlined" style={{ fontSize: '24px', fontVariationSettings: '"FILL" 0, "wght" 200' }}>{isDark ? 'light_mode' : 'dark_mode'}</span>
+      <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: '"FILL" 0, "wght" 300' }}>{isDark ? 'light_mode' : 'dark_mode'}</span>
     </button>
   );
 };

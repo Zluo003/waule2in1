@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>配色方案 - 黑白灰高级感</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+      background: #0a0a0b;
+      color: #e5e5e5;
+      padding: 40px;
+      min-height: 100vh;
+    }
+    
+    h1 {
+      font-size: 32px;
+      font-weight: 300;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+    
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 48px;
+      font-weight: 400;
+    }
+    
+    .section {
+      margin-bottom: 48px;
+    }
+    
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #666;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+    
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+    }
+    
+    .color-card {
+      border-radius: 12px;
+      overflow: hidden;
+      background: #141414;
+      border: 1px solid #1f1f1f;
+    }
+    
+    .color-swatch {
+      height: 80px;
+      display: flex;
+      align-items: flex-end;
+      padding: 12px;
+    }
+    
+    .color-info {
+      padding: 12px;
+    }
+    
+    .color-name {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 4px;
+      color: #e5e5e5;
+    }
+    
+    .color-hex {
+      font-size: 11px;
+      color: #666;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+    
+    /* ========== 核心色板 ========== */
+    
+    /* 背景色系 */
+    .bg-pure-black { background: #000000; }
+    .bg-dark-1 { background: #0a0a0b; }
+    .bg-dark-2 { background: #111113; }
+    .bg-dark-3 { background: #18181b; }
+    .bg-dark-4 { background: #1f1f23; }
+    
+    /* 表面/卡片色系 */
+    .surface-1 { background: #141414; }
+    .surface-2 { background: #1a1a1c; }
+    .surface-3 { background: #222224; }
+    .surface-hover { background: #2a2a2d; }
+    
+    /* 边框色系 */
+    .border-subtle { background: #1f1f1f; }
+    .border-default { background: #2a2a2d; }
+    .border-strong { background: #3a3a3d; }
+    
+    /* 文字色系 */
+    .text-primary { background: #ffffff; }
+    .text-secondary { background: #a1a1a6; }
+    .text-tertiary { background: #666666; }
+    .text-muted { background: #4a4a4d; }
+    
+    /* 强调色 - 极简单色 */
+    .accent-white { background: #ffffff; }
+    .accent-light { background: #e5e5e5; }
+    
+    /* 功能色 - 低饱和度 */
+    .status-success { background: #22c55e; }
+    .status-warning { background: #eab308; }
+    .status-error { background: #ef4444; }
+    .status-info { background: #3b82f6; }
+    
+    /* 对比展示 */
+    .contrast-demo {
+      margin-top: 48px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    
+    .demo-card {
+      background: #141414;
+      border: 1px solid #1f1f1f;
+      border-radius: 16px;
+      padding: 24px;
+    }
+    
+    .demo-card h3 {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+    
+    .demo-text-primary { color: #ffffff; font-size: 16px; margin-bottom: 8px; }
+    .demo-text-secondary { color: #a1a1a6; font-size: 14px; margin-bottom: 8px; }
+    .demo-text-tertiary { color: #666666; font-size: 12px; }
+    
+    .philosophy {
+      margin-top: 48px;
+      padding: 32px;
+      background: linear-gradient(135deg, #141414 0%, #1a1a1c 100%);
+      border: 1px solid #1f1f1f;
+      border-radius: 16px;
+    }
+    
+    .philosophy h2 {
+      font-size: 18px;
+      font-weight: 400;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+    
+    .philosophy p {
+      color: #a1a1a6;
+      font-size: 14px;
+      line-height: 1.8;
+      margin-bottom: 12px;
+    }
+    
+    .philosophy ul {
+      color: #666;
+      font-size: 13px;
+      line-height: 2;
+      padding-left: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>配色方案</h1>
+  <p class="subtitle">黑白灰 · 极简 · 高级感</p>
+  
+  <div class="section">
+    <h2 class="section-title">背景色系</h2>
+    <div class="color-grid">
+      <div class="color-card">
+        <div class="color-swatch bg-pure-black"></div>
+        <div class="color-info">
+          <div class="color-name">纯黑</div>
+          <div class="color-hex">#000000</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch bg-dark-1"></div>
+        <div class="color-info">
+          <div class="color-name">背景 1</div>
+          <div class="color-hex">#0a0a0b</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch bg-dark-2"></div>
+        <div class="color-info">
+          <div class="color-name">背景 2</div>
+          <div class="color-hex">#111113</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch bg-dark-3"></div>
+        <div class="color-info">
+          <div class="color-name">背景 3</div>
+          <div class="color-hex">#18181b</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch bg-dark-4"></div>
+        <div class="color-info">
+          <div class="color-name">背景 4</div>
+          <div class="color-hex">#1f1f23</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2 class="section-title">表面/卡片色系</h2>
+    <div class="color-grid">
+      <div class="color-card">
+        <div class="color-swatch surface-1"></div>
+        <div class="color-info">
+          <div class="color-name">表面 1</div>
+          <div class="color-hex">#141414</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch surface-2"></div>
+        <div class="color-info">
+          <div class="color-name">表面 2</div>
+          <div class="color-hex">#1a1a1c</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch surface-3"></div>
+        <div class="color-info">
+          <div class="color-name">表面 3</div>
+          <div class="color-hex">#222224</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch surface-hover"></div>
+        <div class="color-info">
+          <div class="color-name">悬停态</div>
+          <div class="color-hex">#2a2a2d</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2 class="section-title">边框色系</h2>
+    <div class="color-grid">
+      <div class="color-card">
+        <div class="color-swatch border-subtle"></div>
+        <div class="color-info">
+          <div class="color-name">边框 - 微弱</div>
+          <div class="color-hex">#1f1f1f</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch border-default"></div>
+        <div class="color-info">
+          <div class="color-name">边框 - 默认</div>
+          <div class="color-hex">#2a2a2d</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch border-strong"></div>
+        <div class="color-info">
+          <div class="color-name">边框 - 强调</div>
+          <div class="color-hex">#3a3a3d</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2 class="section-title">文字色系</h2>
+    <div class="color-grid">
+      <div class="color-card">
+        <div class="color-swatch text-primary"></div>
+        <div class="color-info">
+          <div class="color-name">主文字</div>
+          <div class="color-hex">#ffffff</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch text-secondary"></div>
+        <div class="color-info">
+          <div class="color-name">次要文字</div>
+          <div class="color-hex">#a1a1a6</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch text-tertiary"></div>
+        <div class="color-info">
+          <div class="color-name">辅助文字</div>
+          <div class="color-hex">#666666</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch text-muted"></div>
+        <div class="color-info">
+          <div class="color-name">禁用文字</div>
+          <div class="color-hex">#4a4a4d</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2 class="section-title">功能色（低饱和度）</h2>
+    <div class="color-grid">
+      <div class="color-card">
+        <div class="color-swatch status-success"></div>
+        <div class="color-info">
+          <div class="color-name">成功</div>
+          <div class="color-hex">#22c55e</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch status-warning"></div>
+        <div class="color-info">
+          <div class="color-name">警告</div>
+          <div class="color-hex">#eab308</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch status-error"></div>
+        <div class="color-info">
+          <div class="color-name">错误</div>
+          <div class="color-hex">#ef4444</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch status-info"></div>
+        <div class="color-info">
+          <div class="color-name">信息</div>
+          <div class="color-hex">#3b82f6</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="contrast-demo">
+    <div class="demo-card">
+      <h3>文字层级演示</h3>
+      <p class="demo-text-primary">主标题文字 - 纯白色</p>
+      <p class="demo-text-secondary">正文内容 - 浅灰色，提供舒适的阅读体验</p>
+      <p class="demo-text-tertiary">辅助说明 - 深灰色，不抢主要内容的视觉</p>
+    </div>
+    <div class="demo-card">
+      <h3>设计原则</h3>
+      <p class="demo-text-secondary">通过明度差异建立层级</p>
+      <p class="demo-text-secondary">避免使用彩色作为装饰</p>
+      <p class="demo-text-secondary">功能色仅用于状态反馈</p>
+    </div>
+  </div>
+  
+  <div class="philosophy">
+    <h2>设计理念</h2>
+    <p>这套配色方案的核心是<strong style="color:#fff">「克制」</strong>—— 通过极简的黑白灰色阶，让内容本身成为主角。</p>
+    <p>高级感来源于：</p>
+    <ul>
+      <li>精细的灰度层级（不是简单的黑白二元）</li>
+      <li>微妙的色彩差异（如 #0a0a0b 和 #111113 的区别）</li>
+      <li>大量留白与呼吸感</li>
+      <li>功能色只在必要时出现（成功/错误/警告）</li>
+    </ul>
+  </div>
+</body>
+</html>

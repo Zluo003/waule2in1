@@ -114,44 +114,34 @@ const SoraCharactersPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0b] p-6">
-      {/* 头部 */}
-      <div className="max-w-7xl mx-auto mb-6">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('/assets')}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors"
-          >
-            <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">arrow_back</span>
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
-              <span className="material-symbols-outlined text-white text-2xl">face</span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Sora角色库</h1>
-              <p className="text-sm text-slate-500 dark:text-gray-400">{characters.length} 个角色</p>
-            </div>
-          </div>
-        </div>
+    <div className="pr-8 pb-8">
+      {/* 返回按钮 + 标题 - 固定在左上角 */}
+      <div className="fixed top-4 left-[136px] z-40 flex items-center gap-4 h-[72px]">
+        <button
+          onClick={() => navigate('/assets')}
+          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent rounded-lg transition-all"
+        >
+          <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
+        </button>
+        <span className="text-2xl font-semibold text-neutral-900 dark:text-white font-display">Sora角色库</span>
       </div>
 
-      {/* 角色列表 */}
-      <div className="max-w-7xl mx-auto">
+      {/* 角色列表 - 顶部留出header空间 */}
+      <div className="pt-36">
         {loading ? (
           <div className="text-center py-12 text-slate-500 dark:text-gray-400">
             加载中...
           </div>
         ) : characters.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-24 h-24 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mb-6">
-              <span className="material-symbols-outlined text-amber-400 text-5xl">face</span>
+            <div className="w-24 h-24 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-6">
+              <span className="material-symbols-outlined text-neutral-400 dark:text-neutral-500 text-5xl">face</span>
             </div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">还没有角色</h2>
-            <p className="text-slate-500 dark:text-gray-400 mb-6">在工作流中使用Sora角色生成节点创建角色</p>
+            <h2 className="text-xl font-bold text-neutral-800 dark:text-white mb-2">还没有角色</h2>
+            <p className="text-neutral-500 dark:text-neutral-400 mb-6">在工作流中使用Sora角色生成节点创建角色</p>
             <button
               onClick={() => navigate('/workflow')}
-              className="px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-500 hover:shadow-lg text-white font-medium rounded-lg transition-all"
+              className="px-6 py-3 bg-black dark:bg-white hover:bg-neutral-800 dark:hover:bg-neutral-200 text-white dark:text-black font-medium rounded-lg transition-all"
             >
               去创建角色
             </button>
@@ -161,11 +151,11 @@ const SoraCharactersPage: React.FC = () => {
             {characters.map((character) => (
               <div
                 key={character.id}
-                className="group relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-xl overflow-hidden hover:border-amber-400 dark:hover:border-amber-400/50 hover:shadow-lg transition-all duration-300"
+                className="group relative border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 hover:shadow-lg transition-all duration-300"
                 style={{ height: '320px' }}
               >
                 {/* 头像区域 */}
-                <div className="h-[80%] bg-gradient-to-b from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 flex items-start justify-center overflow-hidden relative">
+                <div className="h-[80%] bg-neutral-100 dark:bg-neutral-900 flex items-start justify-center overflow-hidden relative">
                   {character.avatarUrl ? (
                     <img
                       src={character.avatarUrl.startsWith('http') ? character.avatarUrl : `${API_URL}${character.avatarUrl}`}
@@ -173,13 +163,13 @@ const SoraCharactersPage: React.FC = () => {
                       className="w-full h-full object-cover object-top"
                     />
                   ) : (
-                    <span className="material-symbols-outlined text-6xl text-amber-300 dark:text-amber-600 mt-8">face</span>
+                    <span className="material-symbols-outlined text-6xl text-neutral-300 dark:text-neutral-600 mt-8">face</span>
                   )}
                   
                   {/* 操作按钮 - 右上角 */}
                   <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <label
-                      className="w-8 h-8 flex items-center justify-center bg-white/90 dark:bg-black/70 text-slate-600 dark:text-white rounded-full hover:bg-white dark:hover:bg-black shadow-md backdrop-blur-sm transition-all cursor-pointer"
+                      className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full shadow-md backdrop-blur-sm transition-all cursor-pointer"
                       title="更换图片"
                     >
                       <span className="material-symbols-outlined text-base">image</span>
@@ -202,7 +192,7 @@ const SoraCharactersPage: React.FC = () => {
                         setEditingCharacter(character);
                         setEditCharacterName(character.customName);
                       }}
-                      className="w-8 h-8 flex items-center justify-center bg-white/90 dark:bg-black/70 text-slate-600 dark:text-white rounded-full hover:bg-white dark:hover:bg-black shadow-md backdrop-blur-sm transition-all"
+                      className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full shadow-md backdrop-blur-sm transition-all"
                       title="编辑名称"
                     >
                       <span className="material-symbols-outlined text-base">edit</span>
@@ -212,7 +202,7 @@ const SoraCharactersPage: React.FC = () => {
                         e.stopPropagation();
                         handleDeleteCharacter(character.id);
                       }}
-                      className="w-8 h-8 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md backdrop-blur-sm transition-all"
+                      className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full shadow-md backdrop-blur-sm transition-all"
                       title="删除角色"
                     >
                       <span className="material-symbols-outlined text-base">delete</span>
@@ -260,7 +250,7 @@ const SoraCharactersPage: React.FC = () => {
                       <div className="font-bold text-sm text-slate-800 dark:text-white truncate">
                         {character.customName}
                       </div>
-                      <div className="text-[11px] text-amber-600 dark:text-amber-400 font-mono truncate">
+                      <div className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono truncate">
                         {character.characterName}
                       </div>
                     </>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Editor - Waule Mono</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Dark Theme (Default) */
+            --bg-canvas: #09090b;
+            --bg-panel: #141416;
+            --bg-node: #1c1c1e;
+            --border-subtle: #27272a;
+            --border-active: #52525b;
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-tertiary: #52525b;
+            --accent: #ffffff;
+            --accent-dim: #a1a1aa;
+            
+            --node-header-height: 40px;
+            --grid-color: rgba(255,255,255,0.03);
+        }
+
+        html.light {
+            /* Light Theme Override */
+            --bg-canvas: #f4f4f5;
+            --bg-panel: #ffffff;
+            --bg-node: #ffffff;
+            --border-subtle: #e4e4e7;
+            --border-active: #a1a1aa;
+            --text-primary: #18181b;
+            --text-secondary: #71717a;
+            --text-tertiary: #a1a1aa;
+            --accent: #18181b;
+            --accent-dim: #52525b;
+            --grid-color: rgba(0,0,0,0.04);
+        }
+
+        * { box-sizing: border-box; }
+        
+        body {
+            margin: 0;
+            background: var(--bg-canvas);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* GRID BACKGROUND */
+        .canvas-bg {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+            z-index: 0;
+        }
+
+        /* TOP TOOLBAR */
+        .toolbar {
+            height: 50px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+        }
+        
+        .toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 16px; }
+        
+        .logo { font-weight: 600; letter-spacing: -0.5px; font-size: 16px; }
+        .project-meta { color: var(--text-secondary); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .badge { background: var(--border-subtle); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-family: 'JetBrains Mono', monospace; }
+
+        .icon-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .icon-btn:hover { background: var(--border-subtle); color: var(--text-primary); }
+        .icon-btn.active { background: var(--border-subtle); color: var(--text-primary); border-color: var(--border-active); }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-canvas);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        html.light .btn-primary { color: #fff; } /* Light mode button text fix */
+
+        /* CANVAS AREA */
+        .workspace {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* NODE COMPONENT */
+        .node {
+            position: absolute;
+            width: 280px;
+            background: var(--bg-node);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 5;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        
+        .node:hover { border-color: var(--border-active); }
+        .node.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+        .node-header {
+            height: var(--node-header-height);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            justify-content: space-between;
+        }
+        
+        .node-title { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+        .node-icon { width: 16px; height: 16px; border-radius: 4px; background: var(--border-subtle); }
+        
+        .node-body { padding: 12px; }
+        
+        .field-group { margin-bottom: 12px; }
+        .field-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; display: block; }
+        
+        .node-input, .node-select {
+            width: 100%;
+            background: var(--bg-canvas);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+        }
+        .node-input:focus { outline: none; border-color: var(--border-active); }
+
+        .preview-box {
+            height: 140px;
+            background: var(--bg-canvas);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px dashed var(--border-subtle);
+            color: var(--text-tertiary);
+            font-size: 11px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .preview-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+
+        /* HANDLES */
+        .handle {
+            width: 10px; height: 10px;
+            background: var(--bg-node);
+            border: 2px solid var(--text-secondary);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%; margin-top: -5px;
+            z-index: 6;
+            transition: all 0.2s;
+        }
+        .handle:hover { border-color: var(--accent); background: var(--accent); }
+        .handle-in { left: -6px; }
+        .handle-out { right: -6px; }
+
+        /* CONNECTION LINES (SVG) */
+        .connections {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .connection-line {
+            fill: none;
+            stroke: var(--text-tertiary);
+            stroke-width: 2px;
+            stroke-dasharray: 4 4;
+            animation: flow 1s linear infinite;
+        }
+        @keyframes flow { to { stroke-dashoffset: -8; } }
+
+        /* FLOATING PALETTE */
+        .palette {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            width: 48px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            gap: 8px;
+            z-index: 20;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* PROPERTIES PANEL (RIGHT) */
+        .properties {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            width: 240px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 16px;
+            z-index: 20;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+        .prop-header { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; }
+        .prop-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; color: var(--text-secondary); }
+        .prop-val { color: var(--text-primary); font-family: 'JetBrains Mono', monospace; }
+
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <div class="logo">Waule Studio</div>
+            <div style="height: 16px; width: 1px; background: var(--border-subtle);"></div>
+            <div class="project-meta">
+                <span>Untitled Project</span>
+                <span class="badge">v0.1.2</span>
+            </div>
+        </div>
+        <div class="toolbar-right">
+            <button class="icon-btn" onclick="document.documentElement.classList.toggle('light')">☀/☾</button>
+            <button class="icon-btn">Run</button>
+            <button class="btn-primary">Export</button>
+        </div>
+    </div>
+
+    <div class="workspace">
+        <div class="canvas-bg"></div>
+        
+        <!-- SVG Connections -->
+        <svg class="connections">
+            <!-- Example bezier curve -->
+            <path d="M 380 180 C 450 180, 450 320, 520 320" class="connection-line"></path>
+        </svg>
+
+        <!-- Node 1: Prompt Input -->
+        <div class="node selected" style="top: 100px; left: 100px;">
+            <div class="node-header">
+                <div class="node-title"><div class="node-icon"></div> Gemini 3 Pro</div>
+                <div style="font-size: 10px; color: var(--text-tertiary);">ID: 001</div>
+            </div>
+            <div class="node-body">
+                <div class="field-group">
+                    <span class="field-label">PROMPT</span>
+                    <textarea class="node-input" rows="3">Cyberpunk city street at night, neon rain, reflection...</textarea>
+                </div>
+                <div class="field-group">
+                    <span class="field-label">RESOLUTION</span>
+                    <select class="node-select">
+                        <option>4K Ultra (3840x2160)</option>
+                        <option>2K QHD (2560x1440)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="handle handle-out"></div>
+        </div>
+
+        <!-- Node 2: Image Processor -->
+        <div class="node" style="top: 250px; left: 520px;">
+            <div class="node-header">
+                <div class="node-title"><div class="node-icon"></div> Upscaler</div>
+                <div style="font-size: 10px; color: var(--text-tertiary);">ID: 002</div>
+            </div>
+            <div class="node-body">
+                <div class="preview-box">
+                    <img src="https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80" class="preview-img" alt="preview">
+                </div>
+                <div style="margin-top: 8px; display: flex; justify-content: space-between; font-size: 10px; color: var(--text-secondary);">
+                    <span>Processing...</span>
+                    <span>85%</span>
+                </div>
+                <div style="height: 2px; width: 100%; background: var(--border-subtle); margin-top: 4px; border-radius: 1px;">
+                    <div style="height: 100%; width: 85%; background: var(--text-primary); border-radius: 1px;"></div>
+                </div>
+            </div>
+            <div class="handle handle-in"></div>
+            <div class="handle handle-out"></div>
+        </div>
+
+        <!-- Floating Tools -->
+        <div class="palette">
+            <button class="icon-btn active">+</button>
+            <button class="icon-btn">T</button>
+            <button class="icon-btn">□</button>
+        </div>
+
+        <!-- Mini Property Inspector -->
+        <div class="properties">
+            <div class="prop-header">Node Properties</div>
+            <div class="prop-row">
+                <span>Model</span>
+                <span class="prop-val">Gemini-V3</span>
+            </div>
+            <div class="prop-row">
+                <span>Latency</span>
+                <span class="prop-val">120ms</span>
+            </div>
+            <div class="prop-row">
+                <span>Cost</span>
+                <span class="prop-val">$0.002</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

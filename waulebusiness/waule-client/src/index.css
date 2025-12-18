@@ -69,53 +69,27 @@ audio {
   animation: slide-in-right 0.3s ease-out forwards;
 }
 
-/* Dot grid pattern for canvas */
+/* Dot grid pattern for canvas - 极简灰色 */
 .dot-grid {
-  background-image: radial-gradient(circle, rgba(122, 15, 232, 0.15) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
 .dark .dot-grid {
-  background-image: radial-gradient(circle, rgba(122, 15, 232, 0.2) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
 }
 
-/* 工作流画布炫酷背景 */
+/* 工作流画布背景 - 极简点阵 */
 .react-flow {
-  background: 
-    /* 网格线 */
-    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px),
-    /* 渐变背景 */
-    radial-gradient(ellipse at 0% 0%, rgba(147, 51, 234, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 0% 100%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
-  background-size: 
-    40px 40px,
-    40px 40px,
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%;
+  background-color: #fdfdfd !important;
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.15) 1px, transparent 1px) !important;
+  background-size: 24px 24px;
 }
 
 .dark .react-flow {
-  background: 
-    /* 网格线 - 深色模式更明显 */
-    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
-    /* 渐变背景 - 深色模式更鲜艳 */
-    radial-gradient(ellipse at 0% 0%, rgba(147, 51, 234, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 0% 100%, rgba(16, 185, 129, 0.10) 0%, transparent 50%);
-  background-size: 
-    40px 40px,
-    40px 40px,
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%;
+  background-color: #010101 !important;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.12) 1px, transparent 1px) !important;
+  background-size: 24px 24px;
 }
 
 /* Material Symbols config */
@@ -155,31 +129,21 @@ body {
   @apply bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white;
 }
 
-/* 全局炫酷渐变背景 - 应用于主内容区域 */
+/* 全局背景 - 保持极简纯色 */
 .global-gradient-bg {
   position: relative;
   overflow: hidden;
+  background-color: #fdfdfd !important;
 }
 
+.dark .global-gradient-bg {
+  background-color: #010101 !important;
+}
+
+/* 移除之前的伪元素渐变 */
 .global-gradient-bg::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background: 
-    radial-gradient(ellipse at 0% 0%, rgba(147, 51, 234, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, 0.05) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-    radial-gradient(ellipse at 0% 100%, rgba(245, 158, 11, 0.04) 0%, transparent 50%);
-}
-
-.dark .global-gradient-bg::before {
-  background: 
-    radial-gradient(ellipse at 0% 0%, rgba(147, 51, 234, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, 0.10) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(59, 130, 246, 0.10) 0%, transparent 50%),
-    radial-gradient(ellipse at 0% 100%, rgba(245, 158, 11, 0.08) 0%, transparent 50%);
+  content: none !important;
+  display: none !important;
 }
 
 .global-gradient-bg > * {

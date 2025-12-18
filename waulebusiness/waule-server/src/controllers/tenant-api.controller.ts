@@ -1392,10 +1392,11 @@ export const deleteAsset = asyncHandler(async (req: Request, res: Response) => {
     return res.status(404).json({ success: false, message: '资产不存在' });
   }
 
-  // 只有资产库的所有者或管理员才能删除资产（协作者不能删除）
+  // 资产库所有者、管理员或资产上传者可以删除
   const isLibraryOwner = asset.library?.tenantUserId === tenantUser.id;
-  if (!isLibraryOwner && !tenantUser.isAdmin) {
-    return res.status(403).json({ success: false, message: '只有资产库所有者才能删除资产' });
+  const isAssetUploader = asset.tenantUserId === tenantUser.id;
+  if (!isLibraryOwner && !isAssetUploader && !tenantUser.isAdmin) {
+    return res.status(403).json({ success: false, message: '只有资产库所有者或资产上传者才能删除资产' });
   }
 
   await prisma.tenantAsset.delete({ where: { id } });
@@ -1718,7 +1719,8 @@ export const getAssetLibraryAssets = asyncHandler(async (req: Request, res: Resp
       isOwner,
       isCollaborator,
       canDownload,
-      canDelete: isOwner || tenantUser.isAdmin,  // 只有所有者或管理员可删除
+      canDelete: isOwner || tenantUser.isAdmin,  // 只有所有者或管理员可删除全部资产
+      currentUserId: tenantUser.id,  // 协作者可删除自己上传的资产
     }
   });
 });
@@ -1771,9 +1773,15 @@ export const uploadAssetToLibrary = asyncHandler(async (req: Request, res: Respo
     return res.status(404).json({ success: false, message: '资产库不存在' });
   }
 
-  // 检查权限：必须是所有者
+  // 检查权限：所有者、管理员或协作者都可以上传
   if (library.tenantUserId !== tenantUser.id && !tenantUser.isAdmin) {
-    return res.status(403).json({ success: false, message: '只有资产库所有者才能上传资产' });
+    // 不是所有者也不是管理员，检查是否是协作者
+    const collaborator = await prisma.tenantAssetLibraryCollaborator.findFirst({
+      where: { libraryId: id, tenantUserId: tenantUser.id },
+    });
+    if (!collaborator) {
+      return res.status(403).json({ success: false, message: '没有权限上传到此资产库' });
+    }
   }
 
   const tenantInfo: TenantUploadInfo = {
@@ -4114,7 +4122,26 @@ export const getRoles = asyncHandler(async (req: Request, res: Response) => {
     return { ...r, thumbnail: m.thumbnail || null };
   });
 
-  res.json({ success: true, data: rolesWithThumbnail });
+  // 检查是否是协作者
+  let isCollaborator = false;
+  if (!isOwner) {
+    const collaboration = await prisma.tenantAssetLibraryCollaborator.findUnique({
+      where: { libraryId_tenantUserId: { libraryId: id, tenantUserId: tenantUser.id } },
+    });
+    isCollaborator = !!collaboration;
+  }
+
+  res.json({ 
+    success: true, 
+    data: rolesWithThumbnail,
+    permissions: {
+      isOwner,
+      isCollaborator,
+      canDownload: true,
+      canDelete: isOwner || tenantUser.isAdmin,
+      currentUserId: tenantUser.id,
+    }
+  });
 });
 
 /**
@@ -4125,7 +4152,10 @@ export const updateRole = asyncHandler(async (req: Request, res: Response) => {
   const { id, roleId } = req.params;
   const { name, faceAssetId, frontAssetId, sideAssetId, backAssetId, voiceAssetId, documentAssetId } = req.body;
 
-  const role = await prisma.tenantAsset.findFirst({ where: { id: roleId, tenantId: tenantUser.tenantId, libraryId: id } });
+  const role = await prisma.tenantAsset.findFirst({ 
+    where: { id: roleId, tenantId: tenantUser.tenantId, libraryId: id },
+    include: { library: true },
+  });
   if (!role) {
     return res.status(404).json({ message: '角色不存在' });
   }
@@ -4133,6 +4163,13 @@ export const updateRole = asyncHandler(async (req: Request, res: Response) => {
   const m: any = role.metadata || {};
   if (!m || m.kind !== 'ROLE') {
     return res.status(400).json({ message: '资产不是角色类型' });
+  }
+
+  // 权限检查：库所有者、管理员或角色创建者可以编辑
+  const isLibraryOwner = role.library?.tenantUserId === tenantUser.id;
+  const isRoleCreator = role.tenantUserId === tenantUser.id;
+  if (!isLibraryOwner && !isRoleCreator && !tenantUser.isAdmin) {
+    return res.status(403).json({ message: '只有角色创建者或资产库所有者才能编辑角色' });
   }
 
   const findAsset = async (aid?: string | null) => (aid ? await prisma.tenantAsset.findFirst({ where: { id: aid, tenantId: tenantUser.tenantId } }) : null);
@@ -4176,7 +4213,10 @@ export const deleteRole = asyncHandler(async (req: Request, res: Response) => {
   const tenantUser = req.tenantUser!;
   const { id, roleId } = req.params;
 
-  const role = await prisma.tenantAsset.findFirst({ where: { id: roleId, tenantId: tenantUser.tenantId, libraryId: id } });
+  const role = await prisma.tenantAsset.findFirst({ 
+    where: { id: roleId, tenantId: tenantUser.tenantId, libraryId: id },
+    include: { library: true },
+  });
   if (!role) {
     return res.status(404).json({ message: '角色不存在' });
   }
@@ -4184,6 +4224,13 @@ export const deleteRole = asyncHandler(async (req: Request, res: Response) => {
   const m: any = role.metadata || {};
   if (!m || m.kind !== 'ROLE') {
     return res.status(400).json({ message: '资产不是角色类型' });
+  }
+
+  // 权限检查：库所有者、管理员或角色创建者可以删除
+  const isLibraryOwner = role.library?.tenantUserId === tenantUser.id;
+  const isRoleCreator = role.tenantUserId === tenantUser.id;
+  if (!isLibraryOwner && !isRoleCreator && !tenantUser.isAdmin) {
+    return res.status(403).json({ message: '只有角色创建者或资产库所有者才能删除角色' });
   }
 
   await prisma.tenantAsset.delete({ where: { id: roleId } });

@@ -64,10 +64,10 @@ export default {
         },
         // 背景色
         background: {
-          light: '#f0f4f8',      // 浅色模式背景
-          'light-secondary': '#e5e9ed',  // 稍深
-          dark: '#050508',       // 深色模式背景
-          'dark-secondary': '#0a0a0d',
+          light: '#fdfdfd',      // 浅色模式背景
+          'light-secondary': '#f5f5f7',  // 稍深
+          dark: '#010101',       // 深色模式背景
+          'dark-secondary': '#0a0a0a',
         },
         // 卡片背景
         card: {
@@ -98,7 +98,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ["'Noto Sans SC'", "sans-serif"],
+        display: ["'DM Sans'", "'Noto Sans SC'", "sans-serif"],
+        sans: ["'DM Sans'", "'Noto Sans SC'", "sans-serif"],
       },
       borderRadius: {
         DEFAULT: "0.25rem",

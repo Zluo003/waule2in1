@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design System - Waule Mono</title>
+    <style>
+        :root {
+            /* LIGHT MODE VARIABLES */
+            --l-bg-base: #ffffff;
+            --l-bg-subtle: #f9f9f9;
+            --l-bg-element: #ffffff;
+            --l-border-light: #e5e5e5;
+            --l-border-strong: #d4d4d4;
+            --l-text-primary: #171717;
+            --l-text-secondary: #737373;
+            --l-text-tertiary: #a3a3a3;
+            --l-accent: #171717;
+            --l-accent-contrast: #ffffff;
+            
+            /* DARK MODE VARIABLES */
+            --d-bg-base: #09090b;
+            --d-bg-subtle: #18181b;
+            --d-bg-element: #09090b;
+            --d-border-light: #27272a;
+            --d-border-strong: #3f3f46;
+            --d-text-primary: #fafafa;
+            --d-text-secondary: #a1a1aa;
+            --d-text-tertiary: #52525b;
+            --d-accent: #fafafa;
+            --d-accent-contrast: #09090b;
+
+            /* SHARED */
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+            
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-full: 9999px;
+        }
+
+        /* DEFAULT THEME (Dark) */
+        body {
+            background-color: var(--d-bg-base);
+            color: var(--d-text-primary);
+            font-family: var(--font-sans);
+            margin: 0;
+            padding: 40px;
+            line-height: 1.5;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* THEME SWITCHER LOGIC (CSS ONLY FOR DEMO) */
+        html.light body {
+            background-color: var(--l-bg-base);
+            color: var(--l-text-primary);
+        }
+
+        /* UTILS */
+        .container { max-width: 1200px; margin: 0 auto; }
+        .grid { display: grid; gap: 24px; }
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .section { margin-bottom: 64px; }
+        .label { 
+            font-family: var(--font-mono); 
+            font-size: 11px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            color: var(--d-text-tertiary);
+            margin-bottom: 16px;
+            display: block;
+        }
+        html.light .label { color: var(--l-text-tertiary); }
+
+        /* TYPOGRAPHY */
+        h1 { font-size: 48px; font-weight: 300; letter-spacing: -1.5px; margin: 0 0 8px 0; }
+        h2 { font-size: 32px; font-weight: 400; letter-spacing: -0.8px; margin: 0 0 16px 0; }
+        h3 { font-size: 20px; font-weight: 500; letter-spacing: -0.5px; margin: 0 0 12px 0; }
+        p { margin: 0 0 16px 0; max-width: 60ch; color: var(--d-text-secondary); }
+        html.light p { color: var(--l-text-secondary); }
+
+        /* COLORS */
+        .swatch {
+            height: 80px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: end;
+            padding: 12px;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            border: 1px solid transparent;
+        }
+        
+        /* SHADOWS & DEPTH */
+        .card {
+            background: var(--d-bg-subtle);
+            border: 1px solid var(--d-border-light);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            transition: all 0.2s ease;
+        }
+        html.light .card {
+            background: var(--l-bg-element);
+            border: 1px solid var(--l-border-light);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        /* BUTTONS */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+            padding: 0 24px;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .btn-primary {
+            background: var(--d-accent);
+            color: var(--d-accent-contrast);
+        }
+        html.light .btn-primary {
+            background: var(--l-accent);
+            color: var(--l-accent-contrast);
+        }
+        .btn-secondary {
+            background: transparent;
+            border-color: var(--d-border-strong);
+            color: var(--d-text-primary);
+        }
+        html.light .btn-secondary {
+            border-color: var(--l-border-strong);
+            color: var(--l-text-primary);
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* INPUTS */
+        input {
+            background: transparent;
+            border: 1px solid var(--d-border-light);
+            color: var(--d-text-primary);
+            padding: 10px 16px;
+            border-radius: var(--radius-md);
+            width: 100%;
+            font-family: var(--font-sans);
+        }
+        html.light input {
+            border-color: var(--l-border-strong);
+            color: var(--l-text-primary);
+        }
+        input:focus { outline: none; border-color: var(--d-text-secondary); }
+
+        /* THEME TOGGLE */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--d-bg-subtle);
+            border: 1px solid var(--d-border-light);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        html.light .theme-toggle { background: var(--l-bg-subtle); border-color: var(--l-border-light); color: var(--l-text-primary); }
+
+        /* UTILITY CLASSES FOR SWATCHES */
+        .bg-base-swatch { background: var(--d-bg-base); border: 1px solid var(--d-border-light); }
+        .bg-subtle-swatch { background: var(--d-bg-subtle); border: 1px solid var(--d-border-light); }
+        .text-main-swatch { background: var(--d-text-primary); color: var(--d-bg-base); }
+        html.light .bg-base-swatch { background: var(--l-bg-base); border: 1px solid var(--l-border-light); }
+        html.light .bg-subtle-swatch { background: var(--l-bg-subtle); border: 1px solid var(--l-border-light); }
+        html.light .text-main-swatch { background: var(--l-text-primary); color: var(--l-bg-base); }
+
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="document.documentElement.classList.toggle('light')">Toggle Light/Dark</button>
+
+    <div class="container">
+        <!-- HEADER -->
+        <div class="section">
+            <span class="label">System Identity</span>
+            <h1>Waule Mono</h1>
+            <p>An interface design system prioritizing content over chrome. High contrast, precise typography, and subtle depth.</p>
+        </div>
+
+        <!-- COLORS -->
+        <div class="section">
+            <span class="label">Palette</span>
+            <div class="grid grid-4">
+                <div class="swatch bg-base-swatch">Base Background</div>
+                <div class="swatch bg-subtle-swatch">Subtle Surface</div>
+                <div class="swatch text-main-swatch">Primary Accent</div>
+                <div class="swatch" style="background: #27272a; color: #fff;">Border / Stroke</div>
+            </div>
+        </div>
+
+        <!-- TYPOGRAPHY -->
+        <div class="section">
+            <span class="label">Typography</span>
+            <div style="border-bottom: 1px solid var(--d-border-light); padding-bottom: 24px; margin-bottom: 24px;">
+                <h1>Display Bold 48px</h1>
+                <h2>Heading Medium 32px</h2>
+                <h3>Subheading Regular 20px</h3>
+                <p>Body Regular 16px - The quick brown fox jumps over the lazy dog. Simplicity is the ultimate sophistication.</p>
+                <span style="font-family: var(--font-mono); font-size: 12px; color: var(--d-text-tertiary);">MONOSPACE 12PX</span>
+            </div>
+        </div>
+
+        <!-- COMPONENTS -->
+        <div class="section">
+            <span class="label">Interface Elements</span>
+            <div class="grid grid-2">
+                <!-- Buttons -->
+                <div class="card">
+                    <span class="label">Interactive</span>
+                    <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                        <button class="btn btn-primary">Primary Action</button>
+                        <button class="btn btn-secondary">Secondary</button>
+                    </div>
+                    <!-- Form -->
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <input type="text" placeholder="Input field default">
+                        <input type="text" placeholder="Focused state" style="border-color: var(--d-text-secondary);">
+                    </div>
+                </div>
+
+                <!-- Cards/Depth -->
+                <div class="card">
+                    <span class="label">Depth & Elevation</span>
+                    <h3>Content Card</h3>
+                    <p>Cards use a subtle 1px border instead of heavy shadows to define hierarchy. This maintains a flat, technical aesthetic.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

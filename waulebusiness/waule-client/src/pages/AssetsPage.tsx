@@ -61,7 +61,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options })
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute right-0 top-0 bottom-0 px-4 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 rounded-r-full text-xs cursor-pointer flex items-center gap-1 min-w-[100px] justify-center"
+        className="absolute right-0 top-0 bottom-0 px-4 bg-neutral-200 dark:bg-neutral-700 rounded-r-full text-xs cursor-pointer flex items-center gap-1 min-w-[100px] justify-center"
         style={{ outline: 'none !important', boxShadow: 'none !important', border: 'none', color: isDark ? 'white' : 'black' } as any}
       >
         <span className="whitespace-nowrap" style={{ color: isDark ? 'white' : 'black' }}>{selectedOption?.label}</span>
@@ -756,56 +756,51 @@ const AssetsPage = () => {
   });
 
   return (
-    <div className="p-8">
-      {/* 顶部区域 - 标题、搜索、按钮等距横向排列 */}
-      <div className="flex items-center justify-between gap-8 mb-12">
-        {/* 标题 */}
-        <h1 className="text-4xl font-bold text-text-light-primary dark:text-text-dark-primary whitespace-nowrap">
-          资产库
-        </h1>
-
-        {/* 搜索栏 - 胶囊状，内部包含筛选下拉框 */}
-        <div className="flex-1 flex justify-center">
-          <div className="relative w-full max-w-md flex items-center">
-            <span className="material-symbols-outlined absolute left-4 text-text-light-tertiary dark:text-text-dark-tertiary">
-              search
-            </span>
-            <input
-              type="text"
-              placeholder="搜索资产库..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 pr-28 py-2.5 w-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
-              style={{ outline: 'none', boxShadow: 'none' }}
-            />
-            {/* 自定义下拉菜单 - 在搜索栏内部右侧 */}
-            <CustomSelect
-              value={categoryFilter}
-              onChange={(value) => setCategoryFilter(value as any)}
-              options={[
-                { value: 'ALL', label: '全部' },
-                { value: 'ROLE', label: '角色库' },
-                { value: 'SCENE', label: '场景库' },
-                { value: 'PROP', label: '道具库' },
-                { value: 'OTHER', label: '其它' },
-              ]}
-            />
-          </div>
-        </div>
-
-        {/* 创建按钮 */}
-        <div className="group relative">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
-          >
-            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
-          </button>
-          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">创建资产库</span>
+    <div className="pr-8 pb-8">
+      {/* 搜索栏 - 居中 */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex items-center h-[72px]">
+        <div className="relative w-80 flex items-center">
+          <span className="material-symbols-outlined absolute left-4 text-text-light-tertiary dark:text-text-dark-tertiary">
+            search
+          </span>
+          <input
+            type="text"
+            placeholder="搜索资产库..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-12 pr-28 py-2.5 w-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
+            style={{ outline: 'none', boxShadow: 'none' }}
+          />
+          {/* 自定义下拉菜单 - 在搜索栏内部右侧 */}
+          <CustomSelect
+            value={categoryFilter}
+            onChange={(value) => setCategoryFilter(value as any)}
+            options={[
+              { value: 'ALL', label: '全部' },
+              { value: 'ROLE', label: '角色库' },
+              { value: 'SCENE', label: '场景库' },
+              { value: 'PROP', label: '道具库' },
+              { value: 'OTHER', label: '其它' },
+            ]}
+          />
         </div>
       </div>
 
-      {/* 资产库列表 */}
+      {/* 创建按钮 - 左侧工具栏下方悬浮 */}
+      <div className="fixed left-[24px] bottom-8 z-50">
+        <div className="group relative">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
+          >
+            <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
+          </button>
+          <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">创建资产库</span>
+        </div>
+      </div>
+
+      {/* 资产库列表 - 顶部留出header空间 */}
+      <div className="pt-36">
       {loading ? (
         <div className="text-center py-12 text-text-light-secondary dark:text-text-dark-secondary">
           加载中...
@@ -848,10 +843,10 @@ const AssetsPage = () => {
           {(categoryFilter === 'ALL' || categoryFilter === 'ROLE') && (
             <div
               onClick={() => navigate('/assets/sora-characters')}
-              className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-purple-400 dark:hover:border-purple-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3] flex flex-col"
+              className="relative border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3]"
             >
-              {/* 缩略图区域 */}
-              <div className="h-[70%] bg-slate-100 dark:bg-white/5 relative overflow-hidden flex items-center justify-center">
+              {/* 缩略图 - 充满整个卡片 */}
+              <div className="absolute inset-0">
                 <img
                   src={soraLibraryCover || '/sora-library.jpg'}
                   alt="Sora角色库"
@@ -860,36 +855,36 @@ const AssetsPage = () => {
                     e.currentTarget.src = '/sora-library.jpg';
                   }}
                 />
+              </div>
                 
-                {/* 编辑按钮 - 左上角悬浮显示 */}
-                <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openSoraEditModal();
-                    }}
-                    className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95 cursor-pointer"
-                    title="编辑Sora角色库"
-                  >
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
-                  </button>
-                </div>
-
-                {/* 已共享标识 */}
-                {soraHasCollaborators && (
-                  <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg text-xs font-semibold text-white bg-green-500/80 backdrop-blur-sm flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">share</span>
-                    已共享
-                  </div>
-                )}
+              {/* 编辑按钮 - 左上角悬浮显示 */}
+              <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5 z-10">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openSoraEditModal();
+                  }}
+                  className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95 cursor-pointer"
+                  title="编辑Sora角色库"
+                >
+                  <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
+                </button>
               </div>
 
-              {/* 信息区域 */}
-              <div className="h-[30%] p-3 flex flex-col justify-center">
-                <h3 className="font-bold text-sm text-slate-800 dark:text-white truncate">
+              {/* 已共享标识 */}
+              {soraHasCollaborators && (
+                <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium text-white bg-black/50 dark:bg-white/20 backdrop-blur-sm flex items-center gap-1 z-10">
+                  <span className="material-symbols-outlined text-xs">share</span>
+                  已共享
+                </div>
+              )}
+
+              {/* 信息区域 - 悬浮于图片上方，半透明磨砂效果 */}
+              <div className="absolute bottom-3 left-3 right-3 p-3 bg-white/50 dark:bg-black/50 backdrop-blur-md rounded-xl z-10">
+                <h3 className="font-semibold text-sm text-neutral-900 dark:text-white truncate">
                   Sora角色库
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">已创建 {soraCharacterCount} 个Sora专用角色</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">已创建 {soraCharacterCount} 个Sora专用角色</p>
               </div>
             </div>
           )}
@@ -898,10 +893,10 @@ const AssetsPage = () => {
             <div
               key={library.id}
               onClick={() => navigate(`/assets/${library.id}`)}
-              className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-purple-400 dark:hover:border-purple-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3] flex flex-col"
+              className="relative border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3]"
             >
-              {/* 缩略图 */}
-              <div className="h-[70%] bg-slate-100 dark:bg-white/5 relative overflow-hidden">
+              {/* 缩略图 - 充满整个卡片 */}
+              <div className="absolute inset-0">
                 {library.thumbnail ? (
                   <img
                     src={resolveAssetUrl(library.thumbnail)}
@@ -913,77 +908,63 @@ const AssetsPage = () => {
                     }}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span className="material-symbols-outlined text-3xl text-tiffany-300 dark:text-white/30">
+                  <div className="w-full h-full flex items-center justify-center bg-neutral-100 dark:bg-[#27272a]">
+                    <span className="material-symbols-outlined text-3xl text-neutral-400 dark:text-neutral-500">
                       {(library.category ?? 'OTHER') === 'ROLE' ? 'person' : (library.category ?? 'OTHER') === 'SCENE' ? 'landscape' : (library.category ?? 'OTHER') === 'PROP' ? 'inventory_2' : (library.category ?? 'OTHER') === 'AUDIO' ? 'music_note' : 'widgets'}
                     </span>
                   </div>
                 )}
-                
-                {/* 操作按钮组 - 仅所有者可见 */}
-                {(library.isOwner !== false) && (
-                  <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditModal(library);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
-                      title="编辑资产库"
-                    >
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(library.id);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center bg-red-500 hover:bg-red-600 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
-                      title="删除资产库"
-                    >
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>delete</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* 共享状态标识 */}
-                {library.isShared && (
-                  <div className="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-semibold text-white bg-blue-500/80 backdrop-blur-sm flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">group</span>
-                    共享
-                  </div>
-                )}
-                {library.hasCollaborators && !library.isShared && (
-                  <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg text-xs font-semibold text-white bg-green-500/80 backdrop-blur-sm flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">share</span>
-                    已共享
-                  </div>
-                )}
-
-                {/* 分类标识 */}
-                <div className={`absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-semibold text-white backdrop-blur-sm ${
-                  (library.category ?? 'OTHER') === 'ROLE' ? 'bg-purple-600/80' :
-                  (library.category ?? 'OTHER') === 'SCENE' ? 'bg-emerald-600/80' :
-                  (library.category ?? 'OTHER') === 'PROP' ? 'bg-amber-500/80' :
-                  (library.category ?? 'OTHER') === 'AUDIO' ? 'bg-pink-500/80' : 'bg-gray-600/80'
-                }`}>
-                  {(library.category ?? 'OTHER') === 'ROLE' ? '角色库' : (library.category ?? 'OTHER') === 'SCENE' ? '场景库' : (library.category ?? 'OTHER') === 'PROP' ? '道具库' : (library.category ?? 'OTHER') === 'AUDIO' ? '音频库' : '分镜资产'}
+              </div>
+              
+              {/* 操作按钮组 - 仅所有者可见 */}
+              {(library.isOwner !== false) && (
+                <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditModal(library);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+                    title="编辑资产库"
+                  >
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(library.id);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+                    title="删除资产库"
+                  >
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>delete</span>
+                  </button>
                 </div>
+              )}
 
-                {/* 资产数量标记 */}
-                <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-sm text-white text-xs rounded-lg flex items-center gap-1">
-                  <span className="material-symbols-outlined text-xs">photo</span>
-                  {library._count?.assets ?? 0}
+              {/* 共享状态标识 */}
+              {library.isShared && (
+                <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium text-white bg-black/50 dark:bg-white/20 backdrop-blur-sm flex items-center gap-1 z-10">
+                  <span className="material-symbols-outlined text-xs">group</span>
+                  共享
                 </div>
+              )}
+
+              {/* 分类标识 */}
+              <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium text-white bg-black/50 dark:bg-white/20 backdrop-blur-sm z-10">
+                {(library.category ?? 'OTHER') === 'ROLE' ? '角色库' : (library.category ?? 'OTHER') === 'SCENE' ? '场景库' : (library.category ?? 'OTHER') === 'PROP' ? '道具库' : (library.category ?? 'OTHER') === 'AUDIO' ? '音频库' : '分镜资产'}
               </div>
 
-              {/* 资产库信息 */}
-              <div className="h-[30%] p-3 flex flex-col justify-center">
-                <h3 className="font-bold text-sm text-slate-800 dark:text-white truncate">
-                  {library.name}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 truncate">
-                  {library.description || `已上传 ${library._count?.assets ?? 0} 个素材`}
+              {/* 资产库信息 - 悬浮于图片上方，半透明磨砂效果 */}
+              <div className="absolute bottom-3 left-3 right-3 p-3 bg-white/50 dark:bg-black/50 backdrop-blur-md rounded-xl z-10">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm text-neutral-900 dark:text-white truncate flex-1">
+                    {library.name}
+                  </h3>
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400 ml-2">{library._count?.assets ?? 0}</span>
+                </div>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 truncate">
+                  {library.description || '暂无描述'}
                 </p>
               </div>
             </div>
@@ -1200,6 +1181,7 @@ const AssetsPage = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

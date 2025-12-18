@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>组件样式 - 黑白灰高级感</title>
+  <style>
+    :root {
+      /* 背景色系 */
+      --bg-primary: #0a0a0b;
+      --bg-secondary: #111113;
+      --bg-tertiary: #18181b;
+      
+      /* 表面色系 */
+      --surface-1: #141414;
+      --surface-2: #1a1a1c;
+      --surface-3: #222224;
+      --surface-hover: #2a2a2d;
+      
+      /* 边框色系 */
+      --border-subtle: #1f1f1f;
+      --border-default: #2a2a2d;
+      --border-strong: #3a3a3d;
+      
+      /* 文字色系 */
+      --text-primary: #ffffff;
+      --text-secondary: #a1a1a6;
+      --text-tertiary: #666666;
+      --text-muted: #4a4a4d;
+      
+      /* 功能色 */
+      --status-success: #22c55e;
+      --status-warning: #eab308;
+      --status-error: #ef4444;
+      --status-info: #3b82f6;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      padding: 40px;
+      min-height: 100vh;
+    }
+    
+    h1 {
+      font-size: 32px;
+      font-weight: 300;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    
+    .subtitle {
+      color: var(--text-tertiary);
+      font-size: 14px;
+      margin-bottom: 48px;
+    }
+    
+    .section {
+      margin-bottom: 64px;
+    }
+    
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-tertiary);
+      margin-bottom: 24px;
+      font-weight: 500;
+    }
+    
+    /* ========== 按钮组件 ========== */
+    .button-group {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      outline: none;
+    }
+    
+    /* 主按钮 - 白色 */
+    .btn-primary {
+      background: var(--text-primary);
+      color: var(--bg-primary);
+    }
+    .btn-primary:hover {
+      background: #e5e5e5;
+      transform: translateY(-1px);
+    }
+    
+    /* 次要按钮 - 透明边框 */
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+    }
+    .btn-secondary:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-strong);
+    }
+    
+    /* 幽灵按钮 */
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border: none;
+    }
+    .btn-ghost:hover {
+      background: var(--surface-1);
+      color: var(--text-primary);
+    }
+    
+    /* 危险按钮 */
+    .btn-danger {
+      background: transparent;
+      color: var(--status-error);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: var(--status-error);
+    }
+    
+    /* 小按钮 */
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+    
+    /* 大按钮 */
+    .btn-lg {
+      padding: 14px 28px;
+      font-size: 16px;
+      border-radius: 10px;
+    }
+    
+    /* ========== 卡片组件 ========== */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    
+    .card {
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.2s ease;
+    }
+    
+    .card:hover {
+      border-color: var(--border-default);
+      transform: translateY(-2px);
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    
+    .card-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .card-badge {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      background: var(--surface-3);
+      color: var(--text-secondary);
+    }
+    
+    .card-content {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    
+    .card-footer {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .card-meta {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    
+    /* ========== 输入框组件 ========== */
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 400px;
+    }
+    
+    .input-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .input-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .input {
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 14px;
+      color: var(--text-primary);
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    
+    .input::placeholder {
+      color: var(--text-muted);
+    }
+    
+    .input:focus {
+      border-color: var(--text-secondary);
+      background: var(--surface-2);
+    }
+    
+    .input:hover:not(:focus) {
+      border-color: var(--border-default);
+    }
+    
+    /* 带图标的输入框 */
+    .input-with-icon {
+      position: relative;
+    }
+    
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-tertiary);
+      font-size: 16px;
+    }
+    
+    .input-with-icon .input {
+      padding-left: 42px;
+    }
+    
+    /* ========== 标签/徽章 ========== */
+    .tag-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .tag-default {
+      background: var(--surface-2);
+      color: var(--text-secondary);
+    }
+    
+    .tag-outline {
+      background: transparent;
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+    }
+    
+    .tag-success {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--status-success);
+    }
+    
+    .tag-warning {
+      background: rgba(234, 179, 8, 0.15);
+      color: var(--status-warning);
+    }
+    
+    .tag-error {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--status-error);
+    }
+    
+    /* ========== 开关组件 ========== */
+    .switch-group {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .switch-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+    }
+    
+    .switch-label {
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+    
+    .switch {
+      width: 44px;
+      height: 24px;
+      background: var(--surface-3);
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .switch::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: var(--text-primary);
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: all 0.2s ease;
+    }
+    
+    .switch.active {
+      background: var(--text-primary);
+    }
+    
+    .switch.active::after {
+      background: var(--bg-primary);
+      left: 23px;
+    }
+    
+    /* ========== 列表组件 ========== */
+    .list {
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    .list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background 0.15s ease;
+      cursor: pointer;
+    }
+    
+    .list-item:last-child {
+      border-bottom: none;
+    }
+    
+    .list-item:hover {
+      background: var(--surface-hover);
+    }
+    
+    .list-item-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .list-item-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--surface-3);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      font-size: 16px;
+    }
+    
+    .list-item-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .list-item-title {
+      font-size: 14px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+    
+    .list-item-desc {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    
+    .list-item-action {
+      color: var(--text-muted);
+      font-size: 18px;
+    }
+    
+    /* ========== 进度条 ========== */
+    .progress-group {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .progress-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+    
+    .progress-label span:first-child {
+      color: var(--text-secondary);
+    }
+    
+    .progress-label span:last-child {
+      color: var(--text-tertiary);
+    }
+    
+    .progress-bar {
+      height: 4px;
+      background: var(--surface-3);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: var(--text-primary);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+    
+    .progress-fill.success {
+      background: var(--status-success);
+    }
+  </style>
+</head>
+<body>
+  <h1>组件库</h1>
+  <p class="subtitle">统一的设计语言</p>
+  
+  <div class="section">
+    <h2 class="section-title">按钮</h2>
+    <div class="button-group">
+      <button class="btn btn-primary">主要按钮</button>
+      <button class="btn btn-secondary">次要按钮</button>
+      <button class="btn btn-ghost">幽灵按钮</button>
+      <button class="btn btn-danger">危险操作</button>
+    </div>
+    <div class="button-group">
+      <button class="btn btn-primary btn-sm">小按钮</button>
+      <button class="btn btn-primary">默认按钮</button>
+      <button class="btn btn-primary btn-lg">大按钮</button>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2 class="section-title">卡片</h2>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">图片生成节点</span>
+          <span class="card-badge">AI</span>
+        </div>
+        <div class="card-content">
+          使用 Gemini 3 Pro Image 生成高质量图片，支持 2K/4K 分辨率输出。
+        </div>
+        <div class="card-footer">
+          <span class="card-meta">更新于 2 分钟前</span>
+          <button class="btn btn-ghost btn-sm">编辑</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">视频渲染节点</span>
+          <span class="card-badge">处理中</span>
+        </div>
+        <div class="card-content">
+          将生成的图片序列渲染为视频，支持多种格式和帧率设置。
+        </div>
+        <div class="card-footer">
+          <span class="card-meta">预计 3 分钟</span>
+          <button class="btn btn-ghost btn-sm">查看</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2 class="section-title">输入框</h2>
+    <div class="input-group">
+      <div class="input-wrapper">
+        <label class="input-label">项目名称</label>
+        <input type="text" class="input" placeholder="输入项目名称...">
+      </div>
+      <div class="input-wrapper">
+        <label class="input-label">搜索</label>
+        <div class="input-with-icon">
+          <span class="input-icon">🔍</span>
+          <input type="text" class="input" placeholder="搜索节点...">
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2 class="section-title">标签/徽章</h2>
+    <div class="tag-group">
+      <span class="tag tag-default">默认标签</span>
+      <span class="tag tag-outline">描边标签</span>
+      <span class="tag tag-success">✓ 成功</span>
+      <span class="tag tag-warning">⚠ 警告</span>
+      <span class="tag tag-error">✕ 错误</span>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2 class="section-title">开关</h2>
+    <div class="switch-group" style="max-width: 400px;">
+      <div class="switch-item">
+        <span class="switch-label">自动保存</span>
+        <div class="switch active"></div>
+      </div>
+      <div class="switch-item">
+        <span class="switch-label">深色模式</span>
+        <div class="switch active"></div>
+      </div>
+      <div class="switch-item">
+        <span class="switch-label">通知提醒</span>
+        <div class="switch"></div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2 class="section-title">列表</h2>
+    <div class="list" style="max-width: 500px;">
+      <div class="list-item">
+        <div class="list-item-content">
+          <div class="list-item-icon">🎨</div>
+          <div class="list-item-text">
+            <span class="list-item-title">图片生成</span>
+            <span class="list-item-desc">使用 AI 生成高质量图片</span>
+          </div>
+        </div>
+        <span class="list-item-action">→</span>
+      </div>
+      <div class="list-item">
+        <div class="list-item-content">
+          <div class="list-item-icon">🎬</div>
+          <div class="list-item-text">
+            <span class="list-item-title">视频生成</span>
+            <span class="list-item-desc">AI 驱动的视频创作</span>
+          </div>
+        </div>
+        <span class="list-item-action">→</span>
+      </div>
+      <div class="list-item">
+        <div class="list-item-content">
+          <div class="list-item-icon">✏️</div>
+          <div class="list-item-text">
+            <span class="list-item-title">图片编辑</span>
+            <span class="list-item-desc">精确编辑和修改图片</span>
+          </div>
+        </div>
+        <span class="list-item-action">→</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="section">
+    <h2 class="section-title">进度条</h2>
+    <div class="progress-group" style="max-width: 400px;">
+      <div class="progress-item">
+        <div class="progress-label">
+          <span>生成进度</span>
+          <span>75%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 75%;"></div>
+        </div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-label">
+          <span>渲染完成</span>
+          <span>100%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill success" style="width: 100%;"></div>
+        </div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-label">
+          <span>存储空间</span>
+          <span>2.4 GB / 10 GB</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 24%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Waule Mono</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Dark Theme */
+            --bg-base: #09090b;
+            --bg-subtle: #141416;
+            --bg-element: #1c1c1e;
+            
+            --border-light: #27272a;
+            --border-hover: #3f3f46;
+            
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-tertiary: #52525b;
+            
+            --accent: #ffffff;
+            --danger: #ef4444;
+        }
+
+        html.light {
+            /* Light Theme */
+            --bg-base: #ffffff;
+            --bg-subtle: #f9f9f9;
+            --bg-element: #ffffff;
+            
+            --border-light: #e5e5e5;
+            --border-hover: #d4d4d4;
+            
+            --text-primary: #171717;
+            --text-secondary: #737373;
+            --text-tertiary: #a3a3a3;
+            
+            --accent: #171717;
+        }
+
+        * { box-sizing: border-box; }
+        
+        body {
+            margin: 0;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* SETTINGS LAYOUT */
+        .settings-container {
+            flex: 1;
+            display: flex;
+            max-width: 1000px;
+            margin: 0 auto;
+            height: 100%;
+        }
+
+        /* SIDEBAR NAV */
+        .settings-nav {
+            width: 240px;
+            padding: 40px 20px;
+            border-right: 1px solid var(--border-light);
+        }
+
+        .nav-header {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 8px 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+        }
+        .nav-link:hover { background: var(--bg-subtle); color: var(--text-primary); }
+        .nav-link.active { background: var(--bg-element); color: var(--text-primary); font-weight: 500; }
+
+        /* CONTENT AREA */
+        .settings-content {
+            flex: 1;
+            padding: 40px 60px;
+            overflow-y: auto;
+        }
+
+        .section-header {
+            margin-bottom: 32px;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 20px;
+        }
+        .section-title { font-size: 24px; font-weight: 500; margin: 0 0 8px 0; }
+        .section-desc { color: var(--text-secondary); margin: 0; font-size: 14px; }
+
+        /* FORMS */
+        .form-group { margin-bottom: 24px; }
+        .form-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+        .form-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; display: block; }
+        
+        .input-wrapper { position: relative; }
+        
+        .input-text, .select-box {
+            width: 100%;
+            max-width: 400px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-light);
+            color: var(--text-primary);
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        .input-text:focus, .select-box:focus { outline: none; border-color: var(--text-secondary); }
+
+        .api-key-display {
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: -0.5px;
+            background: var(--bg-element);
+        }
+
+        /* TOGGLE SWITCH */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 600px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .toggle-info { flex: 1; padding-right: 20px; }
+        .toggle-label { font-size: 14px; font-weight: 500; display: block; }
+        .toggle-desc { font-size: 12px; color: var(--text-secondary); }
+        
+        .toggle-switch {
+            width: 44px; height: 24px;
+            background: var(--border-light);
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px;
+            width: 20px; height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .toggle-switch.active { background: var(--text-primary); }
+        .toggle-switch.active::after { transform: translateX(20px); background: var(--bg-base); }
+
+        /* BUTTONS */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: var(--text-primary); color: var(--bg-base); }
+        .btn-primary:hover { opacity: 0.9; }
+        
+        .btn-danger {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+        .btn-row { margin-top: 40px; display: flex; gap: 12px; }
+
+    </style>
+</head>
+<body>
+    <button onclick="document.documentElement.classList.toggle('light')" style="position:fixed; top:20px; right:20px; z-index:100; background:var(--bg-element); border:1px solid var(--border-light); color:var(--text-primary); padding:8px 12px; border-radius:6px; cursor:pointer;">Toggle Theme</button>
+
+    <div class="settings-container">
+        <nav class="settings-nav">
+            <div class="nav-header">General</div>
+            <a href="#" class="nav-link active">Account</a>
+            <a href="#" class="nav-link">Appearance</a>
+            <a href="#" class="nav-link">Notifications</a>
+            
+            <div class="nav-header" style="margin-top: 32px;">Workspace</div>
+            <a href="#" class="nav-link">Members</a>
+            <a href="#" class="nav-link">Billing</a>
+            <a href="#" class="nav-link">API Keys</a>
+            <a href="#" class="nav-link">Integrations</a>
+        </nav>
+
+        <div class="settings-content">
+            <div class="section-header">
+                <h1 class="section-title">API Configuration</h1>
+                <p class="section-desc">Manage your API keys and connection settings for external services.</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Gemini API Key</label>
+                <span class="form-desc">Used for image generation and text processing.</span>
+                <div class="input-wrapper">
+                    <input type="password" value="AIzaSy...dummykey12345" class="input-text api-key-display">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Default Region</label>
+                <select class="select-box">
+                    <option>us-central1 (Iowa)</option>
+                    <option>europe-west4 (Netherlands)</option>
+                    <option>asia-east1 (Taiwan)</option>
+                </select>
+            </div>
+
+            <div style="margin-top: 40px; margin-bottom: 20px;">
+                <h3 style="font-size: 16px; font-weight: 500; margin-bottom: 16px;">Feature Flags</h3>
+                
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <span class="toggle-label">Enable Experimental Models</span>
+                        <span class="toggle-desc">Access to Gemini 1.5 Pro Preview and other beta models.</span>
+                    </div>
+                    <div class="toggle-switch active"></div>
+                </div>
+
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <span class="toggle-label">Grounding with Google Search</span>
+                        <span class="toggle-desc">Allow models to access real-time information. Increases latency.</span>
+                    </div>
+                    <div class="toggle-switch active"></div>
+                </div>
+
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <span class="toggle-label">Debug Mode</span>
+                        <span class="toggle-desc">Show verbose logs and raw JSON outputs in the workflow editor.</span>
+                    </div>
+                    <div class="toggle-switch"></div>
+                </div>
+            </div>
+
+            <div class="section-header" style="margin-top: 60px;">
+                <h1 class="section-title">Danger Zone</h1>
+            </div>
+
+            <div class="toggle-row" style="border: 1px solid var(--border-light); padding: 20px; border-radius: 8px;">
+                <div class="toggle-info">
+                    <span class="toggle-label" style="color: var(--danger);">Delete Workspace</span>
+                    <span class="toggle-desc">Permanently remove this workspace and all associated data. This cannot be undone.</span>
+                </div>
+                <button class="btn btn-danger">Delete Workspace</button>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-primary">Save Changes</button>
+                <button class="btn" style="background: transparent; color: var(--text-secondary); border: 1px solid var(--border-light);">Cancel</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

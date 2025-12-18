@@ -86,17 +86,20 @@ export const uploadAsset = async (req: Request, res: Response) => {
     }
     const { assetLibraryId, customName } = req.body;
 
-    // 如果指定了资产库，验证资产库是否存在且属于当前用户
+    // 如果指定了资产库，验证资产库是否存在且用户有权限（所有者或协作者）
     if (assetLibraryId) {
       const library = await prisma.assetLibrary.findFirst({
-        where: {
-          id: assetLibraryId,
-          userId,
-        },
+        where: { id: assetLibraryId, userId },
       });
 
       if (!library) {
-        return res.status(404).json({ message: '资产库不存在' });
+        // 不是所有者，检查是否是协作者
+        const share = await prisma.assetLibraryShare.findFirst({
+          where: { assetLibraryId, targetUserId: userId },
+        });
+        if (!share) {
+          return res.status(403).json({ message: '没有权限上传到此资产库' });
+        }
       }
     }
 
@@ -584,13 +587,19 @@ export const confirmDirectUpload = async (req: Request, res: Response) => {
       return res.status(400).json({ message: '缺少必要参数' });
     }
 
-    // 如果指定了资产库，验证资产库是否存在且属于当前用户
+    // 如果指定了资产库，验证资产库是否存在且用户有权限（所有者或协作者）
     if (assetLibraryId) {
       const library = await prisma.assetLibrary.findFirst({
         where: { id: assetLibraryId, userId },
       });
       if (!library) {
-        return res.status(404).json({ message: '资产库不存在' });
+        // 不是所有者，检查是否是协作者
+        const share = await prisma.assetLibraryShare.findFirst({
+          where: { assetLibraryId, targetUserId: userId },
+        });
+        if (!share) {
+          return res.status(403).json({ message: '没有权限上传到此资产库' });
+        }
       }
     }
 

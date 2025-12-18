@@ -52,7 +52,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options })
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute right-0 top-0 bottom-0 px-4 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 rounded-r-full text-xs cursor-pointer flex items-center gap-1 min-w-[100px] justify-center"
+        className="absolute right-0 top-0 bottom-0 px-4 bg-neutral-200 dark:bg-neutral-700 rounded-r-full text-xs cursor-pointer flex items-center gap-1 min-w-[100px] justify-center"
         style={{ outline: 'none !important', boxShadow: 'none !important', border: 'none', color: isDark ? 'white' : 'black' } as any}
       >
         <span className="whitespace-nowrap" style={{ color: isDark ? 'white' : 'black' }}>{selectedOption?.label}</span>
@@ -98,6 +98,13 @@ interface Asset {
   url: string;
   thumbnail?: string;
   createdAt: string;
+  tenantUserId?: string;
+}
+
+interface Collaborator {
+  id: string;
+  nickname: string | null;
+  avatar: string | null;
 }
 
 interface AssetLibrary {
@@ -117,6 +124,7 @@ interface AssetLibrary {
     sharedAt: string;
     owner?: { id: string; nickname: string | null; avatar: string | null };
   };
+  collaborators?: Collaborator[];
 }
 
 const AssetLibraryDetailPage = () => {
@@ -162,6 +170,7 @@ const AssetLibraryDetailPage = () => {
     isCollaborator: boolean;
     canDownload: boolean;
     canDelete: boolean;
+    currentUserId?: string;
   }>({ isOwner: true, isCollaborator: false, canDownload: true, canDelete: true });
   
   // 上传相关
@@ -294,7 +303,25 @@ const AssetLibraryDetailPage = () => {
   const loadLibrary = async () => {
     try {
       const response = await apiClient.assetLibraries.getById(id!);
-      setLibrary(response.data);
+      const libraryData = response.data;
+      
+      // 如果是所有者，获取协作者列表
+      if (libraryData.isOwner) {
+        try {
+          const collabResponse = await apiClient.assetLibraries.getCollaborators(id!);
+          // API 返回 { success: true, data: [...] }
+          const collabData = collabResponse.data || collabResponse.collaborators || [];
+          libraryData.collaborators = collabData.map((c: any) => ({
+            id: c.id,
+            nickname: c.nickname,
+            avatar: c.avatar,
+          }));
+        } catch {
+          libraryData.collaborators = [];
+        }
+      }
+      
+      setLibrary(libraryData);
     } catch (error: any) {
       toast.error('加载资产库失败');
       navigate('/assets');
@@ -566,105 +593,156 @@ const AssetLibraryDetailPage = () => {
   }
 
   return (
-    <div className="p-8">
-      {/* 顶部区域 - 返回+标题、搜索（含筛选）、按钮 */}
-      <div className="flex items-center justify-between gap-8 mb-12">
-        {/* 返回按钮 + 标题 */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/assets')}
-            className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-all"
-          >
-            <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
-          </button>
-          <h1 className="text-xl font-bold text-text-light-primary dark:text-text-dark-primary whitespace-nowrap">
-            {library.name}
-          </h1>
-        </div>
+    <div className="pr-8 pb-8">
+      {/* 返回按钮 + 标题 - 固定在左上角 */}
+      <div className="fixed top-4 left-[136px] z-40 flex items-center gap-4 h-[72px]">
+        <button
+          onClick={() => navigate('/assets')}
+          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent rounded-lg transition-all"
+        >
+          <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
+        </button>
+        <span className="text-2xl font-semibold text-neutral-900 dark:text-white font-display">{library.name}</span>
+      </div>
 
-        {/* 搜索栏 - 胶囊状，内部包含筛选下拉框 */}
-        <div className="flex-1 flex justify-center">
-          <div className="relative w-full max-w-md flex items-center">
-            <span className="material-symbols-outlined absolute left-4 text-text-light-tertiary dark:text-text-dark-tertiary">
-              search
-            </span>
-            <input
-              type="text"
-              placeholder="搜索资产..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 pr-28 py-2.5 w-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
-              style={{ outline: 'none', boxShadow: 'none' }}
-            />
-            {/* 自定义下拉菜单 - 在搜索栏内部右侧 */}
-            <CustomSelect
-              value={filterType}
-              onChange={(value) => setFilterType(value as any)}
-              options={[
-                { value: 'ALL', label: '全部' },
-                { value: 'IMAGE', label: '图片' },
-                { value: 'VIDEO', label: '视频' },
-                { value: 'AUDIO', label: '音频' },
-              ]}
-            />
+      {/* 协作者标识 - 右上角 */}
+      {(library.isShared || (library.isOwner && library.collaborators && library.collaborators.length > 0)) && (
+        <div className="fixed top-4 right-8 z-40 flex items-center h-[72px]">
+          <div className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-sm">
+            {library.isShared ? (
+              <>
+                {library.shareInfo?.owner?.avatar ? (
+                  <img 
+                    src={resolveAssetUrl(library.shareInfo.owner.avatar)} 
+                    alt={library.shareInfo.owner.nickname || '用户'} 
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-neutral-500 text-base">person</span>
+                  </div>
+                )}
+                <div className="flex flex-col">
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">共享自</span>
+                  <span className="text-sm font-medium text-neutral-900 dark:text-white">
+                    {library.shareInfo?.owner?.nickname || '未知用户'}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex -space-x-2">
+                  {library.collaborators?.slice(0, 3).map((collaborator) => (
+                    collaborator.avatar ? (
+                      <img 
+                        key={collaborator.id}
+                        src={resolveAssetUrl(collaborator.avatar)} 
+                        alt={collaborator.nickname || '协作者'} 
+                        className="w-8 h-8 rounded-full object-cover border-2 border-white dark:border-[#18181b]"
+                        title={collaborator.nickname || '协作者'}
+                      />
+                    ) : (
+                      <div key={collaborator.id} className="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center border-2 border-white dark:border-[#18181b]" title={collaborator.nickname || '协作者'}>
+                        <span className="material-symbols-outlined text-neutral-500 text-sm">person</span>
+                      </div>
+                    )
+                  ))}
+                  {(library.collaborators?.length || 0) > 3 && (
+                    <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center border-2 border-white dark:border-[#18181b]">
+                      <span className="text-xs text-neutral-600 dark:text-neutral-400">+{(library.collaborators?.length || 0) - 3}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-neutral-500 dark:text-neutral-400">已共享给</span>
+                  <span className="text-sm font-medium text-neutral-900 dark:text-white">
+                    {library.collaborators?.length} 位协作者
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
+      )}
 
-        {/* 上传按钮 - 非角色库可见 */}
-        {permissions.canDelete && library.category !== 'ROLE' && (
-          <>
-            <input
-              ref={uploadInputRef}
-              type="file"
-              multiple
-              accept={getAcceptedFileTypes()}
-              onChange={handleUpload}
-              className="hidden"
-            />
+      {/* 搜索栏 - 居中 */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex items-center h-[72px]">
+        <div className="relative w-[400px] flex items-center">
+          <span className="material-symbols-outlined absolute left-4 text-text-light-tertiary dark:text-text-dark-tertiary">
+            search
+          </span>
+          <input
+            type="text"
+            placeholder="搜索资产..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-12 pr-28 py-2.5 w-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
+            style={{ outline: 'none', boxShadow: 'none' }}
+          />
+          {/* 自定义下拉菜单 - 在搜索栏内部右侧 */}
+          <CustomSelect
+            value={filterType}
+            onChange={(value) => setFilterType(value as any)}
+            options={[
+              { value: 'ALL', label: '全部' },
+              { value: 'IMAGE', label: '图片' },
+              { value: 'VIDEO', label: '视频' },
+              { value: 'AUDIO', label: '音频' },
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* 上传/创建按钮 - 左侧工具栏下方悬浮（所有者和协作者都可以上传/创建） */}
+      {(permissions.isOwner || permissions.isCollaborator) && (
+        <div className="fixed left-[24px] bottom-8 z-50">
+          {library.category !== 'ROLE' ? (
+            <>
+              <input
+                ref={uploadInputRef}
+                type="file"
+                multiple
+                accept={getAcceptedFileTypes()}
+                onChange={handleUpload}
+                className="hidden"
+              />
+              <div className="group relative">
+                <button
+                  onClick={() => uploadInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)] disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>
+                    {uploading ? 'progress_activity' : 'upload'}
+                  </span>
+                </button>
+                <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                  {uploading ? '上传中...' : '上传素材'}
+                </span>
+              </div>
+            </>
+          ) : (
             <div className="group relative">
               <button
-                onClick={() => uploadInputRef.current?.click()}
-                disabled={uploading}
-                className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center disabled:opacity-50"
+                onClick={() => {
+                  setRoleForm({ name: '', faceAssetId: '', frontAssetId: '', sideAssetId: '', backAssetId: '', voiceAssetId: '', documentAssetId: '' });
+                  setRoleMainFile(null);
+                  setRoleOpt1File(null);
+                  setRoleOpt2File(null);
+                  setShowCreateRole(true);
+                }}
+                className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
               >
-                <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>
-                  {uploading ? 'progress_activity' : 'upload'}
-                </span>
+                <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>person_add</span>
               </button>
-              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                {uploading ? '上传中...' : '上传素材'}
-              </span>
+              <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">创建角色</span>
             </div>
-          </>
-        )}
-        {/* 创建角色按钮 - 仅角色库所有者可见 */}
-        {permissions.canDelete && library.category === 'ROLE' && (
-          <div className="group relative">
-            <button
-              onClick={() => {
-                setRoleForm({ name: '', faceAssetId: '', frontAssetId: '', sideAssetId: '', backAssetId: '', voiceAssetId: '', documentAssetId: '' });
-                setRoleMainFile(null);
-                setRoleOpt1File(null);
-                setRoleOpt2File(null);
-                setShowCreateRole(true);
-              }}
-              className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
-            >
-              <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>person_add</span>
-            </button>
-            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">创建角色</span>
-          </div>
-        )}
-        {/* 协作者标识 */}
-        {library.isShared && (
-          <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-center gap-2">
-            <span className="material-symbols-outlined text-blue-500 text-lg">group</span>
-            <span className="text-sm text-blue-600 dark:text-blue-400">
-              来自 {library.shareInfo?.owner?.nickname || '未知用户'} 的共享
-            </span>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
+
+      {/* 内容区 - 顶部留出header空间 */}
+      <div className="pt-36">
 
       {/* 列表 */}
       {loading ? (
@@ -687,7 +765,7 @@ const AssetLibraryDetailPage = () => {
                 setRoleOpt2File(null);
                 setShowCreateRole(true);
               }}
-              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white font-medium rounded-lg transition-all active:scale-95"
+              className="px-6 py-3 bg-black dark:bg-white hover:bg-neutral-800 dark:hover:bg-neutral-200 text-white dark:text-black font-medium rounded-lg transition-all active:scale-95"
             >
               创建角色
             </button>
@@ -700,7 +778,7 @@ const AssetLibraryDetailPage = () => {
                 <div
                   key={role.id}
                   onClick={() => setPreviewAsset(role)}
-                  className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-purple-400 dark:hover:border-purple-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer relative"
+                  className="relative border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer"
                 >
                   <div className="aspect-[4/3] bg-slate-100 dark:bg-white/5 relative overflow-hidden">
                     {cover ? (
@@ -710,26 +788,26 @@ const AssetLibraryDetailPage = () => {
                         <span className="material-symbols-outlined text-4xl text-tiffany-300 dark:text-white/30">person</span>
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/0 to-black/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           setPreviewAsset(role);
                         }}
-                        className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95"
+                        className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all shadow-md active:scale-95"
                         title="预览"
                       >
                         <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>visibility</span>
                       </button>
-                      {permissions.canDelete && (
+                      {/* 编辑/删除按钮 - 所有者或角色创建者可见 */}
+                      {(permissions.canDelete || role.tenantUserId === permissions.currentUserId) && (
                         <>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setShowEditRole(role);
                             }}
-                            className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95"
+                            className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all shadow-md active:scale-95"
                             title="编辑"
                           >
                             <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
@@ -764,7 +842,7 @@ const AssetLibraryDetailPage = () => {
               onClick={() => setPreviewAsset(asset)}
               onMouseEnter={(e) => handleCardHover(e.currentTarget, true)}
               onMouseLeave={(e) => handleCardHover(e.currentTarget, false)}
-              className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-purple-400 dark:hover:border-purple-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer"
+              className="relative border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer"
             >
               {/* 预览 */}
               <div className="aspect-[4/3] bg-slate-100 dark:bg-white/5 relative overflow-hidden">
@@ -814,14 +892,14 @@ const AssetLibraryDetailPage = () => {
 
                 {/* 操作按钮 */}
                 <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {/* 编辑按钮 - 仅所有者可见 */}
-                  {permissions.canDelete && (
+                  {/* 编辑按钮 - 所有者或资产上传者可见 */}
+                  {(permissions.canDelete || asset.tenantUserId === permissions.currentUserId) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleEditAsset(asset);
                       }}
-                      className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95"
+                      className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all shadow-md active:scale-95"
                       title="编辑"
                     >
                       <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
@@ -834,14 +912,14 @@ const AssetLibraryDetailPage = () => {
                         e.stopPropagation();
                         handleDownloadAsset(asset);
                       }}
-                      className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95"
+                      className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all shadow-md active:scale-95"
                       title="下载"
                     >
                       <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>download</span>
                     </button>
                   )}
-                  {/* 删除按钮 - 仅所有者可见 */}
-                  {permissions.canDelete && (
+                  {/* 删除按钮 - 所有者或资产上传者可见 */}
+                  {(permissions.canDelete || asset.tenantUserId === permissions.currentUserId) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -901,8 +979,7 @@ const AssetLibraryDetailPage = () => {
                     +
                   </label>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/0 to-black/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-              </div>
+                              </div>
               <div className="w-px h-full bg-slate-200 dark:bg-white/10" />
               <div className="flex flex-col gap-6">
                 <div className="rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center overflow-hidden" style={{ height: '200px' }}>
@@ -975,7 +1052,7 @@ const AssetLibraryDetailPage = () => {
                     toast.error(err.response?.data?.message || '创建角色失败');
                   }
                 }}
-                className="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white transition-all active:scale-95"
+                className="px-6 py-2 rounded-lg bg-black dark:bg-white hover:bg-neutral-800 dark:hover:bg-neutral-200 text-white dark:text-black transition-all active:scale-95"
               >
                 创建
               </button>
@@ -1058,7 +1135,7 @@ const AssetLibraryDetailPage = () => {
                 }}
               />
             ) : previewAsset.type === 'AUDIO' ? (
-              <div className="bg-white/90 dark:bg-gradient-to-br dark:from-tiffany-500/20 dark:to-coral-500/20 backdrop-blur-md rounded-2xl p-16 flex flex-col items-center justify-center min-w-[500px]">
+              <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md rounded-2xl p-16 flex flex-col items-center justify-center min-w-[500px]">
                 <span className="material-symbols-outlined text-9xl text-tiffany-500 dark:text-white mb-8">
                   audio_file
                 </span>
@@ -1203,7 +1280,7 @@ const AssetLibraryDetailPage = () => {
                     toast.error(err.response?.data?.message || '更新角色失败');
                   }
                 }}
-                className="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white transition-all active:scale-95"
+                className="px-6 py-2 rounded-lg bg-black dark:bg-white hover:bg-neutral-800 dark:hover:bg-neutral-200 text-white dark:text-black transition-all active:scale-95"
               >
                 保存
               </button>
@@ -1235,7 +1312,7 @@ const AssetLibraryDetailPage = () => {
             <form onSubmit={handleUpdateAsset} className="space-y-6">
               {/* 资产预览 */}
               <div className="flex items-center gap-4 p-4 bg-background-light dark:bg-background-dark rounded-lg border border-border-light dark:border-border-dark">
-                <div className="w-24 h-24 rounded-lg overflow-hidden bg-gradient-to-br from-tiffany-100 to-tiffany-200 dark:from-tiffany-500/20 dark:to-coral-500/20 flex items-center justify-center flex-shrink-0">
+                <div className="w-24 h-24 rounded-lg overflow-hidden bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0">
                   {editingAsset.type === 'IMAGE' ? (
                     <img
                       src={resolveAssetUrl(editingAsset.url)}
@@ -1304,6 +1381,7 @@ const AssetLibraryDetailPage = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };
