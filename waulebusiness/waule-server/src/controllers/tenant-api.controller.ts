@@ -1958,24 +1958,39 @@ export const generateText = asyncHandler(async (req: Request, res: Response) => 
   const tenantUser = req.tenantUser!;
   const { modelId, prompt, systemPrompt, temperature, maxTokens, imageUrls, videoUrls } = req.body;
 
+  // 如果 modelId 是 UUID，从数据库查找实际的模型标识符
+  let actualModelId = modelId || 'gemini-2.5-pro';
+  let modelDbId = modelId; // 用于计费
+  if (modelId && modelId.includes('-') && modelId.length > 30) {
+    const model = await prisma.aIModel.findUnique({ where: { id: modelId } });
+    if (model) {
+      actualModelId = model.modelId;
+      modelDbId = model.id;
+      console.log(`[TenantAPI] 模型 UUID ${modelId} -> ${actualModelId}`);
+    }
+  }
+
+  // 使用计费规则系统计算积分
+  const { billingService } = await import('../services/billing.service');
+  let creditCost = 0;
+  try {
+    creditCost = await billingService.calculateCredits({ aiModelId: modelDbId });
+    console.log(`[GenerateText] 计费规则计算结果: aiModelId=${modelDbId}, cost=${creditCost}`);
+  } catch (e: any) {
+    console.error(`[GenerateText] 计费规则计算失败: ${e.message}`);
+  }
+  if (creditCost === 0) {
+    creditCost = 1; // 回退到默认值
+    console.log(`[GenerateText] 使用回退价格: cost=${creditCost}`);
+  }
+
   // 检查积分
-  const creditCost = 1; // 文本生成每次 1 积分
   const hasCredits = await checkTenantCredits(tenantUser.tenantId, creditCost);
   if (!hasCredits) {
     return res.status(402).json({ success: false, message: '积分不足' });
   }
 
   try {
-    // 如果 modelId 是 UUID，从数据库查找实际的模型标识符
-    let actualModelId = modelId || 'gemini-2.5-pro';
-    if (modelId && modelId.includes('-') && modelId.length > 30) {
-      const model = await prisma.aIModel.findUnique({ where: { id: modelId } });
-      if (model) {
-        actualModelId = model.modelId;
-        console.log(`[TenantAPI] 模型 UUID ${modelId} -> ${actualModelId}`);
-      }
-    }
-
     // 调用 Gemini 服务生成文本
     const { generateText: geminiGenerateText } = await import('../services/ai/gemini.service');
     
@@ -2341,6 +2356,51 @@ export const createVideoTask = asyncHandler(async (req: Request, res: Response) 
   }
 });
 
+export const createVideoEditTask = asyncHandler(async (req: Request, res: Response) => {
+  const tenantUser = req.tenantUser!;
+  const { modelId, prompt, referenceImages, sourceNodeId, metadata, generationType, mode } = req.body;
+  const duration = req.body.duration || req.body.metadata?.duration;
+
+  if (!modelId) {
+    return res.status(400).json({ error: '缺少模型ID' });
+  }
+
+  try {
+    const { tenantTaskService } = await import('../services/tenant-task.service');
+    
+    const task = await tenantTaskService.createTask({
+      tenantId: tenantUser.tenantId,
+      tenantUserId: tenantUser.id,
+      type: 'VIDEO',
+      modelId,
+      prompt: prompt || '',
+      ratio: '16:9',
+      referenceImages: referenceImages || [],
+      generationType: generationType || '视频换人',
+      sourceNodeId,
+      metadata: {
+        ...(metadata || {}),
+        duration,
+        mode,
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      taskId: task.id,
+      status: task.status,
+      creditsCharged: task.creditsCharged,
+      isFreeUsage: false,
+      freeUsageRemaining: 0,
+    });
+  } catch (error: any) {
+    if (error.message?.includes('积分不足')) {
+      return res.status(402).json({ success: false, error: error.message });
+    }
+    throw error;
+  }
+});
+
 export const getTaskStatus = asyncHandler(async (req: Request, res: Response) => {
   const tenantUser = req.tenantUser!;
   const { taskId } = req.params;
@@ -2649,7 +2709,21 @@ export const executeAgentRole = asyncHandler(async (req: Request, res: Response)
     return res.status(404).json({ success: false, message: '租户不存在' });
   }
   
-  const cost = Number(model.pricePerUse || 0);
+  // 使用计费规则系统计算积分（优先），如果没有规则则使用模型默认价格
+  const { billingService } = await import('../services/billing.service');
+  let cost = 0;
+  try {
+    cost = await billingService.calculateCredits({ aiModelId: model.id });
+    console.log(`[AgentChat] 计费规则计算结果: aiModelId=${model.id}, cost=${cost}`);
+  } catch (e: any) {
+    console.error(`[AgentChat] 计费规则计算失败: ${e.message}`);
+  }
+  if (cost === 0) {
+    cost = Number(model.pricePerUse || 1); // 回退到模型默认价格，最低1积分
+    console.log(`[AgentChat] 使用回退价格: pricePerUse=${model.pricePerUse}, cost=${cost}`);
+  }
+  console.log(`[AgentChat] 最终扣费: ${cost} 积分`);
+  
   if (Number(tenant.credits) < cost) {
     return res.status(400).json({ success: false, message: '积分不足' });
   }
@@ -2802,7 +2876,18 @@ export const createStoryboardTask = asyncHandler(async (req: Request, res: Respo
     return res.status(404).json({ success: false, message: '租户不存在' });
   }
   
-  const cost = Number(model.pricePerUse || 0);
+  // 使用计费规则系统计算积分（优先），如果没有规则则使用模型默认价格
+  const { billingService } = await import('../services/billing.service');
+  let cost = 0;
+  try {
+    cost = await billingService.calculateCredits({ aiModelId: model.id });
+  } catch (e) {
+    // 计费规则计算失败
+  }
+  if (cost === 0) {
+    cost = Number(model.pricePerUse || 1); // 回退到模型默认价格，最低1积分
+  }
+  
   if (Number(tenant.credits) < cost) {
     return res.status(400).json({ success: false, message: '积分不足' });
   }

@@ -201,7 +201,7 @@ export const generateImage = async (options: GeminiImageGenerateOptions): Promis
         headers: {
           'Content-Type': 'application/json',
         },
-        timeout: 600000, // 600秒超时（10分钟）- Gemini 3 Pro Image 可能需要更长时间进行推理和搜索
+        timeout: 1200000, // 20分钟超时 - Gemini 3 Pro Image 可能需要更长时间进行推理和搜索
         httpsAgent: agent,
         httpAgent: agent,
       }

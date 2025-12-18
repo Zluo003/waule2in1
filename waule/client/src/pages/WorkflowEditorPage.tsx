@@ -1627,8 +1627,9 @@ const WorkflowEditorInner = () => {
   const loadAgents = async () => {
     try {
       const data = await apiClient.agents.getAll();
-      const activeAgents = data.filter((a: any) => a.isActive);
-      setAgents(activeAgents);
+      // 只显示启用的、且使用场景为workflow的智能体
+      const workflowAgents = data.filter((a: any) => a.isActive && (!a.usageScene || a.usageScene === 'workflow'));
+      setAgents(workflowAgents);
     } catch (error) {
       
     }

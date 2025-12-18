@@ -472,7 +472,7 @@ export async function generateVideo(options: SoraVideoGenerateOptions): Promise<
           'Content-Type': 'application/json',
         },
         responseType: 'text', // 接收文本格式的 SSE 响应
-        timeout: 600000, // 600秒超时（视频生成时间很长）
+        timeout: 1200000, // 20分钟超时（视频生成时间很长）
         ...(agent ? { httpsAgent: agent, httpAgent: agent } : {}),
       }
     );

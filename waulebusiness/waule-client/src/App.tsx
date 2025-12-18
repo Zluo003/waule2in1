@@ -24,23 +24,33 @@ const RecycleBinPage = lazy(() => import('./pages/RecycleBinPage'));
 const TenantAdminPage = lazy(() => import('./pages/tenant-admin/TenantAdminPage'));
 
 /**
- * 生成设备指纹
- * 基于浏览器特征生成稳定的指纹（不含时间戳，每次生成结果相同）
+ * 获取或生成设备指纹
+ * 优先使用已存储的指纹，确保稳定性（解决 Firefox 隐私保护导致指纹变化的问题）
  */
-function generateDeviceFingerprint(): string {
-  // 基于浏览器特征生成稳定的指纹
+function getOrCreateDeviceFingerprint(): string {
+  const STORAGE_KEY = 'waule_device_fingerprint';
+  
+  // 1. 优先使用已存储的指纹
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored && stored.startsWith('web_')) {
+      return stored;
+    }
+  } catch {
+    // localStorage 不可用
+  }
+  
+  // 2. 生成新指纹（使用更稳定的特征，避免 Firefox 隐私保护影响）
   const features = [
-    navigator.userAgent,
-    navigator.language,
     screen.width,
     screen.height,
     screen.colorDepth,
     new Date().getTimezoneOffset(),
     navigator.hardwareConcurrency || 0,
-    navigator.platform || '',
+    navigator.language || 'unknown',
+    // 不使用 navigator.userAgent 和 navigator.platform（Firefox 可能修改）
   ].join('|');
 
-  // 简单哈希（确保每次结果一致）
   let hash = 0;
   for (let i = 0; i < features.length; i++) {
     const char = features.charCodeAt(i);
@@ -48,8 +58,17 @@ function generateDeviceFingerprint(): string {
     hash = hash & hash;
   }
   
-  // 不含时间戳，纯粹基于浏览器特征
-  return `web_${Math.abs(hash).toString(36)}`;
+  // 添加随机后缀确保唯一性（仅首次生成时）
+  const fingerprint = `web_${Math.abs(hash).toString(36)}_${Date.now().toString(36)}`;
+  
+  // 3. 持久化存储
+  try {
+    localStorage.setItem(STORAGE_KEY, fingerprint);
+  } catch {
+    // 存储失败，下次会重新生成
+  }
+  
+  return fingerprint;
 }
 
 function App() {
@@ -57,8 +76,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [checkingActivation, setCheckingActivation] = useState(true);
 
-  // 生成设备指纹
-  const deviceFingerprint = useMemo(() => generateDeviceFingerprint(), []);
+  // 获取或生成设备指纹（持久化存储，解决 Firefox 指纹不稳定问题）
+  const deviceFingerprint = useMemo(() => getOrCreateDeviceFingerprint(), []);
 
   // 检查激活状态（始终从服务器验证）
   useEffect(() => {

@@ -604,8 +604,8 @@ export const apiClient = {
         duration?: number;
         referenceImages?: string[];
       }) =>
-        // 视频生成需要很长时间，设置30分钟超时
-        api.post('/tenant/ai/video/generate', data, { timeout: 18000000 }).then((res) => res.data),
+        // 视频生成需要很长时间，设置20分钟超时
+        api.post('/tenant/ai/video/generate', data, { timeout: 1200000 }).then((res) => res.data),
     },
     // 保留旧的API用于兼容
     adaptScript: (data: { text: string; style?: string }) =>

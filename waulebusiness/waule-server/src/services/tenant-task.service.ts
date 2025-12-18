@@ -50,8 +50,10 @@ class TenantTaskService {
     }
 
     // 检查模型类型
-    const expectedType = params.type === 'IMAGE' ? 'IMAGE_GENERATION' : 'VIDEO_GENERATION';
-    if (model.type !== expectedType) {
+    const allowedTypes = params.type === 'IMAGE' 
+      ? ['IMAGE_GENERATION'] 
+      : ['VIDEO_GENERATION', 'VIDEO_EDITING']; // 视频任务允许视频生成和视频编辑模型
+    if (!allowedTypes.includes(model.type)) {
       throw new Error(`该模型不支持${params.type === 'IMAGE' ? '图片' : '视频'}生成`);
     }
 
@@ -60,12 +62,13 @@ class TenantTaskService {
     let creditCost = 0;
     try {
       // 使用计费规则计算积分
+      // 注意：imageSize 是图片分辨率参数（如 2K/4K），metadata.resolution 是视频分辨率（如 720p/1080p）
       creditCost = await billingService.calculateCredits({
         aiModelId: params.modelId,
         nodeType: params.metadata?.nodeType,
         quantity: 1,
         duration: params.metadata?.duration,
-        resolution: params.metadata?.resolution,
+        resolution: params.imageSize || params.metadata?.resolution,
         mode: params.metadata?.mode,
       });
       logger.info(`[TenantTaskService] 使用计费规则计算积分: ${creditCost}`);
@@ -106,7 +109,12 @@ class TenantTaskService {
         modelId: params.modelId,
         operation: params.type === 'IMAGE' ? 'IMAGE_GENERATION' : 'VIDEO_GENERATION',
         creditsCharged: creditCost,
-        metadata: { description: `${params.type === 'IMAGE' ? '图片' : '视频'}生成 - ${model.name}` },
+        metadata: { 
+          description: `${params.type === 'IMAGE' ? '图片' : '视频'}生成 - ${model.name}`,
+          imageSize: params.imageSize,
+          resolution: params.imageSize || params.metadata?.resolution,
+          duration: params.metadata?.duration,
+        },
       },
     });
 
@@ -189,7 +197,7 @@ class TenantTaskService {
       } else if (params.type === 'VIDEO') {
         // 检查是否为 Sora 角色创建
         const isCharacterCreation = params.metadata?.isCharacterCreation === true || params.generationType === '角色创建';
-        const provider = model.provider.toLowerCase();
+        const provider = (model.provider || '').toLowerCase().trim();
         
         if (isCharacterCreation && provider === 'sora') {
           characterInfo = await this.processCharacterCreation(params, model);
@@ -268,7 +276,7 @@ class TenantTaskService {
    * 处理图片生成任务
    */
   private async processImageTask(params: CreateTenantTaskParams, model: any): Promise<string | string[]> {
-    const provider = model.provider.toLowerCase();
+    const provider = (model.provider || '').toLowerCase().trim();
     const referenceImages = params.referenceImages || [];
     const imageSize = params.imageSize;
 
@@ -367,7 +375,7 @@ class TenantTaskService {
    * 处理视频生成任务
    */
   private async processVideoTask(params: CreateTenantTaskParams, model: any): Promise<string> {
-    const provider = model.provider.toLowerCase();
+    const provider = (model.provider || '').toLowerCase().trim();
     const referenceImages = params.referenceImages || [];
     const generationType = params.generationType || '文生视频';
     const duration = params.metadata?.duration || 5;
@@ -433,6 +441,63 @@ class TenantTaskService {
           aspect_ratio: params.ratio || '16:9',
         });
         return result.status; // status 字段包含视频 URL
+      }
+    } else if (provider === 'aliyun' || provider === 'wanx') {
+      // 阿里云通义万相视频生成/编辑
+      const wanxService = await import('./ai/wanx.service');
+      const modelId = model.modelId;
+      const meta: any = params.metadata || {};
+      
+      if (modelId === 'videoretalk') {
+        // 视频对口型
+        const videoUrl = referenceImages[0];
+        const audioUrl = meta.audioUrl;
+        if (!videoUrl || !audioUrl) {
+          throw new Error('视频对口型需要视频和音频');
+        }
+        const publicVideoUrl = await ensureAliyunOssUrl(videoUrl);
+        return await wanxService.generateVideoRetalk({
+          videoUrl: publicVideoUrl!,
+          audioUrl,
+          refImageUrl: referenceImages[1] ? await ensureAliyunOssUrl(referenceImages[1]) : undefined,
+        });
+      } else if (modelId === 'video-style-transform') {
+        // 视频风格转绘
+        const videoUrl = referenceImages[0];
+        if (!videoUrl) {
+          throw new Error('视频风格转绘需要视频');
+        }
+        const publicVideoUrl = await ensureAliyunOssUrl(videoUrl);
+        return await wanxService.generateVideoStylize({
+          videoUrl: publicVideoUrl!,
+          style: meta.style,
+        });
+      } else if (modelId === 'wan2.2-animate-mix' || modelId === 'wan2.2-animate-move') {
+        // 视频换人：需要人物图片 + 参考视频
+        const imageUrl = referenceImages[0];
+        const videoUrl = meta.videoUrl;
+        if (!imageUrl || !videoUrl) {
+          throw new Error('视频换人需要人物图片和参考视频');
+        }
+        const publicImageUrl = await ensureAliyunOssUrl(imageUrl);
+        const publicVideoUrl = await ensureAliyunOssUrl(videoUrl);
+        return await wanxService.generateVideoFromFirstFrame({
+          prompt: params.prompt || '',
+          modelId,
+          replaceImageUrl: publicImageUrl,
+          replaceVideoUrl: publicVideoUrl,
+          mode: meta.wanMode === 'wan-pro' ? 'wan-pro' : 'wan-std',
+        });
+      } else {
+        // 普通视频生成（首帧生视频）
+        const firstFrame = referenceImages[0] ? await ensureAliyunOssUrl(referenceImages[0]) : undefined;
+        return await wanxService.generateVideoFromFirstFrame({
+          prompt: params.prompt,
+          modelId,
+          firstFrameImage: firstFrame,
+          duration,
+          resolution,
+        });
       }
     } else {
       throw new Error(`租户版暂不支持的视频生成提供商: ${provider}，请联系管理员`);

@@ -66,7 +66,7 @@ class WauleApiClient {
         'Content-Type': 'application/json',
         ...(this.apiSecret && { 'Authorization': `Bearer ${this.apiSecret}` }),
       },
-      timeout: 600000, // 10分钟超时
+      timeout: 1200000, // 20分钟超时
     });
   }
 
