@@ -46,7 +46,7 @@ interface CreatedCharacter {
 
 const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeData>) => {
   console.log('[SoraCharacterNode] 组件渲染, data.models:', data.models?.length || 0);
-  const [isExpanded, setIsExpanded] = useState(true);
+  // 移除折叠功能，始终显示内容
   const [customName, setCustomName] = useState(data.config.customName || '');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -460,10 +460,10 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
 
   return (
     <div
-      className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${
+      className={`relative bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border rounded-2xl shadow-xl transition-all ring-1 ${
         selected
-          ? 'border-purple-400 shadow-purple-400/50'
-          : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'
+          ? 'border-neutral-400 shadow-neutral-400/50'
+          : 'border-white/60 dark:border-neutral-700 ring-black/5 dark:ring-neutral-700 ring-black/5'
       }`}
       style={{ width: 300 }}
     >
@@ -478,11 +478,8 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
         className="!w-3 !h-3 !border-2 !rounded-full !bg-white dark:!bg-black !border-slate-400 dark:!border-white hover:!scale-150 !transition-transform !cursor-crosshair !shadow-[0_0_5px_rgba(255,255,255,0.5)]"
       />
 
-      {/* 头部 - Aurora渐变样式 */}
-      <div
-        className="px-4 py-3 flex items-center justify-between cursor-pointer select-none rounded-t-2xl border-b border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
+      {/* 头部 */}
+      <div className="px-4 py-3 flex items-center justify-between select-none rounded-t-2xl bg-white dark:bg-[#18181b]">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>face</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">
@@ -491,26 +488,29 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
         </div>
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse shadow-[0_0_5px_currentColor]"></div>
-          <span className={`material-symbols-outlined text-slate-400 dark:text-white/50 transition-transform text-sm ${isExpanded ? 'rotate-180' : ''}`}>
-            expand_more
-          </span>
         </div>
       </div>
 
       {/* 内容区域 */}
-      {isExpanded && (
-        <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3">
           {/* 视频输入状态 */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className={`w-2 h-2 rounded-full ${hasVideoInput ? 'bg-green-500' : 'bg-slate-300 dark:bg-white/20'}`}></span>
-            <span className={hasVideoInput ? 'text-green-600 dark:text-green-400' : 'text-slate-400 dark:text-white/50'}>
-              {hasVideoInput ? '已连接视频' : '请连接视频输入'}
-            </span>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs">
+              <span className={`w-2 h-2 rounded-full ${hasVideoInput ? 'bg-green-500' : 'bg-slate-300 dark:bg-white/20'}`}></span>
+              <span className={hasVideoInput ? 'text-green-600 dark:text-green-400' : 'text-slate-400 dark:text-neutral-400'}>
+                {hasVideoInput ? '已连接视频' : '请连接视频输入'}
+              </span>
+            </div>
+            {!hasVideoInput && (
+              <div className="text-[10px] text-slate-400 dark:text-neutral-500 pl-4">
+                输入角色视频，角色要说话
+              </div>
+            )}
           </div>
 
           {/* 视频缩略图 */}
           {videoInputInfo && (
-            <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-white/10">
+            <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-neutral-800">
               <video
                 src={`${videoInputInfo.url.startsWith('http') || videoInputInfo.url.startsWith('data:') ? videoInputInfo.url : API_URL + videoInputInfo.url}`}
                 className="w-full h-24 object-cover bg-black"
@@ -529,7 +529,7 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
 
           {/* 自定义名称输入 */}
           <div className="space-y-1">
-            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
               角色自定义名称
             </label>
             <input
@@ -537,17 +537,17 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
               value={customName}
               onChange={(e) => setCustomName(e.target.value)}
               placeholder="输入便于记忆的名称..."
-              className="nodrag w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white placeholder-slate-400 dark:placeholder-white/30 focus:outline-none focus:border-purple-400 dark:focus:border-purple-400/50 transition-colors"
+              className="nodrag w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-neutral-800 bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-700 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-400/50 transition-colors"
               disabled={isGenerating}
             />
           </div>
 
           {/* 已创建的角色信息（生成过程中不显示） */}
           {createdCharacter && !isGenerating && (
-            <div className="p-3 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+            <div className="p-3 rounded-lg bg-slate-100 dark:bg-[#000000] backdrop-blur-none border border-slate-200 dark:border-neutral-800">
               <div className="flex items-start gap-3">
                 {createdCharacter.avatarUrl ? (
-                  <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-purple-400 dark:border-purple-400/50 flex-shrink-0">
+                  <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-neutral-400 dark:border-neutral-400/50 flex-shrink-0">
                     <img
                       src={createdCharacter.avatarUrl.startsWith('http') ? createdCharacter.avatarUrl : `${API_URL}${createdCharacter.avatarUrl}`}
                       alt="角色头像"
@@ -559,15 +559,15 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
                     />
                   </div>
                 ) : (
-                  <div className="w-14 h-14 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center border-2 border-purple-400 dark:border-purple-400/50 flex-shrink-0">
-                    <span className="material-symbols-outlined text-slate-500 dark:text-white/50">face</span>
+                  <div className="w-14 h-14 rounded-full bg-slate-200 dark:bg-black flex items-center justify-center border-2 border-neutral-400 dark:border-neutral-400/50 flex-shrink-0">
+                    <span className="material-symbols-outlined text-slate-500 dark:text-neutral-400">face</span>
                   </div>
                 )}
                 <div className="flex-1 min-w-0 pt-1">
                   <div className="font-bold text-sm text-slate-800 dark:text-white truncate">
                     {createdCharacter.customName}
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-white/50 font-mono truncate">
+                  <div className="text-xs text-slate-500 dark:text-neutral-400 font-mono truncate">
                     {createdCharacter.characterName}
                   </div>
                 </div>
@@ -579,13 +579,13 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
           {/* 生成进度 */}
           {isGenerating && (
             <div className="space-y-1">
-              <div className="flex justify-between text-xs text-slate-500 dark:text-white/50">
+              <div className="flex justify-between text-xs text-slate-500 dark:text-neutral-400">
                 <span>创建中...</span>
                 <span>{generationProgress}%</span>
               </div>
-              <div className="h-1.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-slate-100 dark:bg-black rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+                  className="h-full bg-neutral-800 dark:bg-white transition-all duration-300"
                   style={{ width: `${generationProgress}%` }}
                 />
               </div>
@@ -596,10 +596,10 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
           <button
             onClick={handleGenerate}
             disabled={isGenerating || !hasVideoInput || !customName.trim() || (data as any)._canEdit === false}
-            className={`nodrag w-full py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
+            className={`nodrag w-full py-2 text-[10px] font-bold rounded-lg border transition-all flex items-center justify-center gap-2 ${
               isGenerating || !hasVideoInput || !customName.trim() || (data as any)._canEdit === false
-                ? 'bg-slate-300 dark:bg-white/10 text-slate-500 dark:text-white/30 cursor-not-allowed'
-                : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white hover:shadow-lg active:scale-95'
+                ? 'bg-neutral-400 dark:bg-neutral-700 text-white dark:text-neutral-300 cursor-not-allowed border-transparent dark:border-neutral-700'
+                : 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md hover:shadow-lg active:scale-95 border-transparent dark:border-neutral-700'
             }`}
           >
             {isGenerating ? (
@@ -612,7 +612,7 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
                 <span className="material-symbols-outlined text-sm">auto_awesome</span>
                 <span>创建角色</span>
                 {!creditsLoading && credits !== null && credits > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[10px]">
+                  <span className="ml-1 text-[9px] opacity-70">
                     {credits}积分
                   </span>
                 )}
@@ -620,12 +620,7 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
             )}
           </button>
 
-          {/* 提示信息 */}
-          <div className="text-[10px] text-slate-400 dark:text-white/40 text-center">
-            连接包含人物的视频，自动提取角色信息
-          </div>
         </div>
-      )}
     </div>
   );
 };

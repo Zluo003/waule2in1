@@ -465,8 +465,8 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
   return (
     <div
-      className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${
-        selected ? 'border-purple-400 shadow-purple-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'
+      className={`relative bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border rounded-2xl shadow-xl transition-all ring-1 ${
+        selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-neutral-700 ring-black/5 dark:ring-neutral-700 ring-black/5'
       }`}
       style={{ width: 320 }}
     >
@@ -491,7 +491,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       />
 
       {/* 节点头部 - Aurora渐变样式 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#18181b]">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>grid_view</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">智能分镜</span>
@@ -504,7 +504,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         {/* 输入图片预览 - 支持多图，带编号 */}
         {inputImages.length > 0 && (
           <div className="space-y-2">
-            <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
               参考图片 ({inputImages.length}/{MAX_INPUT_IMAGES})
             </div>
             <div
@@ -522,10 +522,10 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
                   <img
                     src={imgUrl}
                     alt={`图片${index + 1}`}
-                    className="w-full h-full object-cover rounded-md border border-slate-200 dark:border-white/10 group-hover:border-purple-400 dark:group-hover:border-purple-400 transition-colors"
+                    className="w-full h-full object-cover rounded-md border border-slate-200 dark:border-neutral-800 group-hover:border-neutral-400 dark:group-hover:border-neutral-400 transition-colors"
                   />
                   {/* 序号标签 */}
-                  <div className="absolute top-0 left-0 bg-purple-600 text-white text-xs px-1.5 py-0.5 rounded-br">
+                  <div className="absolute top-0 left-0 bg-neutral-700 text-white dark:bg-neutral-200 dark:text-black text-xs px-1.5 py-0.5 rounded-br">
                     {index + 1}
                   </div>
                 </div>
@@ -536,7 +536,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
         {/* 剧情简述输入 */}
         <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">剧情简述</label>
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">剧情简述</label>
           <textarea
             value={userPrompt}
             onChange={(e) => {
@@ -544,14 +544,14 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
               updateNodeData({ userPrompt: e.target.value });
             }}
             placeholder="请输入剧情简述，描述故事情节、角色动作等..."
-            className="nodrag w-full h-20 px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-white/90 placeholder-slate-400 dark:placeholder-white/30 resize-none focus:outline-none focus:ring-1 focus:ring-purple-500"
+            className="nodrag w-full h-20 px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-[#000000] backdrop-blur-none text-slate-700 dark:text-white/90 placeholder-slate-400 dark:placeholder-neutral-500 resize-none focus:outline-none focus:ring-1 focus:ring-neutral-500"
             disabled={data._canEdit === false}
           />
         </div>
 
         {/* 宽高比 */}
         <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">宽高比</label>
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">宽高比</label>
           <div className="grid grid-cols-3 gap-1">
             {ASPECT_RATIOS.map((r) => (
               <button
@@ -562,8 +562,8 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
                 }}
                 className={`nodrag py-1.5 rounded-lg text-[9px] font-medium transition-colors border ${
                   aspectRatio === r
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white border-transparent dark:border-white/10'
-                    : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white/70 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10'
+                    ? 'bg-neutral-800 dark:bg-white text-white dark:text-black border-transparent dark:border-neutral-700'
+                    : 'bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-700 dark:text-neutral-300 border-slate-200 dark:border-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-800'
                 }`}
               >
                 {r}
@@ -579,11 +579,11 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             e.stopPropagation();
             handleGenerate();
           }}
-          disabled={isGenerating}
-          className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-            isGenerating
-              ? 'bg-gray-600 dark:bg-gray-700 text-white cursor-wait border-transparent dark:border-white/10'
-              : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md hover:shadow-lg border-transparent dark:border-white/10'
+          disabled={isGenerating || inputImages.length === 0 || data._canEdit === false}
+          className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 ${
+            isGenerating || inputImages.length === 0 || data._canEdit === false
+              ? 'bg-neutral-400 dark:bg-neutral-700 text-white dark:text-neutral-300 cursor-not-allowed border-transparent dark:border-neutral-700'
+              : 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md hover:shadow-lg border-transparent dark:border-neutral-700'
           }`}
         >
           {isGenerating ? (

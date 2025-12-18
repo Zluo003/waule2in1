@@ -7,6 +7,9 @@ const MainLayout = () => {
   const { user } = useTenantAuthStore();
   const { theme } = useTheme();
 
+  // 检查是否在工作流页面
+  const isWorkflowPage = location.pathname.includes('/workflow');
+
   const navigation = [
     { name: '快速创作', path: '/quick', icon: 'bolt' },
     { name: '剧集创作', path: '/drama', icon: 'movie' },
@@ -29,18 +32,20 @@ const MainLayout = () => {
   };
 
   return (
-    <div className="h-full bg-[#fdfdfd] dark:bg-[#010101]">
+    <div className={`h-full ${isWorkflowPage ? '' : 'bg-[#fdfdfd] dark:bg-[#010101]'}`}>
       {/* Floating Logo + Title - 左上角 */}
-      <div className="fixed top-4 left-4 z-50 flex items-center">
+      <div className="fixed top-4 left-4 z-50 flex items-center pointer-events-none">
         <img 
           src={theme === 'dark' ? '/logo-dark.png' : '/logo-light.png'} 
           alt="Waule Logo" 
-          className="w-[72px] h-[72px] object-contain"
+          className="w-[72px] h-[72px] object-contain pointer-events-auto"
         />
-        <span className="ml-12 text-2xl font-semibold text-neutral-900 dark:text-white font-display">{getPageTitle()}</span>
+        {!isWorkflowPage && (
+          <span className="ml-12 text-2xl font-semibold text-neutral-900 dark:text-white font-display">{getPageTitle()}</span>
+        )}
       </div>
 
-      {/* Floating Toolbar - 左侧垂直居中，与logo水平居中对齐 */}
+      {/* Floating Toolbar - 左侧垂直居中 */}
       <nav className="fixed left-[24px] top-1/2 -translate-y-1/2 z-50 flex flex-col gap-1 p-2 rounded-2xl bg-white dark:bg-[#18181b] shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
         {navigation.map((item) => {
           const isActive = location.pathname.startsWith(item.path);
@@ -85,8 +90,8 @@ const MainLayout = () => {
         </Link>
       </nav>
 
-      {/* Main Content - 左侧留出空间与标题对齐 */}
-      <main className="h-full overflow-auto scrollbar-hide pl-[136px]">
+      {/* Main Content - 工作流页面不需要左侧边距 */}
+      <main className={`h-full overflow-auto scrollbar-hide ${isWorkflowPage ? '' : 'pl-[136px]'}`}>
         <Outlet />
       </main>
     </div>

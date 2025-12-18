@@ -305,8 +305,8 @@ const VideoUpscaleNode = ({ data, selected, id }: NodeProps<VideoUpscaleNodeData
 
   return (
     <div
-      className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${
-        selected ? 'border-purple-400 shadow-purple-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'
+      className={`relative bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border rounded-2xl shadow-xl transition-all ring-1 ${
+        selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-neutral-700 ring-black/5 dark:ring-neutral-700 ring-black/5'
       }`}
       style={{ width: 320 }}
     >
@@ -318,7 +318,7 @@ const VideoUpscaleNode = ({ data, selected, id }: NodeProps<VideoUpscaleNodeData
       />
 
       {/* 节点头部 - Aurora渐变样式 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#18181b]">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>
             high_quality
@@ -346,7 +346,7 @@ const VideoUpscaleNode = ({ data, selected, id }: NodeProps<VideoUpscaleNodeData
 
         {/* 分辨率选择 */}
         <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
             目标分辨率
           </label>
           <div className="grid grid-cols-4 gap-1">
@@ -361,7 +361,7 @@ const VideoUpscaleNode = ({ data, selected, id }: NodeProps<VideoUpscaleNodeData
                 disabled={isProcessing}
                 className={`nodrag px-2 py-1 text-[10px] font-bold rounded-lg transition-all ${
                   upscaleResolution === res
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white'
+                    ? 'bg-neutral-800 dark:bg-white text-white dark:text-black'
                     : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
                 } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
@@ -386,8 +386,8 @@ const VideoUpscaleNode = ({ data, selected, id }: NodeProps<VideoUpscaleNodeData
           disabled={isProcessing || !inputVideoUrl || (data as any)._canEdit === false}
           className={`w-full px-4 py-2.5 text-[11px] font-bold rounded-xl transition-all ${
             isProcessing || !inputVideoUrl || (data as any)._canEdit === false
-              ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]'
+              ? 'bg-neutral-400 dark:bg-neutral-700 text-white dark:text-neutral-300 cursor-not-allowed'
+              : 'bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]'
           }`}
         >
           <div className="flex items-center justify-center space-x-2">

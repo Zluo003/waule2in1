@@ -469,11 +469,11 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
   };
 
   return (
-    <div className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`} style={{ width: 320 }}>
+    <div className={`relative bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-neutral-700 ring-black/5 dark:ring-neutral-700 ring-black/5'}`} style={{ width: 320 }}>
       {/* 创建者头像徽章 */}
       <NodeCreatorBadge createdBy={(data as any).createdBy} isSharedWorkflow={(data as any)._isSharedWorkflow} />
       <CustomHandle type="target" position={Position.Left} id={`${id}-target`} className="!w-3 !h-3 !border-2 !rounded-full !bg-white dark:!bg-black !border-slate-400 dark:!border-white hover:!scale-150 !transition-transform !cursor-crosshair !shadow-[0_0_5px_rgba(255,255,255,0.5)]" />
-      <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#18181b]">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>movie_edit</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">{((data as any)?.config?.selectedEditingCapability === '动作克隆') ? '动作克隆' : '视频换人'}</span>
@@ -484,7 +484,7 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
         {isExpanded ? (
           <div className="space-y-3">
             <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">视频编辑模型</label>
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">视频编辑模型</label>
               <CustomSelect
                 value={modelId}
                 onChange={(v) => { setModelId(v); setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, modelId: v, modelName: editingModels.find(m => m.id === v)?.name } } } : n)); }}
@@ -499,15 +499,15 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">生成模式</label>
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">生成模式</label>
               <div className="nodrag flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setWanMode('wan-std')}
                   className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
                     wanMode === 'wan-std'
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md'
-                      : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-slate-200 dark:border-white/10'
+                      ? 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md'
+                      : 'bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-800 dark:text-white border border-slate-200 dark:border-neutral-800'
                   }`}
                 >
                   标准
@@ -517,8 +517,8 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
                   onClick={() => setWanMode('wan-pro')}
                   className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg transition-all ${
                     wanMode === 'wan-pro'
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md'
-                      : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-slate-200 dark:border-white/10'
+                      ? 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md'
+                      : 'bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-800 dark:text-white border border-slate-200 dark:border-neutral-800'
                   }`}
                 >
                   专业
@@ -528,9 +528,9 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">{((data as any)?.config?.selectedEditingCapability === '动作克隆') ? '动作视频' : '原始视频'}</label>
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">{((data as any)?.config?.selectedEditingCapability === '动作克隆') ? '动作视频' : '原始视频'}</label>
                 {connectedInputs.videoUrl ? (
-                  <div className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md overflow-hidden">
+                  <div className="w-full bg-slate-100 dark:bg-[#000000] backdrop-blur-none border border-slate-200 dark:border-neutral-800 rounded-md overflow-hidden">
                     <video
                       ref={videoRef}
                       src={connectedInputs.videoUrl}
@@ -549,13 +549,13 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
                     />
                   </div>
                 ) : (
-                  <div className="w-full h-20 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md flex items-center justify-center text-slate-400 dark:text-white/30 text-[10px]">未连接</div>
+                  <div className="w-full h-20 bg-slate-100 dark:bg-[#000000] backdrop-blur-none border border-slate-200 dark:border-neutral-800 rounded-md flex items-center justify-center text-slate-400 dark:text-neutral-500 text-[10px]">未连接</div>
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">{((data as any)?.config?.selectedEditingCapability === '动作克隆') ? '人物图片' : '替换人物'}</label>
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">{((data as any)?.config?.selectedEditingCapability === '动作克隆') ? '人物图片' : '替换人物'}</label>
                 {connectedInputs.imageUrl ? (
-                  <div className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md overflow-hidden flex items-center justify-center">
+                  <div className="w-full bg-slate-100 dark:bg-[#000000] backdrop-blur-none border border-slate-200 dark:border-neutral-800 rounded-md overflow-hidden flex items-center justify-center">
                     <img
                       src={connectedInputs.imageUrl}
                       alt=""
@@ -565,11 +565,11 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
                     />
                   </div>
                 ) : (
-                  <div className="w-full h-20 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md flex items-center justify-center text-slate-400 dark:text-white/30 text-[10px]">未连接</div>
+                  <div className="w-full h-20 bg-slate-100 dark:bg-[#000000] backdrop-blur-none border border-slate-200 dark:border-neutral-800 rounded-md flex items-center justify-center text-slate-400 dark:text-neutral-500 text-[10px]">未连接</div>
                 )}
               </div>
             </div>
-            <button onClick={handleGenerate} disabled={isGenerating || (data as any)._canEdit === false} className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 ${isGenerating ? 'bg-gray-600 dark:bg-gray-700 text-white opacity-50 cursor-wait' : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md hover:shadow-lg border-transparent dark:border-white/10'}`}>
+            <button onClick={handleGenerate} disabled={isGenerating || (data as any)._canEdit === false} className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 ${isGenerating || (data as any)._canEdit === false ? 'bg-neutral-400 dark:bg-neutral-700 text-white dark:text-neutral-300 cursor-not-allowed border-transparent dark:border-neutral-700' : 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md hover:shadow-lg border-transparent dark:border-neutral-700'}`}>
               {isGenerating ? (
                 <>
                   <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
@@ -582,11 +582,11 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
                   {/* 积分显示 */}
                   {!creditsLoading && (
                     credits !== null && credits > 0 ? (
-                      <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[9px]">
+                      <span className="ml-1 text-[9px] opacity-70">
                         {credits}积分
                       </span>
                     ) : videoDuration === 0 ? (
-                      <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[9px]">
+                      <span className="ml-1 text-[9px] opacity-70">
                         10积分/秒
                       </span>
                     ) : null
@@ -597,7 +597,7 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
           </div>
         ) : (
           <div className="py-2 px-2">
-            <p className="text-xs text-purple-400 text-center italic">双击展开配置</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center italic">双击展开配置</p>
           </div>
         )}
       </div>

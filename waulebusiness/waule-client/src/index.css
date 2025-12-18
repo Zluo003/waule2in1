@@ -11,6 +11,13 @@ audio {
   filter: none;
 }
 
+/* Force dark mode text areas and inputs to have pure black background */
+.dark textarea,
+.dark input[type="text"],
+.dark select {
+  background-color: #000000 !important;
+}
+
 /* Electron drag regions */
 .drag {
   -webkit-app-region: drag;

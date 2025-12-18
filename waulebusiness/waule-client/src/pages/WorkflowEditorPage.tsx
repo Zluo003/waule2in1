@@ -951,7 +951,7 @@ const WorkflowEditorInner = () => {
                 label: `${assetLabel}: ${asset.name}`,
                 config: nodeConfig,
                 freeDrag: true,
-                createdBy: currentUser ? { id: currentUser.id, nickname: currentUser.nickname, avatar: currentUser.avatar } : undefined,
+                createdBy: currentUserIdRef.current ? { id: currentUserIdRef.current, nickname: currentUser?.nickname, avatar: currentUser?.avatar } : undefined,
                 workflowContext: { project, episode, nodeGroup: existing, nodeGroups },
               } as any,
             });
@@ -1034,7 +1034,7 @@ const WorkflowEditorInner = () => {
             title: '分镜设计',
             id: nodeId1,
             freeDrag: true,
-            createdBy: currentUser ? { id: currentUser.id, nickname: currentUser.nickname, avatar: currentUser.avatar } : undefined, // 记录创建者
+            createdBy: currentUserIdRef.current ? { id: currentUserIdRef.current, nickname: currentUser?.nickname, avatar: currentUser?.avatar } : undefined, // 记录创建者
             workflowContext: { project, episode, nodeGroup: newGroup, nodeGroups: [...nodeGroups, newGroup] },
           } as any,
         },
@@ -1048,7 +1048,7 @@ const WorkflowEditorInner = () => {
             title: '提示词',
             id: nodeId2,
             freeDrag: true,
-            createdBy: currentUser ? { id: currentUser.id, nickname: currentUser.nickname, avatar: currentUser.avatar } : undefined, // 记录创建者
+            createdBy: currentUserIdRef.current ? { id: currentUserIdRef.current, nickname: currentUser?.nickname, avatar: currentUser?.avatar } : undefined, // 记录创建者
             workflowContext: { project, episode, nodeGroup: newGroup, nodeGroups: [...nodeGroups, newGroup] },
           } as any,
         },
@@ -1118,7 +1118,7 @@ const WorkflowEditorInner = () => {
               label: `${assetLabel}: ${asset.name}`,
               config: nodeConfig,
               freeDrag: true,
-              createdBy: currentUser ? { id: currentUser.id, nickname: currentUser.nickname, avatar: currentUser.avatar } : undefined,
+              createdBy: currentUserIdRef.current ? { id: currentUserIdRef.current, nickname: currentUser?.nickname, avatar: currentUser?.avatar } : undefined,
               workflowContext: { project, episode, nodeGroup: newGroup, nodeGroups: [...nodeGroups, newGroup] },
               onOpenAssetPanel: handleOpenAssetPanelForNode,
             } as any,
@@ -2709,7 +2709,7 @@ const WorkflowEditorInner = () => {
         models: aiModels, // 传递模型数据
         isExpanded: defaultExpanded, // AI节点默认展开，其他节点默认收缩
         onOpenAssetPanel: nodeType === 'assetSelector' ? handleOpenAssetPanelForNode : undefined,
-        createdBy: currentUser ? { id: currentUser.id, nickname: currentUser.nickname, avatar: currentUser.avatar } : undefined, // 记录创建者
+        createdBy: currentUserIdRef.current ? { id: currentUserIdRef.current, nickname: currentUser?.nickname, avatar: currentUser?.avatar } : undefined, // 记录创建者
         // 添加上下文信息用于资产自动命名
         workflowContext: {
           project,
@@ -3124,7 +3124,7 @@ const WorkflowEditorInner = () => {
         models: aiModels,
         isExpanded: defaultExpanded, // AI节点默认展开，其他节点默认收缩
         onOpenAssetPanel: nodeType === 'assetSelector' ? handleOpenAssetPanelForNode : undefined,
-        createdBy: currentUser ? { id: currentUser.id, nickname: currentUser.nickname, avatar: currentUser.avatar } : undefined, // 记录创建者
+        createdBy: currentUserIdRef.current ? { id: currentUserIdRef.current, nickname: currentUser?.nickname, avatar: currentUser?.avatar } : undefined, // 记录创建者
         // 添加上下文信息用于资产自动命名
         workflowContext: {
           project,
@@ -3455,7 +3455,7 @@ const WorkflowEditorInner = () => {
         fontSize: 36, // 默认36px
         width: 200,
         bold: false,
-        createdBy: currentUser ? { id: currentUser.id, nickname: currentUser.nickname, avatar: currentUser.avatar } : undefined, // 记录创建者
+        createdBy: currentUserIdRef.current ? { id: currentUserIdRef.current, nickname: currentUser?.nickname, avatar: currentUser?.avatar } : undefined, // 记录创建者
       },
     };
     
@@ -3944,19 +3944,19 @@ const WorkflowEditorInner = () => {
 
         {/* 左上角项目名称 - 与顶部按钮和分镜列表对齐 */}
         {project && (
-          <div className={`absolute left-4 ${isReadOnly ? 'top-14' : 'top-5'} z-[100] h-11 flex items-center`}>
+          <div className={`absolute left-1/2 transform -translate-x-1/2 ${isReadOnly ? 'top-14' : 'top-5'} z-[100] h-11 flex items-center`}>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
               {isEpisodeWorkflow && episode
-                ? `《${project.name}》第${episode.episodeNumber}集${!isShotWorkflow && sceneParam && shotParam ? ` 第${sceneParam}幕第${shotParam}镜` : ''}`
-                : `《${project.name}》`
+                ? `${project.name} 第${episode.episodeNumber}集${!isShotWorkflow && sceneParam && shotParam ? ` 第${sceneParam}幕第${shotParam}镜` : ''}`
+                : project.name
               }
             </h1>
           </div>
         )}
 
-        {/* 左侧分镜列表（无背景，可滚动） - 在镜头工作流中隐藏 */}
+        {/* 左侧分镜列表（无背景，可滚动） - 在镜头工作流中隐藏，位于logo下方避免遮挡左侧按钮 */}
         {!isShotWorkflow && nodeGroups.filter(g => g.scene !== undefined && g.shot !== undefined).length > 0 && (
-          <div className="absolute left-4 top-20 bottom-4 z-[100] w-48 overflow-y-auto scrollbar-hide">
+          <div className="absolute left-[100px] top-20 bottom-4 z-[100] w-48 overflow-y-auto scrollbar-hide">
             <div className="space-y-2">
               {nodeGroups
                 .filter(g => g.scene !== undefined && g.shot !== undefined)
@@ -3998,7 +3998,7 @@ const WorkflowEditorInner = () => {
                       }
                     }}
                     className={`w-full px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${selectedGroupId === group.id
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white shadow-lg'
+                      ? 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-lg'
                       : 'bg-white/90 dark:bg-white/10 text-slate-800 dark:text-slate-300 hover:bg-white dark:hover:bg-white/20'
                       }`}
                   >
@@ -4024,8 +4024,8 @@ const WorkflowEditorInner = () => {
           </div>
         )}
 
-        {/* 顶部编组控制按钮 - 精致图标按钮 */}
-        <div className={`absolute ${isReadOnly ? 'top-14' : 'top-5'} left-1/2 transform -translate-x-1/2 z-[100] flex gap-2`}>
+        {/* 右侧编组控制按钮 - 与左侧工具栏样式一致 */}
+        <div className="fixed right-[24px] top-1/2 -translate-y-1/2 z-50 flex flex-col gap-1 p-2 rounded-2xl bg-white dark:bg-[#18181b] shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
           <button
             onClick={() => {
               if (isEpisodeWorkflow && projectId && episodeId) {
@@ -4036,7 +4036,7 @@ const WorkflowEditorInner = () => {
                 navigate('/quick');
               }
             }}
-            className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 bg-white/90 dark:bg-gray-800/80 text-slate-800 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700/90 shadow-md hover:shadow-lg hover:scale-105`}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:bg-black/5 dark:hover:bg-white/10 text-neutral-600 dark:text-neutral-300`}
             title={isEpisodeWorkflow ? '返回剧集详情' : '返回项目列表'}
           >
             <span className="material-symbols-outlined text-xl">arrow_back</span>
@@ -4048,11 +4048,11 @@ const WorkflowEditorInner = () => {
               <button
                 onClick={() => { if (!isFrozenByStoryboard && isWorkflowOwner) setIsSelectionMode(!isSelectionMode); }}
                 disabled={isFrozenByStoryboard || !isWorkflowOwner}
-                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner)
-                  ? 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm'
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner)
+                  ? 'text-neutral-400 dark:text-neutral-600 cursor-not-allowed'
                   : (isSelectionMode
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white hover:shadow-lg shadow-md hover:scale-105'
-                    : 'bg-white/90 dark:bg-gray-800/80 text-slate-800 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700/90 shadow-md hover:shadow-lg hover:scale-105')
+                    ? 'bg-neutral-800 dark:bg-white text-white dark:text-black'
+                    : 'hover:bg-black/5 dark:hover:bg-white/10 text-neutral-600 dark:text-neutral-300')
                   }`}
                 title={isWorkflowOwner ? "框选模式 (Shift+拖动)" : "仅所有者可使用"}
               >
@@ -4063,11 +4063,9 @@ const WorkflowEditorInner = () => {
               <button
                 onClick={() => { if (!isFrozenByStoryboard && isWorkflowOwner) createGroup(); }}
                 disabled={isFrozenByStoryboard || !isWorkflowOwner || !hasSelectedNode}
-                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner)
-                  ? 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm'
-                  : (hasSelectedNode
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white hover:shadow-lg shadow-md hover:scale-105'
-                    : 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm')
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner || !hasSelectedNode)
+                  ? 'text-neutral-400 dark:text-neutral-600 cursor-not-allowed'
+                  : 'hover:bg-black/5 dark:hover:bg-white/10 text-neutral-600 dark:text-neutral-300'
                   }`}
                 title={isWorkflowOwner ? "创建编组 (需选中2个以上节点)" : "仅所有者可使用"}
               >
@@ -4076,11 +4074,9 @@ const WorkflowEditorInner = () => {
               <button
                 onClick={() => { if (!isFrozenByStoryboard && isWorkflowOwner) ungroupNodes(); }}
                 disabled={isFrozenByStoryboard || !isWorkflowOwner || !isGroupSelected}
-                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner)
-                  ? 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm'
-                  : (isGroupSelected
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white hover:shadow-lg shadow-md hover:scale-105'
-                    : 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm')
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner || !isGroupSelected)
+                  ? 'text-neutral-400 dark:text-neutral-600 cursor-not-allowed'
+                  : 'hover:bg-black/5 dark:hover:bg-white/10 text-neutral-600 dark:text-neutral-300'
                   }`}
                 title={isWorkflowOwner ? "解除编组" : "仅所有者可使用"}
               >
@@ -4089,11 +4085,9 @@ const WorkflowEditorInner = () => {
               <button
                 onClick={() => { if (!isFrozenByStoryboard && isWorkflowOwner) openNamingDialog(); }}
                 disabled={isFrozenByStoryboard || !isWorkflowOwner || !isGroupSelected}
-                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner)
-                  ? 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm'
-                  : (isGroupSelected
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white hover:shadow-lg shadow-md hover:scale-105'
-                    : 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm')
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner || !isGroupSelected)
+                  ? 'text-neutral-400 dark:text-neutral-600 cursor-not-allowed'
+                  : 'hover:bg-black/5 dark:hover:bg-white/10 text-neutral-600 dark:text-neutral-300'
                   }`}
                 title={isWorkflowOwner ? "命名编组" : "仅所有者可使用"}
               >
@@ -4101,9 +4095,9 @@ const WorkflowEditorInner = () => {
               </button>
               <button
                 onClick={() => toggleTextAnnotationMode()}
-                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 ${isTextAnnotationMode
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white hover:shadow-lg shadow-md hover:scale-105'
-                    : 'bg-white/90 dark:bg-gray-800/80 text-slate-800 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700/90 shadow-md hover:shadow-lg hover:scale-105'
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${isTextAnnotationMode
+                    ? 'bg-neutral-800 dark:bg-white text-white dark:text-black'
+                    : 'hover:bg-black/5 dark:hover:bg-white/10 text-neutral-600 dark:text-neutral-300'
                   }`}
                 title={isTextAnnotationMode ? '点击画布插入文本（按 Esc 取消）' : '添加文本标注'}
               >
@@ -4235,13 +4229,8 @@ const WorkflowEditorInner = () => {
                     rx={radius}
                     ry={radius}
                     fill="none"
-                    stroke={isSelected ? 'url(#group-border-gradient)' : (isDark ? '#e5e7eb' : '#4b5563')}
+                    stroke={isSelected ? (isDark ? '#ffffff' : '#000000') : (isDark ? '#525252' : '#9ca3af')}
                     strokeWidth={borderWidth}
-                    style={{
-                      filter: isSelected
-                        ? 'drop-shadow(0 0 20px rgba(168, 85, 247, 0.5))'
-                        : 'drop-shadow(0 0 15px rgba(168, 85, 255, 0.3))',
-                    }}
                   />
                   {/* 边框点击区域 - 可拖动（只有边框区域可点击，不遮挡节点） */}
                   <rect
@@ -4282,9 +4271,9 @@ const WorkflowEditorInner = () => {
             const viewport = getViewport();
             const x = group.bounds.x * viewport.zoom + viewport.x;
             const y = group.bounds.y * viewport.zoom + viewport.y;
-            const fontSize = 40 * viewport.zoom;
-            const padding = 10 * viewport.zoom; // 距离边框的固定距离
-            const extraOffset = 15 * viewport.zoom; // 额外的向上偏移
+            const fontSize = 20 * viewport.zoom; // 缩小一半
+            const padding = 5 * viewport.zoom; // 距离边框的固定距离
+            const extraOffset = 8 * viewport.zoom; // 额外的向上偏移
 
             return (
               <div
@@ -5197,7 +5186,7 @@ const WorkflowEditorInner = () => {
                       toast.error('请输入有效的幕数和镜数（大于0的整数）');
                     }
                   }}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 hover:shadow-lg text-white rounded-lg transition-all"
+                  className="flex-1 px-4 py-2 bg-neutral-800 dark:bg-white hover:shadow-lg text-white rounded-lg transition-all"
                 >
                   确定
                 </button>

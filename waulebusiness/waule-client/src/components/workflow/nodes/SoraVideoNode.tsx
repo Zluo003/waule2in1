@@ -994,7 +994,7 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
 
   const canGenerate = useMemo(() => {
     const g = normalizeGenType(generationType);
-    const imgCount = referenceImages.length;
+    const imgCount = inputImages.length;
     const connectedEdges = edges.filter((e) => e.target === id);
     const videoInputs = connectedEdges.filter((e) => {
       const src = getNode(e.source);
@@ -1018,17 +1018,17 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
     const videoCount = videoInputs.length;
     if (!modelId) return false;
     if (g === '文生视频') {
-      if (isSoraModel) return true; // Sora模型支持文生视频（带或不带图片）
+      // 文生视频必须有提示词
       return !!prompt.trim();
     }
     if (g === '首帧' || g === '尾帧') return imgCount >= 1;
     if (g === '首尾帧') return imgCount >= 2;
-    if (g === '参考图') return imgCount >= 1;
+    if (g === '参考图') return imgCount >= 1 && !!prompt.trim();
     if (g === '视频换人') return videoCount >= 1 && imgCount >= 1;
     if (g === '对口型') return videoCount >= 1; // 需音频，此处简化
     if (g === '风格转换') return videoCount >= 1;
     return false;
-  }, [generationType, referenceImages.length, prompt, isGenerating, edges, id, getNode, normalizeGenType, isSoraModel]);
+  }, [generationType, modelId, inputImages, prompt, edges, id, getNode, normalizeGenType]);
 
   // 移除监听 generatedVideoUrl 变化创建预览节点的逻辑
   // 统一在 recoverTask 和 pollTaskStatus 中处理
@@ -1587,7 +1587,7 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
   return (
     <div
       onDoubleClick={handleDoubleClick}
-      className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
+      className={`relative bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-neutral-700 ring-black/5 dark:ring-neutral-700 ring-black/5'}`}
       style={{ width: 320 }}
     >
       {/* 创建者头像徽章 */}
@@ -1643,7 +1643,7 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
       />
 
       {/* 节点头部 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#18181b]">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>movie</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">{data.label}</span>
@@ -1678,7 +1678,7 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
             {/* 视频生成模型选择（Sora模型隐藏，通过下方比例按钮切换） */}
             {!isSoraModel && (
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">视频生成模型</label>
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">视频生成模型</label>
                 <CustomSelect
                   value={modelId}
                   onChange={(value) => handleModelChange(value)}
@@ -1692,8 +1692,8 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
 
             {/* 提示词 */}
             <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
-                提示词 <span className="text-purple-400 font-normal">（输入@调用角色）</span>
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
+                提示词 <span className="text-neutral-500 dark:text-neutral-400 font-normal">（输入@调用角色）</span>
               </label>
               <div className="relative">
                 <textarea
@@ -1708,12 +1708,12 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                     handlePromptChange(e as any);
                   }}
                   placeholder="描述你想要生成的视频场景...输入@调用角色"
-                  className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-purple-400 dark:focus:border-purple-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
+                  className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500"
                   style={{ minHeight: '60px' }}
                 />
                 {/* 角色选择器弹窗 */}
                 {showCharacterSelector && characterSuggestions.length > 0 && (
-                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-[#1a1a2e] border border-slate-200 dark:border-white/10 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-[#1a1a2e] border border-slate-200 dark:border-neutral-800 rounded-lg shadow-xl max-h-48 overflow-y-auto">
                     {characterSuggestions.map((char, index) => (
                       <button
                         key={char.id}
@@ -1725,22 +1725,22 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                         }}
                         className={`nodrag w-full px-3 py-2 flex items-center gap-2 text-left transition-colors ${
                           index === selectedSuggestionIndex
-                            ? 'bg-purple-100 dark:bg-purple-900/30'
+                            ? 'bg-neutral-100 dark:bg-neutral-800/30'
                             : 'hover:bg-slate-100 dark:hover:bg-white/5'
                         }`}
                       >
                         {char.avatarUrl ? (
                           <img src={char.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover object-top" />
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-purple-200 dark:bg-purple-800 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-xs text-purple-600 dark:text-purple-300">face</span>
+                          <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-xs text-neutral-600 dark:text-neutral-300">face</span>
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-medium text-slate-700 dark:text-white truncate">
                             {char.customName}
                           </div>
-                          <div className="text-[10px] text-purple-500 dark:text-purple-400 font-mono truncate">
+                          <div className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono truncate">
                             {char.characterName}
                           </div>
                         </div>
@@ -1754,7 +1754,7 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
             {/* 参考图缩略图（≥1张时显示） */}
             {referenceImages.length >= 1 && (
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
                   参考图 {generationType === '首尾帧' && '(拖动调整)'}
                 </label>
                 <div className="flex gap-2 flex-wrap">
@@ -1765,7 +1765,7 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                       onDragStart={() => handleImageDragStart(index)}
                       onDragOver={handleImageDragOver}
                       onDrop={() => handleImageDrop(index)}
-                      className={`nodrag relative w-16 h-16 rounded-md border-2 overflow-hidden transition-all ${generationType === '首尾帧' ? 'cursor-move' : ''} ${draggedImageIndex === index ? 'opacity-50' : ''} border-slate-200 dark:border-white/10 hover:border-purple-400 dark:hover:border-purple-400/50`}
+                      className={`nodrag relative w-16 h-16 rounded-md border-2 overflow-hidden transition-all ${generationType === '首尾帧' ? 'cursor-move' : ''} ${draggedImageIndex === index ? 'opacity-50' : ''} border-slate-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-400/50`}
                     >
                       <img
                         src={`${img.url.startsWith('http') || img.url.startsWith('data:') ? img.url : API_URL + img.url}`}
@@ -1773,7 +1773,7 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                         className="w-full h-full object-cover"
                       />
                       {generationType === '首尾帧' && (
-                        <div className="absolute top-0 left-0 bg-purple-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-br">
+                        <div className="absolute top-0 left-0 bg-neutral-700 text-white dark:bg-neutral-300 dark:text-black text-[10px] font-bold px-1.5 py-0.5 rounded-br">
                           {index === 0 ? '首' : index === 1 ? '尾' : index + 1}
                         </div>
                       )}
@@ -1787,7 +1787,7 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
             {selectedModel && !isSoraModel && (
               <div className="space-y-1">
                 <label className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider">
-                  <span className="text-slate-400 dark:text-white/50">视频时长{durationDisabled ? '(未配置)' : ''}</span>
+                  <span className="text-slate-400 dark:text-neutral-400">视频时长{durationDisabled ? '(未配置)' : ''}</span>
                   <span className="text-slate-600 dark:text-white">{duration}秒</span>
                 </label>
                 <div className="relative py-1.5">
@@ -1803,12 +1803,9 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                       updateNodeData({ duration: newDuration });
                     }}
                     disabled={durationDisabled}
-                    className="nodrag w-full appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-purple-500 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-md [&::-webkit-slider-runnable-track]:w-full [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:w-full [&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent"
+                    className="nodrag w-full h-2 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                     style={{
-                      backgroundImage: `linear-gradient(to right, #a855f7 ${durationProgress}%, #3b0764 ${durationProgress}%)`,
-                      backgroundSize: '100% 4px',
-                      backgroundPosition: 'center',
-                      backgroundRepeat: 'no-repeat',
+                      background: `linear-gradient(to right, #404040 0%, #737373 ${durationProgress * 0.5}%, #06b6d4 ${durationProgress}%, var(--range-bg-color, #e2e8f0) ${durationProgress}%, var(--range-bg-color, #e2e8f0) 100%)`
                     }}
                   />
                 </div>
@@ -1818,7 +1815,7 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
             {/* 比例选择：Sora模型显示横竖屏按钮，其他模型显示下拉框 */}
             {selectedModel && (isRatioSelectable && (isSoraModel || (selectedModel?.config.supportedRatios?.length || 0) > 0)) && (
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
                   画面比例
                 </label>
                 {isSoraModel ? (
@@ -1839,8 +1836,8 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                         });
                       }}
                       className={`nodrag py-2 rounded-lg text-[10px] font-bold transition-all border ${ratio === '16:9'
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md border-transparent'
-                        : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-white border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10'
+                        ? 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md border-transparent'
+                        : 'bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-600 dark:text-white border-slate-200 dark:border-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-800'
                         }`}
                     >
                       <div className="flex items-center justify-center gap-2">
@@ -1864,8 +1861,8 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                         });
                       }}
                       className={`nodrag py-2 rounded-lg text-[10px] font-bold transition-all border ${ratio === '9:16'
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md border-transparent'
-                        : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-white border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10'
+                        ? 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md border-transparent'
+                        : 'bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-600 dark:text-white border-slate-200 dark:border-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-800'
                         }`}
                     >
                       <div className="flex items-center justify-center gap-2">
@@ -1906,7 +1903,7 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
             {/* Sora模型时长选择 */}
             {selectedModel && isSoraModel && (
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
                   视频时长
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -1925,8 +1922,8 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                       });
                     }}
                     className={`nodrag py-2 rounded-lg text-[10px] font-bold transition-all border ${duration === 10
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md border-transparent'
-                      : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-white border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10'
+                      ? 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md border-transparent'
+                      : 'bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-600 dark:text-white border-slate-200 dark:border-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-800'
                       }`}
                   >
                     <div className="flex items-center justify-center gap-2">
@@ -1949,8 +1946,8 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                       });
                     }}
                     className={`nodrag py-2 rounded-lg text-[10px] font-bold transition-all border ${duration === 15
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md border-transparent'
-                      : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-white border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10'
+                      ? 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md border-transparent'
+                      : 'bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-600 dark:text-white border-slate-200 dark:border-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-800'
                       }`}
                   >
                     <div className="flex items-center justify-center gap-2">
@@ -1965,12 +1962,12 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
             {/* BGM开关 - Sora模型专用 */}
             {selectedModel && isSoraModel && (
               <div className="flex items-center justify-between py-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
                   背景音乐
                 </label>
                 <button
                   onClick={() => setEnableBGM(!enableBGM)}
-                  className={`nodrag relative w-10 h-5 rounded-full transition-all ${enableBGM ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-slate-300 dark:bg-white/20'}`}
+                  className={`nodrag relative w-10 h-5 rounded-full transition-all ${enableBGM ? 'bg-neutral-800 dark:bg-white' : 'bg-slate-300 dark:bg-white/20'}`}
                 >
                   <span
                     className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-all ${enableBGM ? 'left-5' : 'left-0.5'}`}
@@ -1982,7 +1979,7 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
             {/* 分辨率 */}
             {selectedModel && !isSoraModel && (
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
                   分辨率{resolutionDisabled ? '(未配置)' : ''}
                 </label>
                 <CustomSelect
@@ -2001,7 +1998,7 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
             <button
               onClick={handleGenerate}
               disabled={isGenerating || !canGenerate || (data as any)._canEdit === false}
-              className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 ${isGenerating || !canGenerate ? 'bg-gray-600 dark:bg-gray-700 text-white opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md hover:shadow-lg border-transparent dark:border-white/10'}`}
+              className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 ${isGenerating || !canGenerate || (data as any)._canEdit === false ? 'bg-neutral-400 dark:bg-neutral-700 text-white dark:text-neutral-300 cursor-not-allowed border-transparent dark:border-neutral-700' : 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md hover:shadow-lg border-transparent dark:border-neutral-700'}`}
             >
               {isGenerating ? (
                 <>
@@ -2015,11 +2012,11 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                   {/* 积分/免费显示 */}
                   {!creditsLoading && (
                     isFreeUsage ? (
-                      <span className="ml-1 px-1.5 py-0.5 bg-amber-500/40 text-amber-200 rounded text-[9px]">
+                      <span className="ml-1 text-[9px] opacity-70">
                         免费，今日剩{freeUsageRemaining}次
                       </span>
                     ) : credits !== null && credits > 0 ? (
-                      <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[9px]">
+                      <span className="ml-1 text-[9px] opacity-70">
                         {credits}积分
                       </span>
                     ) : null
@@ -2032,13 +2029,13 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
           <div className="py-2 px-2">
             {prompt ? (
               <div className="space-y-1">
-                <p className="text-xs text-purple-400 font-medium">提示词：</p>
-                <p className="text-xs text-purple-300 line-clamp-6 whitespace-pre-wrap break-words">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">提示词：</p>
+                <p className="text-xs text-neutral-400 line-clamp-6 whitespace-pre-wrap break-words">
                   {prompt}
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-purple-400 text-center italic">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center italic">
                 双击展开配置
               </p>
             )}

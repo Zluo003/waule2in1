@@ -1025,11 +1025,9 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
     }
   };
 
-  // Unused - kept for potential future use
-  /*
   const canGenerate = useMemo(() => {
     const g = normalizeGenType(generationType);
-    const imgCount = referenceImages.length;
+    const imgCount = inputImages.length;
     const connectedEdges = edges.filter((e) => e.target === id);
     const videoInputs = connectedEdges.filter((e) => {
       const src = getNode(e.source);
@@ -1052,13 +1050,12 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
     const videoCount = videoInputs.length;
     if (!modelId) return false;
     if (g === '文生视频') return !!prompt.trim();
-    if (g === '首帧' || g === '尾帧') return imgCount === 1;
-    if (g === '首尾帧') return imgCount === 2;
-    if (g === '参考图') return imgCount >= 1 && imgCount <= 7 && !!prompt.trim();
-    if (g === '视频换人' || g === '视频换背景' || g === '风格转换') return videoCount === 1 && imgCount === 1;
+    if (g === '首帧' || g === '尾帧') return imgCount >= 1;
+    if (g === '首尾帧') return imgCount >= 2;
+    if (g === '参考图') return imgCount >= 1 && !!prompt.trim();
+    if (g === '视频换人' || g === '视频换背景' || g === '风格转换') return videoCount >= 1 && imgCount >= 1;
     return false;
-  }, [generationType, modelId, prompt, referenceImages.length, normalizeGenType, edges, id, getNode]);
-  */
+  }, [generationType, modelId, prompt, inputImages, normalizeGenType, edges, id, getNode]);
 
   // 移除监听 generatedVideoUrl 变化创建预览节点的逻辑
   // 统一在 pollTaskStatus 和 页面初始化恢复逻辑中处理，避免重复创建
@@ -1775,7 +1772,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
   return (
     <div
       onDoubleClick={handleDoubleClick}
-      className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
+      className={`relative bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-neutral-700 ring-black/5 dark:ring-neutral-700 ring-black/5'}`}
       style={{ width: 320 }}
     >
       {/* 创建者头像徽章 */}
@@ -1831,7 +1828,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
       />
 
       {/* 节点头部 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#18181b]">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>movie</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">{data.label}</span>
@@ -1864,7 +1861,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
             {/* 生成方法区域已废弃，不再显示 */}
 
             <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">视频生成模型</label>
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">视频生成模型</label>
               <CustomSelect
                 value={modelId}
                 onChange={(value) => handleModelChange(value)}
@@ -1877,7 +1874,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
 
             {/* 提示词 */}
             <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
                 {isSoraModel ? '视频提示词' : '提示词'}
               </label>
               <div className="relative">
@@ -1909,12 +1906,12 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                       ? "描述你想要生成的视频场景...（输入 @ 可选择角色）"
                       : "描述你想要生成的视频场景..."
                   }
-                  className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-purple-400 dark:focus:border-purple-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
+                  className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500"
                   style={{ minHeight: '60px' }}
                 />
                 {/* 角色选择器下拉菜单 - 内联显示 */}
                 {showRoleSelector && roleSuggestions.length > 0 && (
-                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-black/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-black/90 dark:backdrop-blur-none backdrop-blur-sm border border-slate-200 dark:border-neutral-800 rounded-lg shadow-xl max-h-48 overflow-y-auto">
                     {roleSuggestions.map((role, index) => (
                       <button
                         key={role.id}
@@ -1922,15 +1919,15 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                         onClick={() => handleSelectRole(role)}
                         className={`nodrag w-full px-3 py-2 flex items-center gap-2 text-left transition-colors ${
                           index === selectedRoleIndex
-                            ? 'bg-purple-100 dark:bg-purple-900/30'
+                            ? 'bg-neutral-100 dark:bg-neutral-800/30'
                             : 'hover:bg-slate-100 dark:hover:bg-white/5'
                         }`}
                       >
                         {role.thumbnail ? (
                           <img src={role.thumbnail} alt="" className="w-6 h-6 rounded-full object-cover object-top" />
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-purple-200 dark:bg-purple-800 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-xs text-purple-600 dark:text-purple-300">person</span>
+                          <div className="w-6 h-6 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-xs text-neutral-600 dark:text-neutral-300">person</span>
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
@@ -1950,19 +1947,19 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
              selectedModel?.modelId?.includes('viduq2') && 
              normalizeGenType(generationType) === '参考图' && (
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
                   已提及角色
                 </label>
                 <div className="flex gap-2 flex-wrap">
                   {Object.keys(mentionedRoles).map((roleName) => (
                     <div
                       key={roleName}
-                      className="nodrag px-2 py-1 rounded-md bg-purple-500/10 dark:bg-purple-500/20 border border-purple-400/50 dark:border-purple-400/30 flex items-center gap-1 group relative"
+                      className="nodrag px-2 py-1 rounded-md bg-neutral-500/10 dark:bg-neutral-500/20 border border-neutral-400/50 dark:border-neutral-400/30 flex items-center gap-1 group relative"
                     >
-                      <span className="material-symbols-outlined text-purple-500 dark:text-purple-400" style={{ fontSize: '12px' }}>
+                      <span className="material-symbols-outlined text-neutral-500 dark:text-neutral-400" style={{ fontSize: '12px' }}>
                         person
                       </span>
-                      <span className="text-[10px] font-medium text-purple-700 dark:text-purple-300">
+                      <span className="text-[10px] font-medium text-neutral-700 dark:text-neutral-300">
                         {roleName}
                       </span>
                       <button
@@ -1982,7 +1979,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                         }}
                         className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <span className="material-symbols-outlined text-purple-500 dark:text-purple-400 hover:text-red-500 dark:hover:text-red-400" style={{ fontSize: '12px' }}>
+                        <span className="material-symbols-outlined text-neutral-500 dark:text-neutral-400 hover:text-red-500 dark:hover:text-red-400" style={{ fontSize: '12px' }}>
                           close
                         </span>
                       </button>
@@ -1998,7 +1995,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
             {/* 参考图缩略图（≥1张时显示，Sora 模型不显示） */}
             {!isSoraModel && referenceImages.length >= 1 && (
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
                   {/* 检测是否为角色图片 */}
                   {referenceImages[0]?.name && referenceImages[0].id.includes('subject') ? '角色图片' : '参考图'} {generationType === '首尾帧' && '(拖动调整)'}
                   {normalizeGenType(generationType) === '参考图' && referenceImages.some(img => !img.id.includes('subject')) && (
@@ -2029,8 +2026,8 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                         className={`nodrag relative w-16 h-16 rounded-md border-2 overflow-hidden transition-all ${
                           generationType === '首尾帧' ? 'cursor-move' : isRegularImage && normalizeGenType(generationType) === '参考图' ? 'cursor-pointer' : ''
                         } ${draggedImageIndex === index ? 'opacity-50' : ''} ${
-                          img.id.includes('subject') ? 'border-purple-400 dark:border-purple-400/50' : 'border-blue-400 dark:border-blue-400/50'
-                        } hover:border-purple-400 dark:hover:border-purple-400/50 ${
+                          img.id.includes('subject') ? 'border-neutral-400 dark:border-neutral-400/50' : 'border-blue-400 dark:border-blue-400/50'
+                        } hover:border-neutral-400 dark:hover:border-neutral-400/50 ${
                           isRegularImage && normalizeGenType(generationType) === '参考图' ? 'hover:scale-105' : ''
                         }`}
                         title={isRegularImage && normalizeGenType(generationType) === '参考图' ? `点击插入 @${imageName}` : img.name}
@@ -2042,7 +2039,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                         />
                         {/* 角色标识 */}
                         {img.id.includes('subject') && (
-                          <div className="absolute top-0 left-0 bg-purple-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-br flex items-center gap-0.5">
+                          <div className="absolute top-0 left-0 bg-neutral-700 text-white dark:bg-neutral-300 dark:text-black text-[10px] font-bold px-1.5 py-0.5 rounded-br flex items-center gap-0.5">
                             <span className="material-symbols-outlined" style={{ fontSize: '10px' }}>person</span>
                             {img.name}
                           </div>
@@ -2056,7 +2053,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                         )}
                         {/* 首尾帧标识 */}
                         {generationType === '首尾帧' && !img.id.includes('subject') && (
-                          <div className="absolute top-0 left-0 bg-purple-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-br">
+                          <div className="absolute top-0 left-0 bg-neutral-700 text-white dark:bg-neutral-300 dark:text-black text-[10px] font-bold px-1.5 py-0.5 rounded-br">
                             {index === 0 ? '首' : index === 1 ? '尾' : index + 1}
                           </div>
                         )}
@@ -2072,7 +2069,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
 
                 {/* 视频时长（按钮组） */}
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+                  <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
                     视频时长{durationDisabled ? '(未配置)' : ''}
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -2086,8 +2083,8 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                         }}
                         disabled={durationDisabled}
                         className={`nodrag px-3 py-1.5 text-[10px] font-medium rounded-md border transition-all ${duration === dur
-                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white border-transparent shadow-md'
-                          : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border-slate-200 dark:border-white/10 hover:border-purple-400 dark:hover:border-purple-400/50'
+                          ? 'bg-neutral-800 dark:bg-white text-white dark:text-black border-transparent shadow-md'
+                          : 'bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-800 dark:text-white border-slate-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-400/50'
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         {dur}秒
@@ -2099,7 +2096,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                 {/* 比例选择：Sora模型显示横竖屏按钮，其他模型显示下拉框 */}
                 {isRatioSelectable && (selectedModel?.config.supportedRatios?.length || 0) > 0 && (
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
                       画面比例
                     </label>
                     {isSoraModel ? (
@@ -2110,8 +2107,8 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                             updateNodeData({ ratio: '16:9' });
                           }}
                           className={`nodrag py-2 rounded-lg text-xs font-bold transition-all border ${ratio === '16:9'
-                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md border-transparent'
-                            : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-white border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10'
+                            ? 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md border-transparent'
+                            : 'bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-600 dark:text-white border-slate-200 dark:border-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-800'
                             }`}
                         >
                           <div className="flex items-center justify-center gap-2">
@@ -2125,8 +2122,8 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                             updateNodeData({ ratio: '9:16' });
                           }}
                           className={`nodrag py-2 rounded-lg text-xs font-bold transition-all border ${ratio === '9:16'
-                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md border-transparent'
-                            : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-white border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10'
+                            ? 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md border-transparent'
+                            : 'bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-600 dark:text-white border-slate-200 dark:border-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-800'
                             }`}
                         >
                           <div className="flex items-center justify-center gap-2">
@@ -2166,7 +2163,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
 
                 {/* 分辨率 */}
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+                  <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
                     分辨率{resolutionDisabled ? '(未配置)' : ''}
                   </label>
                   <CustomSelect
@@ -2184,7 +2181,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                 {selectedModel?.provider?.toLowerCase() === 'vidu' && 
                  selectedModel?.modelId !== 'viduq2' && (
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
                       运动幅度
                     </label>
                     <div className="grid grid-cols-4 gap-1">
@@ -2198,7 +2195,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                           }}
                           className={`nodrag px-2 py-1 text-[10px] font-bold rounded-lg transition-all ${
                             movementAmplitude === amplitude
-                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white'
+                              ? 'bg-neutral-800 dark:bg-white text-white dark:text-black'
                               : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
                           }`}
                         >
@@ -2212,7 +2209,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                 {/* 音频直出开关 - 仅Vidu Q2显示，首尾帧不显示（首尾帧只支持BGM） */}
                 {selectedModel?.config.supportsAudioOutput && normalizeGenType(generationType) !== '首尾帧' && (
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+                    <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
                       音频直出
                     </label>
                     <button
@@ -2224,7 +2221,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                       }}
                       className={`nodrag relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
                         audioEnabled
-                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50'
+                          ? 'bg-neutral-800 dark:bg-white'
                           : 'bg-slate-300 dark:bg-slate-600'
                       }`}
                     >
@@ -2242,8 +2239,8 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
             {/* 生成按钮 */}
             <button
               onClick={handleGenerate}
-              disabled={isGenerating || (data as any)._canEdit === false}
-              className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 ${isGenerating ? 'bg-gray-600 dark:bg-gray-700 text-white opacity-50 cursor-wait' : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md hover:shadow-lg border-transparent dark:border-white/10'}`}
+              disabled={isGenerating || !canGenerate || (data as any)._canEdit === false}
+              className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 ${isGenerating || !canGenerate || (data as any)._canEdit === false ? 'bg-neutral-400 dark:bg-neutral-700 text-white dark:text-neutral-300 cursor-not-allowed border-transparent dark:border-neutral-700' : 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md hover:shadow-lg border-transparent dark:border-neutral-700'}`}
             >
               {isGenerating ? (
                 <>
@@ -2257,11 +2254,11 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                   {/* 积分/免费显示 */}
                   {!creditsLoading && (
                     isFreeUsage ? (
-                      <span className="ml-1 px-1.5 py-0.5 bg-amber-500/40 text-amber-200 rounded text-[9px]">
+                      <span className="ml-1 text-[9px] opacity-70">
                         免费，今日剩{freeUsageRemaining}次
                       </span>
                     ) : credits !== null && credits > 0 ? (
-                      <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[9px]">
+                      <span className="ml-1 text-[9px] opacity-70">
                         {credits}积分
                       </span>
                     ) : null
@@ -2274,13 +2271,13 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
           <div className="py-2 px-2">
             {prompt ? (
               <div className="space-y-1">
-                <p className="text-xs text-purple-400 font-medium">提示词：</p>
-                <p className="text-xs text-purple-300 line-clamp-6 whitespace-pre-wrap break-words">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">提示词：</p>
+                <p className="text-xs text-neutral-400 line-clamp-6 whitespace-pre-wrap break-words">
                   {prompt}
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-purple-400 text-center italic">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center italic">
                 双击展开配置
               </p>
             )}

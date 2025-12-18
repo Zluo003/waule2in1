@@ -439,17 +439,6 @@ const EpisodesPage = () => {
     return labels[status] || status;
   };
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      DRAFT: 'bg-gray-500/20 dark:bg-gray-500/10 text-gray-600 dark:text-gray-400',
-      IN_PROGRESS: 'bg-tiffany-500/20 dark:bg-tiffany-500/10 text-tiffany-700 dark:text-tiffany-400',
-      RENDERING: 'bg-accent-500/20 dark:bg-accent-500/10 text-accent-700 dark:text-accent-400',
-      COMPLETED: 'bg-green-500/20 dark:bg-green-500/10 text-green-700 dark:text-green-400',
-      ARCHIVED: 'bg-gray-600/20 dark:bg-gray-600/10 text-gray-700 dark:text-gray-500',
-    };
-    return colors[status] || 'bg-gray-500/20 dark:bg-gray-500/10 text-gray-600 dark:text-gray-400';
-  };
-
   return (
     <div className="pr-8 pb-8">
       {/* 返回按钮 + 项目标题 - 固定在左上角 */}

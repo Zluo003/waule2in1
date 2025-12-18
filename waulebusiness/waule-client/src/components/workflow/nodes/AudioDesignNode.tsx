@@ -189,7 +189,7 @@ const AudioDesignNode = ({ data, id, selected }: NodeProps<NodeData>) => {
   };
 
   return (
-    <div className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`} style={{ width: 320 }}>
+    <div className={`relative bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-neutral-700 ring-black/5 dark:ring-neutral-700 ring-black/5'}`} style={{ width: 320 }}>
       {/* 创建者头像徽章 */}
       <NodeCreatorBadge createdBy={(data as any).createdBy} isSharedWorkflow={(data as any)._isSharedWorkflow} />
       <CustomHandle
@@ -198,7 +198,7 @@ const AudioDesignNode = ({ data, id, selected }: NodeProps<NodeData>) => {
         id={`${id}-target`}
         className="!w-3 !h-3 !border-2 !rounded-full !bg-white dark:!bg-black !border-slate-400 dark:!border-white hover:!scale-150 !transition-transform !cursor-crosshair !shadow-[0_0_5px_rgba(255,255,255,0.5)]"
       />
-      <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#18181b]">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>record_voice_over</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">{data.label}</span>
@@ -207,7 +207,7 @@ const AudioDesignNode = ({ data, id, selected }: NodeProps<NodeData>) => {
       </div>
       <div className="p-4 space-y-4">
         <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">模型</label>
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">模型</label>
           <CustomSelect
             value={modelId}
             onChange={(value) => { setModelId(value); updateNodeData({ modelId: value }); }}
@@ -222,7 +222,7 @@ const AudioDesignNode = ({ data, id, selected }: NodeProps<NodeData>) => {
         </div>
         {savedVoices.length > 0 && (
           <div className="space-y-1">
-            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">我的音色</label>
+            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">我的音色</label>
             <CustomSelect
               value={voiceId || ''}
               onChange={(value) => { setVoiceId(value); updateNodeData({ voiceId: value }); }}
@@ -231,41 +231,41 @@ const AudioDesignNode = ({ data, id, selected }: NodeProps<NodeData>) => {
           </div>
         )}
         <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">音色名称</label>
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">音色名称</label>
           <input
             value={voiceId}
             onChange={(e) => { const v = e.target.value; setVoiceId(v); updateNodeData({ voiceId: v }); }}
             placeholder="定义音色名称"
-            className="nodrag w-full p-2 text-xs rounded-md border outline-none transition-colors bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-purple-400 dark:focus:border-purple-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
+            className="nodrag w-full p-2 text-xs rounded-md border outline-none transition-colors bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">音色描述</label>
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">音色描述</label>
           <textarea
             ref={promptRef}
             value={prompt}
             onChange={(e) => { setPrompt(e.target.value); updateNodeData({ prompt: e.target.value }); }}
             placeholder="描述你想要的音色特征，例如：温暖、亲切、低沉"
-            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-purple-400 dark:focus:border-purple-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
+            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500"
             rows={3}
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">试听文本</label>
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">试听文本</label>
           <textarea
             ref={previewRef}
             value={previewText}
             onChange={(e) => { setPreviewText(e.target.value); updateNodeData({ previewText: e.target.value }); }}
             placeholder="输入试听文本"
-            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-purple-400 dark:focus:border-purple-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
+            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500"
             rows={2}
           />
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleDesign} disabled={isBusy || (data as any)._canEdit === false} className={`nodrag flex-1 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 ${isBusy || (data as any)._canEdit === false ? 'bg-gray-600 dark:bg-gray-700 text-white' : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md hover:shadow-lg border-transparent dark:border-white/10'}`}>
+          <button onClick={handleDesign} disabled={isBusy || (data as any)._canEdit === false} className={`nodrag flex-1 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 ${isBusy || (data as any)._canEdit === false ? 'bg-neutral-400 dark:bg-neutral-700 text-white dark:text-neutral-300' : 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md hover:shadow-lg border-transparent dark:border-neutral-700'}`}>
             {isBusy ? '设计中...' : '设计音色'}
           </button>
-          <button onClick={handleSaveVoice} disabled={isBusy || !voiceId || (data as any)._canEdit === false} className={`nodrag px-3 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 ${isBusy || !voiceId || (data as any)._canEdit === false ? 'bg-gray-600 dark:bg-gray-700 text-white opacity-50' : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md hover:shadow-lg border-transparent dark:border-white/10'}`}>
+          <button onClick={handleSaveVoice} disabled={isBusy || !voiceId || (data as any)._canEdit === false} className={`nodrag px-3 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 ${isBusy || !voiceId || (data as any)._canEdit === false ? 'bg-neutral-400 dark:bg-neutral-700 text-white dark:text-neutral-300 opacity-50' : 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md hover:shadow-lg border-transparent dark:border-neutral-700'}`}>
             保存
           </button>
         </div>

@@ -24,50 +24,32 @@ const AuroraEdge = memo(({
 
   return (
     <g className="aurora-edge">
-      <defs>
-        <linearGradient id={`aurora-grad-${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#ec4899" stopOpacity={0.5} />
-          <stop offset="50%" stopColor="#a855f7" stopOpacity={1} />
-          <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.5} />
-        </linearGradient>
-        <filter id={`aurora-glow-${id}`}>
-          <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-          <feMerge>
-            <feMergeNode in="coloredBlur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-
-      {/* base path */}
+      {/* base path - monochrome black/white */}
       <path
         id={id}
         d={edgePath}
         fill="none"
-        stroke={selected ? '#a855f7' : 'currentColor'}
+        stroke={selected ? '#525252' : 'currentColor'}
         strokeWidth={2}
-        className="opacity-30 dark:text-white/40 text-slate-300"
+        className="opacity-50 dark:text-white/60 text-neutral-400"
         style={{ pointerEvents: 'none' }}
         markerEnd={markerEnd}
       />
 
-      {/* gradient dashed overlay */}
+      {/* dashed overlay - monochrome */}
       <path
         d={edgePath}
         fill="none"
-        stroke={`url(#aurora-grad-${id})`}
+        stroke="currentColor"
         strokeWidth={2}
         strokeDasharray="10 10"
-        className="aurora-edge-dash"
-        style={{ 
-          filter: `url(#aurora-glow-${id})`,
-          pointerEvents: 'none'
-        }}
+        className="aurora-edge-dash text-neutral-600 dark:text-white/80"
+        style={{ pointerEvents: 'none' }}
         markerEnd={markerEnd}
       />
 
       {/* moving dot */}
-      <circle r={3} className="fill-slate-700 dark:fill-white" style={{ pointerEvents: 'none' }}>
+      <circle r={3} className="fill-neutral-700 dark:fill-white" style={{ pointerEvents: 'none' }}>
         <animateMotion dur="2s" repeatCount="indefinite" path={edgePath} calcMode="linear" />
       </circle>
 

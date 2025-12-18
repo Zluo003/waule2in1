@@ -488,8 +488,8 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
 
   return (
     <div
-      className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${
-        selected ? 'border-purple-400 shadow-purple-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'
+      className={`relative bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border rounded-2xl shadow-xl transition-all ring-1 ${
+        selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-neutral-700 ring-black/5 dark:ring-neutral-700 ring-black/5'
       }`}
       style={{ width: 320 }}
     >
@@ -538,7 +538,7 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
       </div>
 
       {/* 节点头部 - Aurora渐变样式 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#18181b]">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>auto_awesome</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">智能溶图</span>
@@ -556,7 +556,7 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
         {/* 输入图片缩略图（带编号） */}
         {totalInputImages > 0 && (
           <div className="space-y-2">
-            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">
+            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
               参考图片 ({totalInputImages})
             </label>
             <div className="flex gap-1.5 flex-wrap">
@@ -578,7 +578,7 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
                 return allImages.map((img) => (
                   <div
                     key={`${img.type}-${img.index}`}
-                    className="relative w-12 h-12 rounded-md overflow-hidden border border-slate-200 dark:border-white/10"
+                    className="relative w-12 h-12 rounded-md overflow-hidden border border-slate-200 dark:border-neutral-800"
                   >
                     <img
                       src={img.url}
@@ -586,7 +586,7 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
                       className="w-full h-full object-cover"
                     />
                     {/* 序号标签 - 左上角紫色正方形 */}
-                    <div className="absolute top-0 left-0 bg-purple-600 text-white text-xs px-1.5 py-0.5 rounded-br">
+                    <div className="absolute top-0 left-0 bg-neutral-700 text-white dark:bg-neutral-200 dark:text-black text-xs px-1.5 py-0.5 rounded-br">
                       {img.index}
                     </div>
                   </div>
@@ -598,7 +598,7 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
 
         {/* 分辨率选择 */}
         <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">分辨率</label>
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">分辨率</label>
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => {
@@ -607,8 +607,8 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
               }}
               className={`nodrag py-2 rounded-lg text-[10px] font-bold transition-colors border ${
                 imageSize === '2K'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md border-transparent dark:border-white/10'
-                  : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white/70 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10'
+                  ? 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md border-transparent dark:border-neutral-700'
+                  : 'bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-700 dark:text-neutral-300 border-slate-200 dark:border-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-800'
               }`}
             >
               <div className="flex items-center justify-center gap-2">
@@ -623,8 +623,8 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
               }}
               className={`nodrag py-2 rounded-lg text-[10px] font-bold transition-colors border ${
                 imageSize === '4K'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md border-transparent dark:border-white/10'
-                  : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white/70 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10'
+                  ? 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md border-transparent dark:border-neutral-700'
+                  : 'bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-700 dark:text-neutral-300 border-slate-200 dark:border-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-800'
               }`}
             >
               <div className="flex items-center justify-center gap-2">
@@ -637,7 +637,7 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
 
         {/* 宽高比 */}
         <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">宽高比</label>
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">宽高比</label>
           <div className="grid grid-cols-3 gap-1">
             {['16:9', '21:9', '1:1', '9:16', '9:21', '4:3', '3:4', '3:2', '2:3'].map((r) => (
               <button
@@ -648,8 +648,8 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
                 }}
                 className={`nodrag py-1.5 rounded-lg text-[9px] font-medium transition-colors border ${
                   aspectRatio === r
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white border-transparent dark:border-white/10'
-                    : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white/70 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10'
+                    ? 'bg-neutral-800 dark:bg-white text-white dark:text-black border-transparent dark:border-neutral-700'
+                    : 'bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-700 dark:text-neutral-300 border-slate-200 dark:border-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-800'
                 }`}
               >
                 {r}
@@ -660,7 +660,7 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
 
         {/* 提示词 */}
         <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">提示词</label>
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">提示词</label>
           <textarea
             ref={promptTextareaRef}
             value={userPrompt}
@@ -680,7 +680,7 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
             }}
             placeholder="输入您的创意"
             rows={2}
-            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-purple-400 dark:focus:border-purple-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
+            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500"
             style={{ minHeight: '60px' }}
           />
         </div>
@@ -691,10 +691,10 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           disabled={isGenerating || !userPrompt.trim() || data._canEdit === false}
-          className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-            isGenerating
-              ? 'bg-gray-600 dark:bg-gray-700 text-white cursor-wait border-transparent dark:border-white/10'
-              : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md hover:shadow-lg border-transparent dark:border-white/10'
+          className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 ${
+            isGenerating || !userPrompt.trim() || data._canEdit === false
+              ? 'bg-neutral-400 dark:bg-neutral-700 text-white dark:text-neutral-300 cursor-not-allowed border-transparent dark:border-neutral-700'
+              : 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md hover:shadow-lg border-transparent dark:border-neutral-700'
           }`}
         >
           {isGenerating ? (
@@ -708,11 +708,11 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
               <span>生成图片</span>
               {!creditsLoading && (
                 isFreeUsage ? (
-                  <span className="ml-1 px-1.5 py-0.5 bg-amber-500/40 text-amber-200 rounded text-[9px]">
+                  <span className="ml-1 text-[9px] opacity-70">
                     免费，今日剩{freeUsageRemaining}次
                   </span>
                 ) : credits !== null && credits > 0 ? (
-                  <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[9px]">
+                  <span className="ml-1 text-[9px] opacity-70">
                     {credits}积分
                   </span>
                 ) : null

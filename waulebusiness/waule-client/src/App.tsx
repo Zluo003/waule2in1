@@ -228,14 +228,6 @@ function App() {
           }
         />
 
-        {/* 工作流页面（管理员和普通用户都可访问） */}
-        <Route
-          path="/workflow/:workflowId"
-          element={
-            isAuthenticated ? <WorkflowEditorPage /> : <Navigate to="/login" replace />
-          }
-        />
-
         {/* Protected routes - 普通用户（非管理员） */}
         <Route
           element={
@@ -250,6 +242,8 @@ function App() {
           <Route path="/projects/:projectId/episodes/:episodeId" element={<EpisodeDetailPage />} />
           <Route path="/projects/:projectId/episodes/:episodeId/workflow" element={<WorkflowEditorPage />} />
           <Route path="/projects/:id/workflow" element={<WorkflowEditorPage />} />
+          {/* 共享工作流页面（协作者访问） */}
+          <Route path="/workflow/:workflowId" element={<WorkflowEditorPage />} />
           <Route path="/assets" element={<AssetsPage />} />
           <Route path="/assets/sora-characters" element={<SoraCharactersPage />} />
           <Route path="/assets/:id" element={<AssetLibraryDetailPage />} />

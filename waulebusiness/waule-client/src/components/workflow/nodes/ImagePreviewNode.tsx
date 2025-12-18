@@ -885,7 +885,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
           : [];
         const hasVisibleButtons = visibleButtons.length > 0;
         return (
-      <div className="relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden" style={{ width: containerWidth, borderRadius: hasVisibleButtons ? '12px 12px 0 0' : '12px' }}>
+      <div className="relative bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border border-slate-200 dark:border-neutral-800 shadow-xl overflow-hidden" style={{ width: containerWidth, borderRadius: hasVisibleButtons ? '12px 12px 0 0' : '12px' }}>
         <img
           src={imageUrl}
           alt="预览"
@@ -948,7 +948,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                 toast.error(e?.message || '添加到分镜素材失败');
               }
             }}
-            className={`w-7 h-7 flex items-center justify-center ${(data as any)?.addedToStoryboard ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/90 dark:to-pink-600/90'} hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95 relative`}
+            className={`w-7 h-7 flex items-center justify-center ${(data as any)?.addedToStoryboard ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-neutral-800 dark:bg-white '} hover:shadow-lg text-white dark:text-black rounded-full transition-all dark:backdrop-blur-none backdrop-blur-sm shadow-md active:scale-95 relative`}
             title={(data as any)?.addedToStoryboard ? '已添加到分镜素材' : '添加到分镜素材'}
             disabled={(data as any)?.addedToStoryboard}
           >
@@ -965,7 +965,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
             onClick={() => {
               setShowLibrarySelector(true);
             }}
-            className={`w-7 h-7 flex items-center justify-center ${(data as any)?.addedToLibrary ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/90 dark:to-pink-600/90'} hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95 relative`}
+            className={`w-7 h-7 flex items-center justify-center ${(data as any)?.addedToLibrary ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-neutral-800 dark:bg-white '} hover:shadow-lg text-white dark:text-black rounded-full transition-all dark:backdrop-blur-none backdrop-blur-sm shadow-md active:scale-95 relative`}
             title={(data as any)?.addedToLibrary ? '已添加到资产库' : '添加到资产库'}
             disabled={(data as any)?.addedToLibrary}
           >
@@ -978,7 +978,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
           </button>
           <button
             onClick={handleDownload}
-            className="w-7 h-7 flex items-center justify-center bg-slate-800/90 dark:bg-slate-700/90 hover:bg-slate-900 dark:hover:bg-slate-600 text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+            className="w-7 h-7 flex items-center justify-center bg-slate-800/90 dark:bg-slate-700/90 hover:bg-slate-900 dark:hover:bg-slate-600 text-white rounded-full transition-all dark:backdrop-blur-none backdrop-blur-sm shadow-md active:scale-95"
             title="下载图片"
           >
             <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>download</span>
@@ -993,8 +993,8 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
         const visibleButtons = (data.midjourneyData.buttons || []).filter((b) => shouldShowButton(b) && stageFilter(b));
         if (visibleButtons.length === 0) return null; // 第三层或无按钮时不显示整个区域
         return (
-        <div className="nodrag bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-t-0 border-slate-200 dark:border-white/10 rounded-b-xl p-3 space-y-2 shadow-lg" style={{ width: containerWidth }}>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white/50">Midjourney 操作</div>
+        <div className="nodrag bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border-2 border-t-0 border-slate-200 dark:border-neutral-800 rounded-b-xl p-3 space-y-2 shadow-lg" style={{ width: containerWidth }}>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-neutral-400">Midjourney 操作</div>
             <div className="flex flex-wrap gap-2">
               {visibleButtons.map((button, idx) => {
                   // 检查按钮是否已被点击过
@@ -1117,12 +1117,12 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                       className={`
                         px-3 py-1.5 text-[10px] font-bold rounded-md transition-all border
                         ${isClicked
-                          ? 'bg-slate-400 dark:bg-slate-600 cursor-not-allowed opacity-50 text-white border-transparent'
+                          ? 'bg-neutral-400 dark:bg-neutral-700 text-white dark:text-neutral-300 cursor-not-allowed border-transparent'
                           : isExecuting
-                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 cursor-wait text-white border-transparent shadow-md'
+                            ? 'bg-neutral-800 dark:bg-white cursor-wait text-white dark:text-black border-transparent shadow-md'
                             : executingButton !== null
-                              ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed opacity-50 text-white border-transparent'
-                              : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg active:scale-95 text-white border-transparent dark:border-white/10'
+                              ? 'bg-neutral-400 dark:bg-neutral-700 text-white dark:text-neutral-300 cursor-not-allowed border-transparent'
+                              : 'bg-neutral-800 dark:bg-white hover:shadow-lg active:scale-95 text-white dark:text-black border-transparent dark:border-neutral-700'
                         }
                       `}
                       title={isClicked ? `${displayLabel} (已点击)` : displayLabel}
@@ -1147,7 +1147,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
 
       {/* 选择资产库弹窗 - 使用 Portal 渲染到 body，避免被编组遮挡 */}
       {showLibrarySelector && createPortal(
-        <div className="nodrag fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]">
+        <div className="nodrag fixed inset-0 bg-black/60 dark:backdrop-blur-none backdrop-blur-sm flex items-center justify-center z-[9999]">
           <div className="bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-slate-900 dark:text-text-dark-primary">
@@ -1155,7 +1155,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
               </h3>
               <button
                 onClick={() => setShowLibrarySelector(false)}
-                className="p-1.5 rounded-md text-slate-400 dark:text-text-dark-secondary hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-md text-slate-400 dark:text-text-dark-secondary hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors"
               >
                 <span className="material-symbols-outlined text-base">close</span>
               </button>
@@ -1173,7 +1173,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                   onChange={(e) => setAssetName(e.target.value)}
                   onMouseDown={(e) => e.stopPropagation()}
                   onTouchStart={(e) => e.stopPropagation()}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-text-dark-primary placeholder-slate-400 dark:placeholder-text-dark-secondary focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-text-dark-primary placeholder-slate-400 dark:placeholder-text-dark-secondary focus:outline-none focus:ring-2 focus:ring-neutral-500"
                   placeholder="输入资产名称"
                   maxLength={200}
                 />
@@ -1199,7 +1199,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                     <select
                       value={selectedLibraryId}
                       onChange={(e) => setSelectedLibraryId(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-neutral-500"
                     >
                       {filtered.map((lib) => (
                         <option key={lib.id} value={lib.id}>
@@ -1226,7 +1226,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                         const filtered = libraries.filter((l) => (l.category || 'OTHER') === cat);
                         setSelectedLibraryId(filtered.length > 0 ? filtered[0].id : '');
                       }}
-                      className={`px-3 py-2 rounded-lg border transition-all text-left ${selectedCategory === cat ? 'border-purple-500 bg-purple-500/10 dark:bg-purple-500/20' : 'border-slate-200 dark:border-border-dark hover:border-purple-400 dark:hover:border-purple-500'
+                      className={`px-3 py-2 rounded-lg border transition-all text-left ${selectedCategory === cat ? 'border-neutral-500 bg-neutral-500/10 dark:bg-neutral-500/20' : 'border-slate-200 dark:border-border-dark hover:border-neutral-400 dark:hover:border-neutral-500'
                         }`}
                     >
                       <div className="flex items-center gap-2">
@@ -1246,14 +1246,14 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowLibrarySelector(false)}
-                  className="flex-1 px-4 py-2 bg-slate-100 dark:bg-background-dark text-slate-900 dark:text-text-dark-primary rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-all border border-slate-200 dark:border-border-dark"
+                  className="flex-1 px-4 py-2 bg-slate-100 dark:bg-background-dark text-slate-900 dark:text-text-dark-primary rounded-lg hover:bg-slate-200 dark:hover:bg-neutral-800 transition-all border border-slate-200 dark:border-border-dark"
                 >
                   取消
                 </button>
                 <button
                   onClick={handleAddToLibrary}
                   disabled={isAdding || libraries.length === 0 || !assetName.trim()}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 hover:shadow-lg text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-neutral-800 dark:bg-white  hover:shadow-lg text-white dark:text-black rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isAdding ? '添加中...' : '确认添加'}
                 </button>
