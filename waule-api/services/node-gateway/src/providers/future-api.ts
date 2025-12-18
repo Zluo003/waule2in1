@@ -99,37 +99,39 @@ export async function generateImage(options: FutureApiImageOptions): Promise<{
     actualModel = config.model_4k || 'gemini-2.5-flash-image';
   }
   
-  log('FutureAPI', `图片生成: model=${model} -> ${actualModel}`);
+  log('FutureAPI', `图片生成: model=${model} -> ${actualModel}, baseUrl=${baseUrl}`);
+  log('FutureAPI', `API Key (masked): ${apiKey ? apiKey.slice(0, 10) + '...' + apiKey.slice(-4) : 'NOT SET'}`);
   
-  // 构建消息内容
-  const messageContent: any[] = [];
+  // 构建消息内容 - 根据是否有参考图片选择不同格式
+  let messageContent: any;
   
-  // 添加文本提示
-  messageContent.push({
-    type: 'text',
-    text: prompt
-  });
-  
-  // 处理参考图片
   if (referenceImages && referenceImages.length > 0) {
+    // 有参考图片时，content 为数组格式
+    const contentArray: any[] = [];
+    
+    // 添加文本提示
+    contentArray.push({
+      type: 'text',
+      text: prompt
+    });
+    
+    // 处理参考图片
     for (const img of referenceImages) {
-      if (img.startsWith('http')) {
-        // URL格式，直接使用
-        messageContent.push({
-          type: 'image_url',
-          image_url: { url: img }
-        });
-      } else if (img.startsWith('data:')) {
-        // Base64格式，直接使用
-        messageContent.push({
+      if (img.startsWith('http') || img.startsWith('data:')) {
+        contentArray.push({
           type: 'image_url',
           image_url: { url: img }
         });
       }
     }
+    
+    messageContent = contentArray;
+  } else {
+    // 无参考图片时，content 为字符串格式
+    messageContent = prompt;
   }
   
-  const requestBody = {
+  const requestBody: any = {
     model: actualModel,
     stream: false,
     messages: [
@@ -137,11 +139,10 @@ export async function generateImage(options: FutureApiImageOptions): Promise<{
         role: 'user',
         content: messageContent
       }
-    ],
-    max_tokens: 16000,
-    temperature: 1,
-    top_p: 1
+    ]
   };
+  
+  log('FutureAPI', `请求体: ${JSON.stringify(requestBody).slice(0, 500)}...`);
   
   try {
     const response = await axios.post(
@@ -192,8 +193,11 @@ export async function generateImage(options: FutureApiImageOptions): Promise<{
     };
     
   } catch (error: any) {
-    const errMsg = error.response?.data?.error?.message || error.message;
-    log('FutureAPI', `图片生成失败: ${errMsg}`);
+    const statusCode = error.response?.status;
+    const responseData = error.response?.data;
+    const errMsg = responseData?.error?.message || responseData?.message || error.message;
+    log('FutureAPI', `图片生成失败: status=${statusCode}, error=${errMsg}`);
+    log('FutureAPI', `错误响应详情: ${JSON.stringify(responseData || {})}`);
     throw new Error(`Future API image generation failed: ${errMsg}`);
   }
 }
