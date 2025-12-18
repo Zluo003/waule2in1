@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
 import JSZip from 'jszip'
 import { apiClient, api } from '../lib/api'
+import AILoadingAnimation from '../components/AILoadingAnimation'
 
 interface Episode {
   id: string
@@ -2292,156 +2293,156 @@ export default function EpisodeDetailPageNew() {
       )}
 
       {/* 导出到剪映警告弹窗 */}
+
       {/* 创建分镜脚本弹窗 */}
       {showScriptCreator && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-[#18181b] rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
-            <div className="p-6 border-b border-border-light dark:border-border-dark shrink-0">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">AI 创建分镜脚本</h2>
-                <button 
-                  onClick={() => setShowScriptCreator(false)}
-                  className="text-text-light-tertiary dark:text-text-dark-tertiary hover:text-text-light-primary dark:hover:text-text-dark-primary"
-                >
-                  <span className="material-symbols-outlined">close</span>
-                </button>
+          <div className="bg-white dark:bg-[#18181b] rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col min-h-[500px]">
+            {isGeneratingScript ? (
+              <div className="flex-1 flex flex-col items-center justify-center">
+                <AILoadingAnimation />
               </div>
-            </div>
-            
-            <div className="p-6 overflow-y-auto flex-1 space-y-6">
-              {/* 选择智能体 */}
-              <div>
-                <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
-                  选择创作智能体 <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={selectedAgentId}
-                  onChange={(e) => handleAgentSelect(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-black text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-neutral-500"
-                >
-                  <option value="">请选择智能体</option>
-                  {scriptCreatorAgents.map((agent: any) => (
-                    <option key={agent.id} value={agent.id}>{agent.name}</option>
-                  ))}
-                </select>
-                {scriptCreatorAgents.length === 0 && (
-                  <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-                    暂无可用的剧集创作智能体，请先在管理后台配置
-                  </p>
-                )}
-              </div>
+            ) : (
+              <>
+                <div className="p-6 border-b border-border-light dark:border-border-dark shrink-0">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">AI 创建分镜脚本</h2>
+                    <button 
+                      onClick={() => setShowScriptCreator(false)}
+                      className="text-text-light-tertiary dark:text-text-dark-tertiary hover:text-text-light-primary dark:hover:text-text-dark-primary"
+                    >
+                      <span className="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                  {/* 选择智能体 */}
+                  <div>
+                    <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
+                      选择创作智能体 <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={selectedAgentId}
+                      onChange={(e) => handleAgentSelect(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-black text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-neutral-500"
+                    >
+                      <option value="">请选择智能体</option>
+                      {scriptCreatorAgents.map((agent: any) => (
+                        <option key={agent.id} value={agent.id}>{agent.name}</option>
+                      ))}
+                    </select>
+                    {scriptCreatorAgents.length === 0 && (
+                      <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+                        暂无可用的剧集创作智能体，请先在管理后台配置
+                      </p>
+                    )}
+                  </div>
 
-              {/* 选择角色（风格） */}
-              {selectedAgentId && (
-                <div>
-                  <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
-                    选择创作风格 <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {scriptCreatorRoles.map((role: any) => (
-                      <label
-                        key={role.id}
-                        className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                          selectedRoleId === role.id
-                            ? 'border-neutral-500 bg-neutral-100 dark:bg-neutral-800'
-                            : 'border-border-light dark:border-border-dark hover:border-neutral-400'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="scriptRole"
-                          value={role.id}
-                          checked={selectedRoleId === role.id}
-                          onChange={(e) => setSelectedRoleId(e.target.value)}
-                          className="sr-only"
-                        />
-                        <div className="flex-1">
-                          <div className="font-medium text-text-light-primary dark:text-text-dark-primary">{role.name}</div>
-                          {role.description && (
-                            <div className="text-xs text-text-light-tertiary dark:text-text-dark-tertiary mt-1 line-clamp-2">{role.description}</div>
-                          )}
-                        </div>
-                        {selectedRoleId === role.id && (
-                          <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400">check_circle</span>
+                  {/* 选择角色（风格） */}
+                  {selectedAgentId && (
+                    <div>
+                      <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
+                        选择创作风格 <span className="text-red-500">*</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {scriptCreatorRoles.map((role: any) => (
+                          <label
+                            key={role.id}
+                            className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                              selectedRoleId === role.id
+                                ? 'border-neutral-500 bg-neutral-100 dark:bg-neutral-800'
+                                : 'border-border-light dark:border-border-dark hover:border-neutral-400'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="scriptRole"
+                              value={role.id}
+                              checked={selectedRoleId === role.id}
+                              onChange={(e) => setSelectedRoleId(e.target.value)}
+                              className="sr-only"
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-text-light-primary dark:text-text-dark-primary">{role.name}</div>
+                              {role.description && (
+                                <div className="text-xs text-text-light-tertiary dark:text-text-dark-tertiary mt-1 line-clamp-2">{role.description}</div>
+                              )}
+                            </div>
+                            {selectedRoleId === role.id && (
+                              <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400">check_circle</span>
+                            )}
+                          </label>
+                        ))}
+                      </div>
+                      {scriptCreatorRoles.length === 0 && (
+                        <p className="text-sm text-text-light-tertiary dark:text-text-dark-tertiary">
+                          该智能体暂无可用角色
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 上传剧本/故事 */}
+                  <div>
+                    <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
+                      上传剧本/故事 <span className="text-red-500">*</span>
+                    </label>
+                    <div className={`border-2 border-dashed rounded-xl p-4 text-center ${scriptFileUrl ? 'border-neutral-500 bg-neutral-100 dark:bg-neutral-800' : 'border-border-light dark:border-border-dark'}`}>
+                      <input
+                        type="file"
+                        accept=".txt,.pdf,.doc,.docx"
+                        onChange={handleScriptFileChange}
+                        className="hidden"
+                        id="script-file-input"
+                      />
+                      <label htmlFor="script-file-input" className="cursor-pointer">
+                        <span className={`material-symbols-outlined text-4xl ${scriptFileUrl ? 'text-neutral-600 dark:text-neutral-400' : 'text-text-light-tertiary dark:text-text-dark-tertiary'}`}>
+                          {scriptFileUrl ? 'check_circle' : 'upload_file'}
+                        </span>
+                        <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary mt-2">
+                          {scriptFile ? scriptFile.name : '点击上传文件（支持 TXT、PDF、Word）'}
+                        </p>
+                        {scriptFileUrl && (
+                          <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">✓ 已上传，将直接传给AI分析</p>
                         )}
                       </label>
-                    ))}
+                    </div>
                   </div>
-                  {scriptCreatorRoles.length === 0 && (
-                    <p className="text-sm text-text-light-tertiary dark:text-text-dark-tertiary">
-                      该智能体暂无可用角色
-                    </p>
-                  )}
+
+                  {/* 创作需求（可选） */}
+                  <div>
+                    <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
+                      创作需求（可选）
+                    </label>
+                    <textarea
+                      value={scriptRequirements}
+                      onChange={(e) => setScriptRequirements(e.target.value)}
+                      placeholder="例如：分镜数量约20个、画风偏卡通、节奏明快..."
+                      rows={3}
+                      className="w-full px-4 py-3 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-black text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-neutral-500 resize-none"
+                    />
+                  </div>
                 </div>
-              )}
 
-              {/* 上传剧本/故事 */}
-              <div>
-                <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
-                  上传剧本/故事 <span className="text-red-500">*</span>
-                </label>
-                <div className={`border-2 border-dashed rounded-xl p-4 text-center ${scriptFileUrl ? 'border-neutral-500 bg-neutral-100 dark:bg-neutral-800' : 'border-border-light dark:border-border-dark'}`}>
-                  <input
-                    type="file"
-                    accept=".txt,.pdf,.doc,.docx"
-                    onChange={handleScriptFileChange}
-                    className="hidden"
-                    id="script-file-input"
-                  />
-                  <label htmlFor="script-file-input" className="cursor-pointer">
-                    <span className={`material-symbols-outlined text-4xl ${scriptFileUrl ? 'text-neutral-600 dark:text-neutral-400' : 'text-text-light-tertiary dark:text-text-dark-tertiary'}`}>
-                      {scriptFileUrl ? 'check_circle' : 'upload_file'}
-                    </span>
-                    <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary mt-2">
-                      {scriptFile ? scriptFile.name : '点击上传文件（支持 TXT、PDF、Word）'}
-                    </p>
-                    {scriptFileUrl && (
-                      <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">✓ 已上传，将直接传给AI分析</p>
-                    )}
-                  </label>
-                </div>
-              </div>
-
-              {/* 创作需求（可选） */}
-              <div>
-                <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
-                  创作需求（可选）
-                </label>
-                <textarea
-                  value={scriptRequirements}
-                  onChange={(e) => setScriptRequirements(e.target.value)}
-                  placeholder="例如：分镜数量约20个、画风偏卡通、节奏明快..."
-                  rows={3}
-                  className="w-full px-4 py-3 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-black text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-neutral-500 resize-none"
-                />
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-border-light dark:border-border-dark flex gap-3 justify-end shrink-0">
-              <button
-                onClick={() => setShowScriptCreator(false)}
-                className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-white/10 text-text-light-primary dark:text-text-dark-primary text-sm font-medium hover:bg-slate-200 dark:hover:bg-white/20 transition-colors"
-              >
-                取消
-              </button>
-              <button
-                onClick={generateStoryboardScript}
-                disabled={isGeneratingScript || !selectedRoleId || !scriptFile}
-                className="px-6 py-2 rounded-lg bg-neutral-800 dark:bg-white text-white dark:text-black text-sm font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isGeneratingScript ? (
-                  <>
-                    <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
-                    生成中...
-                  </>
-                ) : (
-                  <>
+                <div className="p-6 border-t border-border-light dark:border-border-dark flex gap-3 justify-end shrink-0">
+                  <button
+                    onClick={() => setShowScriptCreator(false)}
+                    className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-white/10 text-text-light-primary dark:text-text-dark-primary text-sm font-medium hover:bg-slate-200 dark:hover:bg-white/20 transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={generateStoryboardScript}
+                    disabled={isGeneratingScript || !selectedRoleId || !scriptFile}
+                    className="px-6 py-2 rounded-lg bg-neutral-800 dark:bg-white text-white dark:text-black text-sm font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
                     <span className="material-symbols-outlined text-lg">auto_awesome</span>
                     生成分镜脚本
-                  </>
-                )}
-              </button>
-            </div>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
