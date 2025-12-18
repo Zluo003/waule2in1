@@ -42,7 +42,7 @@ const badgeColors = [
   { value: '#22c55e', label: '绿色' },
   { value: '#3b82f6', label: '蓝色' },
   { value: '#8b5cf6', label: '紫色' },
-  { value: '#ec4899', label: '粉色' },
+  { value: '#404040', label: '粉色' },
 ];
 
 const PackageManagementPage = () => {
@@ -255,7 +255,7 @@ const PackageManagementPage = () => {
             )}
 
             {/* 封面 */}
-            <div className="h-32 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <div className="h-32 bg-gradient-to-br from-blue-500 to-neutral-600 flex items-center justify-center">
               {pkg.coverImage ? (
                 <img
                   src={pkg.coverImage}
@@ -308,7 +308,7 @@ const PackageManagementPage = () => {
               )}
 
               {pkg.memberLevel && (
-                <div className="text-sm text-purple-600 dark:text-purple-400 mb-2">
+                <div className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">
                   升级为 {memberLevelLabels[pkg.memberLevel]}
                   {pkg.memberDays && ` (${pkg.memberDays}天)`}
                 </div>

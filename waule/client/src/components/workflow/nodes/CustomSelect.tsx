@@ -51,7 +51,7 @@ const CustomSelect = ({ value, onChange, options, className = '' }: CustomSelect
       
       {/* 展开的选项列表 */}
       {isOpen && (
-        <div className="absolute top-full left-0 w-full mt-1 rounded-md border overflow-hidden z-[9999] shadow-xl bg-white/90 dark:bg-[#1a1a1a]/90 backdrop-blur-xl border-slate-200 dark:border-white/10">
+        <div className="absolute top-full left-0 w-full mt-1 rounded-md border overflow-hidden z-[9999] shadow-xl bg-white dark:bg-[#18181b] backdrop-blur-xl border-slate-200 dark:border-white/10">
           {options.map(opt => (
             <div 
               key={opt.value}
@@ -64,7 +64,7 @@ const CustomSelect = ({ value, onChange, options, className = '' }: CustomSelect
               className="nodrag px-3 py-2 text-xs cursor-pointer flex items-center justify-between transition-colors hover:bg-slate-100 dark:hover:bg-white/10 text-slate-800 dark:text-white"
             >
               {opt.label}
-              {value === opt.value && <Check size={10} className="text-purple-500" />}
+              {value === opt.value && <Check size={10} className="text-neutral-500" />}
             </div>
           ))}
         </div>

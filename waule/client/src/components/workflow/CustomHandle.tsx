@@ -17,8 +17,8 @@ const CustomHandle = ({ type, position, id, className = '', label, isConnectable
   
   // 当 isConnectable 为 false 时，完全禁用 handle 的交互（包括拉线出去和被连接）
   const handleClassName = (isConnectable === false || disabled)
-    ? '!w-3.5 !h-3.5 bg-white dark:bg-black !border-2 !border-purple-300 pointer-events-none opacity-60 rounded-full shadow-[0_0_5px_rgba(255,255,255,0.5)]'
-    : `!w-3.5 !h-3.5 bg-white dark:bg-black !border-2 !border-purple-300 pointer-events-auto rounded-full ${type === 'target' ? 'opacity-70 cursor-default' : 'cursor-pointer hover:scale-125'} ${className}`;
+    ? '!w-3.5 !h-3.5 bg-white dark:bg-black !border-2 !border-neutral-400 pointer-events-none opacity-60 rounded-full shadow-[0_0_5px_rgba(255,255,255,0.5)]'
+    : `!w-3.5 !h-3.5 bg-white dark:bg-black !border-2 !border-neutral-400 pointer-events-auto rounded-full ${type === 'target' ? 'opacity-70 cursor-default' : 'cursor-pointer hover:scale-125'} ${className}`;
   
   return (
     <div 

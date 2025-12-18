@@ -414,7 +414,7 @@ const RedeemCodePage = () => {
               <div className="flex items-center gap-4 mb-3">
                 <div className="text-2xl font-bold text-amber-500">+{batch.credits}</div>
                 {batch.memberLevel && (
-                  <span className="px-2 py-1 text-xs bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 rounded">
+                  <span className="px-2 py-1 text-xs bg-neutral-100 text-neutral-600 dark:bg-neutral-900/30 dark:text-neutral-400 rounded">
                     {memberLevelLabels[batch.memberLevel] || batch.memberLevel}
                   </span>
                 )}

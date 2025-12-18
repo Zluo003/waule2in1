@@ -49,7 +49,7 @@ const AdminLoginPage = () => {
         <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-8 shadow-2xl">
           {/* Logo & Title */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-neutral-600 rounded-2xl mb-4 shadow-lg">
               <Shield className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">管理员登录</h1>
@@ -116,7 +116,7 @@ const AdminLoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/50"
+              className="w-full py-3 bg-gradient-to-r from-blue-500 to-neutral-600 text-white font-medium rounded-xl hover:from-neutral-700 hover:to-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-neutral-500/50"
             >
               {loading ? '验证中...' : requireTotp ? '验证并登录' : '登录'}
             </button>

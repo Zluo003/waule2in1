@@ -3732,13 +3732,13 @@ const WorkflowEditorInner = () => {
           </div>
         )}
 
-        {/* 左上角项目名称 - 与顶部按钮和分镜列表对齐 */}
+        {/* 顶部居中项目名称 */}
         {project && (
-          <div className={`absolute left-4 ${isReadOnly ? 'top-14' : 'top-5'} z-[100] h-11 flex items-center`}>
+          <div className={`absolute left-1/2 -translate-x-1/2 ${isReadOnly ? 'top-14' : 'top-5'} z-[100] h-11 flex items-center`}>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
               {isEpisodeWorkflow && episode
-                ? `《${project.name}》第${episode.episodeNumber}集${!isShotWorkflow && sceneParam && shotParam ? ` 第${sceneParam}幕第${shotParam}镜` : ''}`
-                : `《${project.name}》`
+                ? `${project.name} 第${episode.episodeNumber}集${!isShotWorkflow && sceneParam && shotParam ? ` 第${sceneParam}幕第${shotParam}镜` : ''}`
+                : project.name
               }
             </h1>
           </div>
@@ -3788,7 +3788,7 @@ const WorkflowEditorInner = () => {
                       }
                     }}
                     className={`w-full px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${selectedGroupId === group.id
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white shadow-lg'
+                      ? 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-lg'
                       : 'bg-white/90 dark:bg-white/10 text-slate-800 dark:text-slate-300 hover:bg-white dark:hover:bg-white/20'
                       }`}
                   >
@@ -3814,8 +3814,8 @@ const WorkflowEditorInner = () => {
           </div>
         )}
 
-        {/* 顶部编组控制按钮 - 精致图标按钮 */}
-        <div className={`absolute ${isReadOnly ? 'top-14' : 'top-5'} left-1/2 transform -translate-x-1/2 z-[100] flex gap-2`}>
+        {/* 右侧工具栏 - 垂直居中悬浮 */}
+        <div className="fixed right-[24px] top-1/2 -translate-y-1/2 z-[100] flex flex-col gap-1 p-2 rounded-2xl bg-white dark:bg-[#18181b] shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
           <button
             onClick={() => {
               if (isEpisodeWorkflow && projectId && episodeId) {
@@ -3826,11 +3826,14 @@ const WorkflowEditorInner = () => {
                 navigate('/quick');
               }
             }}
-            className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 bg-white/90 dark:bg-gray-800/80 text-slate-800 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700/90 shadow-md hover:shadow-lg hover:scale-105`}
+            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white"
             title={isEpisodeWorkflow ? '返回剧集详情' : '返回项目列表'}
           >
-            <span className="material-symbols-outlined text-xl">arrow_back</span>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: '"FILL" 0, "wght" 300' }}>arrow_back</span>
           </button>
+          
+          {/* 分隔线 */}
+          <div className="h-px bg-neutral-200 dark:bg-neutral-700 my-1" />
           {/* 以下按钮在只读模式下隐藏 */}
           {!isReadOnly && (
             <>
@@ -3838,66 +3841,60 @@ const WorkflowEditorInner = () => {
               <button
                 onClick={() => { if (!isFrozenByStoryboard && isWorkflowOwner) setIsSelectionMode(!isSelectionMode); }}
                 disabled={isFrozenByStoryboard || !isWorkflowOwner}
-                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner)
-                  ? 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm'
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner)
+                  ? 'text-neutral-300 dark:text-neutral-600 cursor-not-allowed'
                   : (isSelectionMode
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white hover:shadow-lg shadow-md hover:scale-105'
-                    : 'bg-white/90 dark:bg-gray-800/80 text-slate-800 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700/90 shadow-md hover:shadow-lg hover:scale-105')
+                    ? 'bg-black dark:bg-white text-white dark:text-black'
+                    : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white')
                   }`}
                 title={isWorkflowOwner ? "框选模式 (Shift+拖动)" : "仅所有者可使用"}
               >
-                <span className="material-symbols-outlined text-xl">
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: '"FILL" 0, "wght" 300' }}>
                   {isSelectionMode ? 'check_box' : 'select_all'}
                 </span>
               </button>
               <button
                 onClick={() => { if (!isFrozenByStoryboard && isWorkflowOwner) createGroup(); }}
                 disabled={isFrozenByStoryboard || !isWorkflowOwner || !hasSelectedNode}
-                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner)
-                  ? 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm'
-                  : (hasSelectedNode
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white hover:shadow-lg shadow-md hover:scale-105'
-                    : 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm')
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner || !hasSelectedNode)
+                  ? 'text-neutral-300 dark:text-neutral-600 cursor-not-allowed'
+                  : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white'
                   }`}
                 title={isWorkflowOwner ? "创建编组 (需选中2个以上节点)" : "仅所有者可使用"}
               >
-                <span className="material-symbols-outlined text-xl">group_work</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: '"FILL" 0, "wght" 300' }}>group_work</span>
               </button>
               <button
                 onClick={() => { if (!isFrozenByStoryboard && isWorkflowOwner) ungroupNodes(); }}
                 disabled={isFrozenByStoryboard || !isWorkflowOwner || !isGroupSelected}
-                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner)
-                  ? 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm'
-                  : (isGroupSelected
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white hover:shadow-lg shadow-md hover:scale-105'
-                    : 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm')
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner || !isGroupSelected)
+                  ? 'text-neutral-300 dark:text-neutral-600 cursor-not-allowed'
+                  : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white'
                   }`}
                 title={isWorkflowOwner ? "解除编组" : "仅所有者可使用"}
               >
-                <span className="material-symbols-outlined text-xl">group_off</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: '"FILL" 0, "wght" 300' }}>group_off</span>
               </button>
               <button
                 onClick={() => { if (!isFrozenByStoryboard && isWorkflowOwner) openNamingDialog(); }}
                 disabled={isFrozenByStoryboard || !isWorkflowOwner || !isGroupSelected}
-                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner)
-                  ? 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm'
-                  : (isGroupSelected
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white hover:shadow-lg shadow-md hover:scale-105'
-                    : 'bg-slate-200/50 dark:bg-gray-800/50 text-slate-400 dark:text-gray-500 cursor-not-allowed shadow-sm')
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${(isFrozenByStoryboard || !isWorkflowOwner || !isGroupSelected)
+                  ? 'text-neutral-300 dark:text-neutral-600 cursor-not-allowed'
+                  : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white'
                   }`}
                 title={isWorkflowOwner ? "命名编组" : "仅所有者可使用"}
               >
-                <span className="material-symbols-outlined text-xl">edit</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: '"FILL" 0, "wght" 300' }}>edit</span>
               </button>
               <button
                 onClick={() => toggleTextAnnotationMode()}
-                className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-200 ${isTextAnnotationMode
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white hover:shadow-lg shadow-md hover:scale-105'
-                    : 'bg-white/90 dark:bg-gray-800/80 text-slate-800 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700/90 shadow-md hover:shadow-lg hover:scale-105'
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${isTextAnnotationMode
+                    ? 'bg-black dark:bg-white text-white dark:text-black'
+                    : 'text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white'
                   }`}
                 title={isTextAnnotationMode ? '点击画布插入文本（按 Esc 取消）' : '添加文本标注'}
               >
-                <span className="material-symbols-outlined text-xl">text_fields</span>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: '"FILL" 0, "wght" 300' }}>text_fields</span>
               </button>
             </>
           )}
@@ -3911,7 +3908,7 @@ const WorkflowEditorInner = () => {
               {onlineUsers.slice(0, 8).map((user) => (
                 <div
                   key={user.id}
-                  className="w-9 h-9 rounded-full border-2 border-white dark:border-gray-800 bg-purple-200 dark:bg-purple-800 flex items-center justify-center overflow-hidden shadow-sm"
+                  className="w-9 h-9 rounded-full border-2 border-white dark:border-gray-800 bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center overflow-hidden shadow-sm"
                   title={user.nickname || '用户'}
                 >
                   {user.avatar ? (
@@ -3921,7 +3918,7 @@ const WorkflowEditorInner = () => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="material-symbols-outlined text-sm text-purple-600 dark:text-purple-300">person</span>
+                    <span className="material-symbols-outlined text-sm text-neutral-600 dark:text-neutral-300">person</span>
                   )}
                 </div>
               ))}
@@ -3972,7 +3969,7 @@ const WorkflowEditorInner = () => {
             }}
             connectionLineType={'bezier' as any}
             connectionLineStyle={{
-              stroke: '#a855f7',
+              stroke: '#525252',
               strokeWidth: 2,
               strokeLinecap: 'round' as const,
             }}
@@ -3998,9 +3995,9 @@ const WorkflowEditorInner = () => {
           <svg className="w-full h-full">
             <defs>
               <linearGradient id="group-border-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#a855f7" />
+                <stop offset="0%" stopColor="#525252" />
                 <stop offset="50%" stopColor="#d946ef" />
-                <stop offset="100%" stopColor="#ec4899" />
+                <stop offset="100%" stopColor="#404040" />
               </linearGradient>
             </defs>
             {nodeGroups.filter((group) => !group.hidden).map((group) => {
@@ -4178,13 +4175,13 @@ const WorkflowEditorInner = () => {
                         <div className="flex-1 min-w-0">
                           <div className="text-sm truncate">{agent.name}</div>
                           {agent.description && (
-                            <div className="text-xs text-purple-400 truncate">{agent.description}</div>
+                            <div className="text-xs text-neutral-400 truncate">{agent.description}</div>
                           )}
                         </div>
                       </button>
                     ))
                   ) : (
-                    <div className="px-4 py-2 text-sm text-purple-400">
+                    <div className="px-4 py-2 text-sm text-neutral-400">
                       暂无可用智能体
                     </div>
                   )}
@@ -4450,7 +4447,7 @@ const WorkflowEditorInner = () => {
                   ))}
                   
                   {videoEditingCapabilities.every((cap) => getModelsForEditingCapability(cap).length === 0) && (
-                    <div className="px-4 py-2 text-sm text-purple-400">暂无支持视频编辑能力的模型</div>
+                    <div className="px-4 py-2 text-sm text-neutral-400">暂无支持视频编辑能力的模型</div>
                   )}
                 </div>
               )}
@@ -4554,13 +4551,13 @@ const WorkflowEditorInner = () => {
                           <div className="flex-1 min-w-0">
                             <div className="text-sm truncate">{agent.name}</div>
                             {agent.description && (
-                              <div className="text-xs text-purple-400 truncate">{agent.description}</div>
+                              <div className="text-xs text-neutral-400 truncate">{agent.description}</div>
                             )}
                           </div>
                         </button>
                       ))
                     ) : (
-                      <div className="px-4 py-2 text-sm text-purple-400">
+                      <div className="px-4 py-2 text-sm text-neutral-400">
                         暂无可用智能体
                       </div>
                     )}
@@ -4828,7 +4825,7 @@ const WorkflowEditorInner = () => {
                   ))}
                   
                   {videoEditingCapabilities.every((cap) => getModelsForEditingCapability(cap).length === 0) && (
-                    <div className="px-4 py-2 text-sm text-purple-400">暂无支持视频编辑能力的模型</div>
+                    <div className="px-4 py-2 text-sm text-neutral-400">暂无支持视频编辑能力的模型</div>
                   )}
                 </div>
               )}
@@ -4909,7 +4906,7 @@ const WorkflowEditorInner = () => {
                   min="1"
                   placeholder="输入幕数（整数）"
                   id="scene-input"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-neutral-500"
                 />
               </div>
               <div>
@@ -4919,7 +4916,7 @@ const WorkflowEditorInner = () => {
                   min="1"
                   placeholder="输入镜数（整数）"
                   id="shot-input"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-neutral-500"
                 />
               </div>
               <div className="flex gap-3 pt-2">
@@ -5002,7 +4999,7 @@ const WorkflowEditorInner = () => {
                       toast.error('请输入有效的幕数和镜数（大于0的整数）');
                     }
                   }}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 hover:shadow-lg text-white rounded-lg transition-all"
+                  className="flex-1 px-4 py-2 bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg rounded-lg transition-all"
                 >
                   确定
                 </button>

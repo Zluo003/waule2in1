@@ -1164,7 +1164,7 @@ const SuperCanvasNode = ({ data, id, selected }: NodeProps<SuperCanvasNodeData>)
     }, [activeTool, brushColor, brushSize]);
 
     return (
-        <div ref={containerRef} className={`relative flex flex-col w-[800px] h-auto bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}>
+        <div ref={containerRef} className={`relative flex flex-col w-[800px] h-auto bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}>
             <style>
                 {`
                 .super-color-input::-webkit-color-swatch-wrapper { padding: 0; }
@@ -1173,7 +1173,7 @@ const SuperCanvasNode = ({ data, id, selected }: NodeProps<SuperCanvasNodeData>)
                 `}
             </style>
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+            <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl">
                 <div className="flex items-center gap-2">
                     <MousePointer2 className="text-slate-800 dark:text-white" size={16} />
                     <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">自由画布</span>
@@ -1206,7 +1206,7 @@ const SuperCanvasNode = ({ data, id, selected }: NodeProps<SuperCanvasNodeData>)
                                 key={tool.id}
                                 onClick={() => setActiveTool(tool.id as ToolType)}
                                 className={`p-2 rounded-lg transition-all ${activeTool === tool.id
-                                    ? 'bg-purple-500/20 text-purple-400 shadow-sm'
+                                    ? 'bg-neutral-500/20 text-neutral-400 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
                                     }`}
                                 title={tool.label}
@@ -1448,7 +1448,7 @@ const SuperCanvasNode = ({ data, id, selected }: NodeProps<SuperCanvasNodeData>)
                                 return [...eds, newEdge];
                             });
                         }}
-                            className="nodrag px-3 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center whitespace-nowrap bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md hover:shadow-lg border-transparent dark:border-white/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-md"
+                            className="nodrag px-3 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center whitespace-nowrap bg-neutral-800 dark:bg-white text-white dark:text-black text-white shadow-md hover:shadow-lg border-transparent dark:border-white/10 disabled:cursor-not-allowed disabled:hover:shadow-md"
                             title={activeTool === 'crop' ? '请先完成裁切（按Enter）' : '导出图片'}
                         >
                             <span>导出图片</span>
@@ -1462,7 +1462,7 @@ const SuperCanvasNode = ({ data, id, selected }: NodeProps<SuperCanvasNodeData>)
                     position={Position.Left}
                     id="input-image"
                     style={{ top: '50%' }}
-                    className="!w-4 !h-4 !border-2 !rounded-full !bg-[#0a0a0a] !border-purple-500 hover:!scale-125 !transition-transform !cursor-crosshair"
+                    className="!w-4 !h-4 !border-2 !rounded-full !bg-[#0a0a0a] !border-neutral-500 hover:!scale-125 !transition-transform !cursor-crosshair"
                 />
 
                 {/* Output Handle */}
@@ -1471,7 +1471,7 @@ const SuperCanvasNode = ({ data, id, selected }: NodeProps<SuperCanvasNodeData>)
                     position={Position.Right}
                     id="output-image"
                     style={{ top: '50%' }}
-                    className="!w-4 !h-4 !border-2 !rounded-full !bg-[#0a0a0a] !border-purple-500 hover:!scale-125 !transition-transform !cursor-crosshair"
+                    className="!w-4 !h-4 !border-2 !rounded-full !bg-[#0a0a0a] !border-neutral-500 hover:!scale-125 !transition-transform !cursor-crosshair"
                 />
             </div>
         </div>

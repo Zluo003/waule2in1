@@ -305,7 +305,7 @@ export default function AgentsPage() {
               <div className="flex items-center gap-2 mb-1">
                 <span className={`px-2 py-0.5 rounded text-xs ${
                   agent.usageScene === 'workflow' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
-                  agent.usageScene === 'episode' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' :
+                  agent.usageScene === 'episode' ? 'bg-neutral-100 dark:bg-neutral-900/30 text-neutral-700 dark:text-neutral-400' :
                   'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
                 }`}>
                   {agent.usageScene === 'workflow' ? '工作流' : agent.usageScene === 'episode' ? '剧集创作' : '广告创作'}

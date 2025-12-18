@@ -93,7 +93,7 @@ const TextAnnotationNode = ({ data, selected, id }: NodeProps<TextAnnotationNode
 
   return (
     <div
-      className={`relative group ${selected ? 'ring-2 ring-purple-400 ring-offset-2' : ''}`}
+      className={`relative group ${selected ? 'ring-2 ring-neutral-400 ring-offset-2' : ''}`}
       style={{ width }}
     >
       {/* 创建者头像徽章 */}
@@ -123,7 +123,7 @@ const TextAnnotationNode = ({ data, selected, id }: NodeProps<TextAnnotationNode
             <select
               value={fontSize}
               onChange={(e) => setFontSize(Number(e.target.value))}
-              className="nodrag w-full px-2 py-1.5 text-xs rounded-md border bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-white focus:outline-none focus:border-purple-400"
+              className="nodrag w-full px-2 py-1.5 text-xs rounded-md border bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-700 dark:text-white focus:outline-none focus:border-neutral-400"
             >
               {FONT_SIZES.map((size) => (
                 <option key={size} value={size}>{size}px</option>
@@ -137,7 +137,7 @@ const TextAnnotationNode = ({ data, selected, id }: NodeProps<TextAnnotationNode
               onClick={() => setBold(!bold)}
               className={`nodrag px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 bold
-                  ? 'bg-purple-500 text-white'
+                  ? 'bg-neutral-500 text-white'
                   : 'bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-white/20'
               }`}
             >
@@ -160,7 +160,7 @@ const TextAnnotationNode = ({ data, selected, id }: NodeProps<TextAnnotationNode
               setIsEditing(false);
             }
           }}
-          className="nodrag w-full bg-transparent border-2 border-purple-400 rounded-lg p-2 resize-none focus:outline-none text-slate-900 dark:text-white"
+          className="nodrag w-full bg-transparent border-2 border-neutral-400 rounded-lg p-2 resize-none focus:outline-none text-slate-900 dark:text-white"
           style={{
             fontSize: `${fontSize}px`,
             fontWeight: bold ? 'bold' : 'normal',

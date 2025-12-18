@@ -445,9 +445,9 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
 
   return (
     <div
-      className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${
+      className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${
         selected
-          ? 'border-purple-400 shadow-purple-400/50'
+          ? 'border-neutral-400 shadow-neutral-400/50'
           : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'
       }`}
       style={{ width: 300 }}
@@ -465,7 +465,7 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
 
       {/* 头部 - Aurora渐变样式 */}
       <div
-        className="px-4 py-3 flex items-center justify-between cursor-pointer select-none rounded-t-2xl border-b border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50"
+        className="px-4 py-3 flex items-center justify-between cursor-pointer select-none rounded-t-2xl rounded-t-2xl"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-2">
@@ -485,14 +485,6 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
       {/* 内容区域 */}
       {isExpanded && (
         <div className="p-4 space-y-3">
-          {/* 视频输入状态 */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className={`w-2 h-2 rounded-full ${hasVideoInput ? 'bg-green-500' : 'bg-slate-300 dark:bg-white/20'}`}></span>
-            <span className={hasVideoInput ? 'text-green-600 dark:text-green-400' : 'text-slate-400 dark:text-white/50'}>
-              {hasVideoInput ? '已连接视频' : '请连接视频输入'}
-            </span>
-          </div>
-
           {/* 视频缩略图 */}
           {videoInputInfo && (
             <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-white/10">
@@ -522,7 +514,7 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
               value={customName}
               onChange={(e) => setCustomName(e.target.value)}
               placeholder="输入便于记忆的名称..."
-              className="nodrag w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white placeholder-slate-400 dark:placeholder-white/30 focus:outline-none focus:border-purple-400 dark:focus:border-purple-400/50 transition-colors"
+              className="nodrag w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white placeholder-slate-400 dark:placeholder-white/30 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-400/50 transition-colors"
               disabled={isGenerating}
             />
           </div>
@@ -532,7 +524,7 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
             <div className="p-3 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
               <div className="flex items-start gap-3">
                 {createdCharacter.avatarUrl ? (
-                  <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-purple-400 dark:border-purple-400/50 flex-shrink-0">
+                  <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-neutral-400 dark:border-neutral-400/50 flex-shrink-0">
                     <img
                       src={createdCharacter.avatarUrl.startsWith('http') ? createdCharacter.avatarUrl : `${API_URL}${createdCharacter.avatarUrl}`}
                       alt="角色头像"
@@ -544,7 +536,7 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
                     />
                   </div>
                 ) : (
-                  <div className="w-14 h-14 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center border-2 border-purple-400 dark:border-purple-400/50 flex-shrink-0">
+                  <div className="w-14 h-14 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center border-2 border-neutral-400 dark:border-neutral-400/50 flex-shrink-0">
                     <span className="material-symbols-outlined text-slate-500 dark:text-white/50">face</span>
                   </div>
                 )}
@@ -570,7 +562,7 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
               </div>
               <div className="h-1.5 bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-neutral-800 to-neutral-700 transition-all duration-300"
                   style={{ width: `${generationProgress}%` }}
                 />
               </div>
@@ -583,8 +575,8 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
             disabled={isGenerating || !hasVideoInput || !customName.trim() || (data as any)._canEdit === false}
             className={`nodrag w-full py-2.5 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
               isGenerating || !hasVideoInput || !customName.trim() || (data as any)._canEdit === false
-                ? 'bg-slate-300 dark:bg-white/10 text-slate-500 dark:text-white/30 cursor-not-allowed'
-                : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white hover:shadow-lg active:scale-95'
+                ? 'bg-neutral-800 dark:bg-white text-white dark:text-black cursor-not-allowed'
+                : 'bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg active:scale-95'
             }`}
           >
             {isGenerating ? (

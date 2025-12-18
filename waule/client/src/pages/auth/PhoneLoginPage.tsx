@@ -97,8 +97,8 @@ const PhoneLoginPage = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-[#0c0118] via-[#0a0a1a] to-[#030014]" />
         
         {/* 柔和光晕 */}
-        <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-purple-600/15 rounded-full blur-[150px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[60%] bg-pink-600/10 rounded-full blur-[130px]" />
+        <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-neutral-600/15 rounded-full blur-[150px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[60%] bg-neutral-600/10 rounded-full blur-[130px]" />
         <div className="absolute top-[30%] right-[10%] w-[40%] h-[40%] bg-cyan-500/8 rounded-full blur-[120px]" />
         
         {/* 星点效果 */}
@@ -126,12 +126,12 @@ const PhoneLoginPage = () => {
         {/* Logo */}
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-purple-500/30">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-neutral-700 via-neutral-600 to-neutral-500 flex items-center justify-center shadow-lg shadow-neutral-500/30">
               <span className="text-white text-2xl font-bold">W</span>
             </div>
             <div>
               <h1 className="text-4xl font-bold text-white tracking-tight">Waule</h1>
-              <p className="text-purple-300 text-sm">waule.com</p>
+              <p className="text-neutral-300 text-sm">waule.com</p>
             </div>
           </div>
         </div>
@@ -140,7 +140,7 @@ const PhoneLoginPage = () => {
         <div className="mb-12 space-y-6">
           <h2 className="text-7xl xl:text-8xl font-bold text-white">哇噢！</h2>
           <h3 className="text-3xl xl:text-4xl font-bold">
-            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-neutral-600 via-neutral-500 to-neutral-400 bg-clip-text text-transparent">
               不可思议的 AI 创作平台
             </span>
           </h3>
@@ -162,7 +162,7 @@ const PhoneLoginPage = () => {
             >
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500 ${
                 activeFeature === index
-                  ? 'bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-purple-500/30'
+                  ? 'bg-gradient-to-br from-neutral-800 to-neutral-700 shadow-lg shadow-neutral-500/30'
                   : 'bg-white/5'
               }`}>
                 <span className="material-symbols-outlined text-white text-xl">
@@ -175,7 +175,7 @@ const PhoneLoginPage = () => {
               </div>
               {activeFeature === index && (
                 <div className="ml-auto">
-                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-gradient-to-r from-neutral-600 to-neutral-500 animate-pulse" />
                 </div>
               )}
             </div>
@@ -201,7 +201,7 @@ const PhoneLoginPage = () => {
             {/* 移动端 Logo */}
             <div className="lg:hidden text-center mb-8">
               <div className="inline-flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-cyan-400 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neutral-700 via-neutral-600 to-neutral-500 flex items-center justify-center">
                   <span className="text-white text-lg font-bold">W</span>
                 </div>
                 <span className="text-2xl font-bold text-white">Waule</span>
@@ -231,7 +231,7 @@ const PhoneLoginPage = () => {
                     maxLength={11}
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                    className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-neutral-500/50 focus:border-neutral-500/50 transition-all"
                     placeholder="请输入手机号码"
                   />
                 </div>
@@ -253,7 +253,7 @@ const PhoneLoginPage = () => {
                       maxLength={6}
                       value={formData.code}
                       onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                      className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                      className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-neutral-500/50 focus:border-neutral-500/50 transition-all"
                       placeholder="6位验证码"
                     />
                   </div>
@@ -273,7 +273,7 @@ const PhoneLoginPage = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-4 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 bg-size-200 bg-pos-0 hover:bg-pos-100 text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-500 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40"
+                  className="w-full py-4 bg-gradient-to-r from-neutral-700 via-neutral-600 to-neutral-700 bg-size-200 bg-pos-0 hover:bg-pos-100 text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-500 shadow-lg shadow-neutral-500/25 hover:shadow-neutral-500/40"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">

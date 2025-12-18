@@ -957,14 +957,14 @@ const MidjourneyNode = ({ data, selected, id }: NodeProps<MidjourneyNodeData>) =
 
   return (
     <div
-      className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
+      className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
       style={{ width: 320 }}
     >
       {/* 创建者头像徽章 */}
       <NodeCreatorBadge createdBy={data.createdBy} isSharedWorkflow={data._isSharedWorkflow} />
       
       {/* 头部 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>auto_awesome</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">Midjourney</span>
@@ -988,7 +988,7 @@ const MidjourneyNode = ({ data, selected, id }: NodeProps<MidjourneyNodeData>) =
               onPointerDown={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               placeholder="描述你想生成的图片..."
-              className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-purple-400 dark:focus:border-purple-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
+              className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
               style={{ minHeight: '60px' }}
               disabled={status === 'processing' || status === 'submitting'}
             />
@@ -1003,9 +1003,9 @@ const MidjourneyNode = ({ data, selected, id }: NodeProps<MidjourneyNodeData>) =
                 onClick={() => setMode('relax')}
                 disabled={status === 'processing' || status === 'submitting'}
                 className={`nodrag flex-1 px-3 py-2 text-xs font-medium rounded-md border transition-all ${mode === 'relax'
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white border-transparent shadow-md'
-                    : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border-slate-200 dark:border-white/10 hover:border-purple-400 dark:hover:border-purple-400/50'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    ? 'bg-neutral-800 dark:bg-white text-white dark:text-black text-white border-transparent shadow-md'
+                    : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border-slate-200 dark:border-white/10 hover:border-neutral-400 dark:hover:border-neutral-400/50'
+                  } disabled:cursor-not-allowed`}
               >
                 慢速
               </button>
@@ -1021,11 +1021,11 @@ const MidjourneyNode = ({ data, selected, id }: NodeProps<MidjourneyNodeData>) =
                 disabled={status === 'processing' || status === 'submitting'}
                 className={`nodrag flex-1 px-3 py-2 text-xs font-medium rounded-md border transition-all ${
                   !fastModeEnabled
-                    ? 'bg-slate-200 dark:bg-white/10 text-slate-400 dark:text-white/30 border-slate-200 dark:border-white/10 cursor-not-allowed'
+                    ? 'bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400 border-slate-200 dark:border-white/10 cursor-not-allowed'
                     : mode === 'fast'
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white border-transparent shadow-md'
-                      : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border-slate-200 dark:border-white/10 hover:border-purple-400 dark:hover:border-purple-400/50'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      ? 'bg-neutral-800 dark:bg-white text-white dark:text-black text-white border-transparent shadow-md'
+                      : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border-slate-200 dark:border-white/10 hover:border-neutral-400 dark:hover:border-neutral-400/50'
+                  } disabled:cursor-not-allowed`}
                 title={!fastModeEnabled ? 'Fast模式已经用完，目前仅支持Relax模式' : ''}
               >
                 快速{!fastModeEnabled && ' (不可用)'}
@@ -1072,7 +1072,7 @@ const MidjourneyNode = ({ data, selected, id }: NodeProps<MidjourneyNodeData>) =
                 disabled={status === 'processing' || status === 'submitting'}
                 className="nodrag w-full h-2 rounded-lg appearance-none cursor-pointer"
                 style={{
-                  background: `linear-gradient(to right, #ec4899 0%, #a855f7 ${chaos / 2}%, #06b6d4 ${chaos}%, var(--range-bg-color) ${chaos}%, var(--range-bg-color) 100%)`
+                  background: `linear-gradient(to right, #404040 0%, #525252 ${chaos / 2}%, #06b6d4 ${chaos}%, var(--range-bg-color) ${chaos}%, var(--range-bg-color) 100%)`
                 }}
               />
             </div>
@@ -1093,7 +1093,7 @@ const MidjourneyNode = ({ data, selected, id }: NodeProps<MidjourneyNodeData>) =
                 disabled={status === 'processing' || status === 'submitting'}
                 className="nodrag w-full h-2 rounded-lg appearance-none cursor-pointer"
                 style={{
-                  background: `linear-gradient(to right, #ec4899 0%, #a855f7 ${(stylize / 1000) * 50}%, #06b6d4 ${(stylize / 1000) * 100}%, var(--range-bg-color) ${(stylize / 1000) * 100}%, var(--range-bg-color) 100%)`
+                  background: `linear-gradient(to right, #404040 0%, #525252 ${(stylize / 1000) * 50}%, #06b6d4 ${(stylize / 1000) * 100}%, var(--range-bg-color) ${(stylize / 1000) * 100}%, var(--range-bg-color) 100%)`
                 }}
               />
             </div>
@@ -1114,7 +1114,7 @@ const MidjourneyNode = ({ data, selected, id }: NodeProps<MidjourneyNodeData>) =
                 disabled={status === 'processing' || status === 'submitting'}
                 className="nodrag w-full h-2 rounded-lg appearance-none cursor-pointer"
                 style={{
-                  background: `linear-gradient(to right, #ec4899 0%, #a855f7 ${(weird / 3000) * 50}%, #06b6d4 ${(weird / 3000) * 100}%, var(--range-bg-color) ${(weird / 3000) * 100}%, var(--range-bg-color) 100%)`
+                  background: `linear-gradient(to right, #404040 0%, #525252 ${(weird / 3000) * 50}%, #06b6d4 ${(weird / 3000) * 100}%, var(--range-bg-color) ${(weird / 3000) * 100}%, var(--range-bg-color) 100%)`
                 }}
               />
             </div>
@@ -1138,7 +1138,7 @@ const MidjourneyNode = ({ data, selected, id }: NodeProps<MidjourneyNodeData>) =
                 disabled={status === 'processing' || status === 'submitting'}
                 className="nodrag w-full h-2 rounded-lg appearance-none cursor-pointer"
                 style={{
-                  background: `linear-gradient(to right, #ec4899 0%, #a855f7 ${((quality === 0.25 ? 0 : quality === 0.5 ? 1 : quality === 1 ? 2 : 3) / 3) * 50}%, #06b6d4 ${((quality === 0.25 ? 0 : quality === 0.5 ? 1 : quality === 1 ? 2 : 3) / 3) * 100}%, var(--range-bg-color) ${((quality === 0.25 ? 0 : quality === 0.5 ? 1 : quality === 1 ? 2 : 3) / 3) * 100}%, var(--range-bg-color) 100%)`
+                  background: `linear-gradient(to right, #404040 0%, #525252 ${((quality === 0.25 ? 0 : quality === 0.5 ? 1 : quality === 1 ? 2 : 3) / 3) * 50}%, #06b6d4 ${((quality === 0.25 ? 0 : quality === 0.5 ? 1 : quality === 1 ? 2 : 3) / 3) * 100}%, var(--range-bg-color) ${((quality === 0.25 ? 0 : quality === 0.5 ? 1 : quality === 1 ? 2 : 3) / 3) * 100}%, var(--range-bg-color) 100%)`
                 }}
               />
               <div className="flex justify-between text-[10px] text-slate-600 dark:text-slate-400 mt-1">
@@ -1157,15 +1157,15 @@ const MidjourneyNode = ({ data, selected, id }: NodeProps<MidjourneyNodeData>) =
                   type="button"
                   onClick={() => setStyleRaw(!styleRaw)}
                   disabled={status === 'processing' || status === 'submitting'}
-                  className={`nodrag relative inline-flex h-6 w-11 items-center rounded-full transition-all focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${styleRaw
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 border-2 border-transparent'
-                      : 'bg-slate-100 dark:bg-white/5 border-2 border-purple-500 dark:border-purple-400'
+                  className={`nodrag relative inline-flex h-6 w-11 items-center rounded-full transition-all focus:outline-none disabled:cursor-not-allowed ${styleRaw
+                      ? 'bg-neutral-800 dark:bg-white text-white dark:text-black border-2 border-transparent'
+                      : 'bg-slate-100 dark:bg-white/5 border-2 border-neutral-500 dark:border-neutral-400'
                     }`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full transition-transform ${styleRaw
                         ? 'translate-x-6 bg-white shadow-md'
-                        : 'translate-x-0.5 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600'
+                        : 'translate-x-0.5 bg-neutral-800 dark:bg-white text-white dark:text-black'
                       }`}
                   />
                 </button>
@@ -1217,7 +1217,7 @@ const MidjourneyNode = ({ data, selected, id }: NodeProps<MidjourneyNodeData>) =
                   disabled={status === 'processing' || status === 'submitting'}
                   className="nodrag w-full h-2 rounded-lg appearance-none cursor-pointer"
                   style={{
-                    background: `linear-gradient(to right, #ec4899 0%, #a855f7 ${(omniWeight / 1000) * 50}%, #06b6d4 ${(omniWeight / 1000) * 100}%, var(--range-bg-color) ${(omniWeight / 1000) * 100}%, var(--range-bg-color) 100%)`
+                    background: `linear-gradient(to right, #404040 0%, #525252 ${(omniWeight / 1000) * 50}%, #06b6d4 ${(omniWeight / 1000) * 100}%, var(--range-bg-color) ${(omniWeight / 1000) * 100}%, var(--range-bg-color) 100%)`
                   }}
                 />
                 <div className="flex justify-between text-[10px] text-slate-600 dark:text-slate-400 mt-1">
@@ -1271,7 +1271,7 @@ const MidjourneyNode = ({ data, selected, id }: NodeProps<MidjourneyNodeData>) =
                   disabled={status === 'processing' || status === 'submitting'}
                   className="nodrag w-full h-2 rounded-lg appearance-none cursor-pointer"
                   style={{
-                    background: `linear-gradient(to right, #ec4899 0%, #a855f7 ${(styleWeight / 1000) * 50}%, #06b6d4 ${(styleWeight / 1000) * 100}%, var(--range-bg-color) ${(styleWeight / 1000) * 100}%, var(--range-bg-color) 100%)`
+                    background: `linear-gradient(to right, #404040 0%, #525252 ${(styleWeight / 1000) * 50}%, #06b6d4 ${(styleWeight / 1000) * 100}%, var(--range-bg-color) ${(styleWeight / 1000) * 100}%, var(--range-bg-color) 100%)`
                   }}
                 />
                 <div className="flex justify-between text-[10px] text-slate-600 dark:text-slate-400 mt-1">
@@ -1288,13 +1288,17 @@ const MidjourneyNode = ({ data, selected, id }: NodeProps<MidjourneyNodeData>) =
             onClick={handleGenerate}
             onPointerDown={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
-            disabled={status === 'processing' || status === 'submitting' || (data as any)._canEdit === false}
-            className="nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 relative overflow-hidden bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md hover:shadow-lg border-transparent dark:border-white/10 disabled:opacity-50 disabled:cursor-wait"
+            disabled={status === 'processing' || status === 'submitting' || (data as any)._canEdit === false || !prompt?.trim()}
+            className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all flex items-center justify-center gap-2 relative overflow-hidden ${
+              status === 'processing' || status === 'submitting' || !prompt?.trim()
+                ? 'bg-neutral-800 dark:bg-white text-white dark:text-black cursor-not-allowed border-transparent'
+                : 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md hover:shadow-lg border-transparent dark:border-white/10 active:scale-95'
+            }`}
           >
             {/* 进度条背景 */}
             {status === 'processing' && progress && (
               <div
-                className="absolute inset-0 bg-gradient-to-br from-purple-400/30 to-accent-400/30 transition-all duration-300"
+                className="absolute inset-0 bg-gradient-to-br from-neutral-400/30 to-accent-400/30 transition-all duration-300"
                 style={{ width: progress }}
               />
             )}
@@ -1321,11 +1325,11 @@ const MidjourneyNode = ({ data, selected, id }: NodeProps<MidjourneyNodeData>) =
                   <span>生成图片</span>
                   {/* 免费次数或积分显示 */}
                   {isFreeUsage ? (
-                    <span className="ml-1 px-1.5 py-0.5 bg-amber-500/40 text-amber-200 rounded text-[9px]">
-                      免费，今日剩{freeUsageRemaining}次
+                    <span className="ml-1 px-1.5 py-0.5 text-neutral-400 dark:text-neutral-500 rounded text-[9px]">
+                      免费，今日剩{Math.floor(freeUsageRemaining)}次
                     </span>
                   ) : credits !== null && credits > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 bg-blue-500/30 text-blue-200 rounded text-[9px]">
+                    <span className="ml-1 px-1.5 py-0.5 text-neutral-400 dark:text-neutral-500 rounded text-[9px]">
                       {credits}积分
                     </span>
                   )}

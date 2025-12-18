@@ -7,8 +7,8 @@ const TermsOfServicePage = () => {
     <div className="min-h-screen bg-[#030014] text-gray-300">
       {/* 背景效果 */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[300px] h-[300px] bg-pink-600/10 rounded-full blur-[100px]" />
+        <div className="absolute top-[-20%] left-[-10%] w-[400px] h-[400px] bg-neutral-600/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[300px] h-[300px] bg-neutral-600/10 rounded-full blur-[100px]" />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto px-6 py-16">
@@ -121,7 +121,7 @@ const TermsOfServicePage = () => {
             <h2 className="text-xl font-semibold text-white mb-4">6. 隐私保护</h2>
             <p>
               我们重视您的隐私。有关我们如何收集、使用和保护您的个人信息，
-              请参阅我们的<button onClick={() => navigate('/privacy')} className="text-purple-400 hover:text-purple-300 underline">隐私政策</button>。
+              请参阅我们的<button onClick={() => navigate('/privacy')} className="text-neutral-400 hover:text-neutral-300 underline">隐私政策</button>。
             </p>
           </section>
 
@@ -160,7 +160,7 @@ const TermsOfServicePage = () => {
               如您对本服务条款有任何疑问，请通过以下方式联系我们：
             </p>
             <p className="mt-2">
-              邮箱：<span className="text-purple-400">support@waule.com</span>
+              邮箱：<span className="text-neutral-400">support@waule.com</span>
             </p>
           </section>
         </div>

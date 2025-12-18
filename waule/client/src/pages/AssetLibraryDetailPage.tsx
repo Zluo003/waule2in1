@@ -51,7 +51,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options })
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute right-0 top-0 bottom-0 px-4 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 rounded-r-full text-xs cursor-pointer flex items-center gap-1 min-w-[100px] justify-center"
+        className="absolute right-0 top-0 bottom-0 px-4 bg-neutral-800 dark:bg-white text-white dark:text-black rounded-r-full text-xs cursor-pointer flex items-center gap-1 min-w-[100px] justify-center"
         style={{ outline: 'none !important', boxShadow: 'none !important', border: 'none', color: isDark ? 'white' : 'black' } as any}
       >
         <span className="whitespace-nowrap" style={{ color: isDark ? 'white' : 'black' }}>{selectedOption?.label}</span>
@@ -564,9 +564,9 @@ const AssetLibraryDetailPage = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/assets')}
-            className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-all"
+            className="group w-10 h-10 flex items-center justify-center hover:bg-slate-800 dark:hover:bg-white rounded-lg transition-all"
           >
-            <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
+            <span className="material-symbols-outlined text-slate-800 dark:text-white group-hover:text-white dark:group-hover:text-black" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
           </button>
           <h1 className="text-xl font-bold text-text-light-primary dark:text-text-dark-primary whitespace-nowrap">
             {library.name}
@@ -601,49 +601,6 @@ const AssetLibraryDetailPage = () => {
           </div>
         </div>
 
-        {/* 创建角色按钮 - 仅角色库所有者可见 */}
-        {(library.isOwner !== false) && library.category === 'ROLE' && (
-          <button
-            onClick={() => {
-              setRoleForm({ name: '', faceAssetId: '', frontAssetId: '', sideAssetId: '', backAssetId: '', voiceAssetId: '', documentAssetId: '' });
-              setRoleMainFile(null);
-              setRoleOpt1File(null);
-              setRoleOpt2File(null);
-              setShowCreateRole(true);
-            }}
-            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white font-medium rounded-lg transition-all flex items-center gap-2 active:scale-95 whitespace-nowrap"
-          >
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>person_add</span>
-            创建角色
-          </button>
-        )}
-        {/* 上传按钮 - 非角色库所有者可见 */}
-        {(library.isOwner !== false) && library.category !== 'ROLE' && (
-          <>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={getAcceptTypes()}
-              multiple
-              className="hidden"
-              onChange={(e) => handleFileUpload(e.target.files)}
-            />
-            <div className="group relative">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center disabled:opacity-50"
-              >
-                <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>
-                  {isUploading ? 'progress_activity' : 'upload'}
-                </span>
-              </button>
-              <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                {isUploading ? '上传中...' : '上传素材'}
-              </span>
-            </div>
-          </>
-        )}
         {/* 协作者标识 */}
         {library.isShared && (
           <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-center gap-2">
@@ -655,6 +612,44 @@ const AssetLibraryDetailPage = () => {
         )}
       </div>
 
+      {/* 左下角悬浮按钮 - 创建角色/上传资产 */}
+      {(library.isOwner !== false) && (
+        <div className="fixed left-[24px] bottom-8 z-50">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={getAcceptTypes()}
+            multiple
+            className="hidden"
+            onChange={(e) => handleFileUpload(e.target.files)}
+          />
+          <div className="group relative">
+            <button
+              onClick={() => {
+                if (library.category === 'ROLE') {
+                  setRoleForm({ name: '', faceAssetId: '', frontAssetId: '', sideAssetId: '', backAssetId: '', voiceAssetId: '', documentAssetId: '' });
+                  setRoleMainFile(null);
+                  setRoleOpt1File(null);
+                  setRoleOpt2File(null);
+                  setShowCreateRole(true);
+                } else {
+                  fileInputRef.current?.click();
+                }
+              }}
+              disabled={isUploading}
+              className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black dark:hover:bg-white hover:text-white dark:hover:text-black hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)] disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>
+                {isUploading ? 'progress_activity' : (library.category === 'ROLE' ? 'person_add' : 'add')}
+              </span>
+            </button>
+            <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+              {isUploading ? '上传中...' : (library.category === 'ROLE' ? '创建角色' : '上传资产')}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* 列表 */}
       {loading ? (
         <div className="text-center py-12 text-text-light-secondary dark:text-text-dark-secondary">
@@ -663,8 +658,8 @@ const AssetLibraryDetailPage = () => {
       ) : library.category === 'ROLE' ? (
         roles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="h-24 w-24 rounded-full bg-purple-500/10 flex items-center justify-center mb-6 shadow-purple-400/30">
-              <span className="material-symbols-outlined text-purple-400 text-5xl">person</span>
+            <div className="h-24 w-24 rounded-full bg-neutral-500/10 flex items-center justify-center mb-6 shadow-neutral-400/30">
+              <span className="material-symbols-outlined text-neutral-400 text-5xl">person</span>
             </div>
             <h2 className="text-2xl font-bold text-text-light-primary dark:text-text-dark-primary mb-2">还没有角色</h2>
             <p className="text-text-light-secondary dark:text-text-dark-secondary mb-6">创建你的第一个角色</p>
@@ -676,7 +671,7 @@ const AssetLibraryDetailPage = () => {
                 setRoleOpt2File(null);
                 setShowCreateRole(true);
               }}
-              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white font-medium rounded-lg transition-all active:scale-95"
+              className="px-6 py-3 bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg font-medium rounded-lg transition-all active:scale-95"
             >
               创建角色
             </button>
@@ -689,7 +684,7 @@ const AssetLibraryDetailPage = () => {
                 <div
                   key={role.id}
                   onClick={() => setPreviewAsset(role)}
-                  className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-purple-400 dark:hover:border-purple-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer relative"
+                  className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer relative"
                 >
                   <div className="aspect-[4/3] bg-slate-100 dark:bg-white/5 relative overflow-hidden">
                     {cover ? (
@@ -706,7 +701,7 @@ const AssetLibraryDetailPage = () => {
                           e.stopPropagation();
                           setPreviewAsset(role);
                         }}
-                        className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95"
+                        className="w-7 h-7 flex items-center justify-center bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg rounded-full transition-all shadow-md active:scale-95"
                         title="预览"
                       >
                         <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>visibility</span>
@@ -718,7 +713,7 @@ const AssetLibraryDetailPage = () => {
                               e.stopPropagation();
                               setShowEditRole(role);
                             }}
-                            className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95"
+                            className="w-7 h-7 flex items-center justify-center bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg rounded-full transition-all shadow-md active:scale-95"
                             title="编辑"
                           >
                             <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
@@ -753,7 +748,7 @@ const AssetLibraryDetailPage = () => {
               onClick={() => setPreviewAsset(asset)}
               onMouseEnter={(e) => handleCardHover(e.currentTarget, true)}
               onMouseLeave={(e) => handleCardHover(e.currentTarget, false)}
-              className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-purple-400 dark:hover:border-purple-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer"
+              className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer"
             >
               {/* 预览 */}
               <div className="aspect-[4/3] bg-slate-100 dark:bg-white/5 relative overflow-hidden">
@@ -809,7 +804,7 @@ const AssetLibraryDetailPage = () => {
                         e.stopPropagation();
                         handleEditAsset(asset);
                       }}
-                      className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95"
+                      className="w-7 h-7 flex items-center justify-center bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg rounded-full transition-all shadow-md active:scale-95"
                       title="编辑"
                     >
                       <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
@@ -822,7 +817,7 @@ const AssetLibraryDetailPage = () => {
                         e.stopPropagation();
                         handleDownloadAsset(asset);
                       }}
-                      className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95"
+                      className="w-7 h-7 flex items-center justify-center bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg rounded-full transition-all shadow-md active:scale-95"
                       title="下载"
                     >
                       <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>download</span>
@@ -960,7 +955,7 @@ const AssetLibraryDetailPage = () => {
                     toast.error(err.response?.data?.message || '创建角色失败');
                   }
                 }}
-                className="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white transition-all active:scale-95"
+                className="px-6 py-2 rounded-lg bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg transition-all active:scale-95"
               >
                 创建
               </button>
@@ -1187,7 +1182,7 @@ const AssetLibraryDetailPage = () => {
                     toast.error(err.response?.data?.message || '更新角色失败');
                   }
                 }}
-                className="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white transition-all active:scale-95"
+                className="px-6 py-2 rounded-lg bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg transition-all active:scale-95"
               >
                 保存
               </button>

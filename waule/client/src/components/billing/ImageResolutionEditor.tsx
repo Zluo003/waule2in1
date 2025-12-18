@@ -123,7 +123,7 @@ const ImageResolutionEditor = ({ prices, onChange, modelConfig }: Props) => {
         {modelConfig?.supportedResolutions?.length > 0 && (
           <button
             onClick={loadFromModel}
-            className="px-4 py-1.5 text-sm bg-purple-500 text-white rounded-md hover:bg-purple-600 transition-colors h-[34px] ml-auto"
+            className="px-4 py-1.5 text-sm bg-neutral-500 text-white rounded-md hover:bg-neutral-600 transition-colors h-[34px] ml-auto"
             title="自动加载模型支持的所有分辨率"
           >
             从模型导入

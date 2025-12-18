@@ -63,7 +63,7 @@ const orderStatusLabels: Record<string, { text: string; color: string }> = {
   PAID: { text: '已支付', color: 'text-green-500' },
   FAILED: { text: '支付失败', color: 'text-red-500' },
   EXPIRED: { text: '已过期', color: 'text-gray-500' },
-  REFUNDED: { text: '已退款', color: 'text-purple-500' },
+  REFUNDED: { text: '已退款', color: 'text-neutral-500' },
   CANCELLED: { text: '已取消', color: 'text-gray-500' },
 };
 
@@ -71,7 +71,7 @@ const transactionTypeLabels: Record<string, { text: string; icon: string; color:
   RECHARGE: { text: '充值', icon: 'add_circle', color: 'text-green-500' },
   CONSUME: { text: '消费', icon: 'remove_circle', color: 'text-red-500' },
   REFUND: { text: '退还', icon: 'replay', color: 'text-blue-500' },
-  GIFT: { text: '赠送', icon: 'card_giftcard', color: 'text-purple-500' },
+  GIFT: { text: '赠送', icon: 'card_giftcard', color: 'text-neutral-500' },
   ADMIN: { text: '调整', icon: 'admin_panel_settings', color: 'text-amber-500' },
   EXPIRE: { text: '过期', icon: 'schedule', color: 'text-gray-500' },
   REDEEM: { text: '兑换', icon: 'confirmation_number', color: 'text-orange-500' },
@@ -268,7 +268,7 @@ const RechargePage = () => {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* 头部 */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-500 to-blue-500 dark:from-purple-400 dark:via-pink-400 dark:to-blue-400 bg-clip-text text-transparent mb-3">
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-neutral-600 via-neutral-500 to-blue-500 dark:from-neutral-400 dark:via-neutral-400 dark:to-neutral-400 bg-clip-text text-transparent mb-3">
             会员订阅
           </h1>
           <p className="text-slate-600 dark:text-gray-400 max-w-2xl mx-auto">
@@ -418,7 +418,7 @@ const RechargePage = () => {
                     )}
 
                     {pkg.memberLevel && (
-                      <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                      <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
                         <span className="material-symbols-outlined text-base">workspace_premium</span>
                         <span>
                           {pkg.memberLevel === 'VIP' ? 'VIP' : 'SVIP'}
@@ -562,7 +562,7 @@ const RechargePage = () => {
                 <button
                   onClick={handleCreateOrder}
                   disabled={creating}
-                  className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold rounded-xl transition-all duration-300 disabled:opacity-50 shadow-lg shadow-blue-500/25"
+                  className="px-8 py-3 bg-gradient-to-r from-neutral-700 to-neutral-600 hover:from-neutral-700 hover:to-neutral-600 text-white font-bold rounded-xl transition-all duration-300 disabled:opacity-50 shadow-lg shadow-neutral-500/25"
                 >
                   {creating ? '创建订单中...' : '立即支付'}
                 </button>
@@ -599,7 +599,7 @@ const RechargePage = () => {
               ) : (
                 // 支付中
                 <>
-                  <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-6 text-center text-white">
+                  <div className="bg-gradient-to-r from-neutral-700 to-neutral-600 p-6 text-center text-white">
                     <h2 className="text-xl font-bold mb-1">扫码支付</h2>
                     <p className="text-white/80 text-sm">
                       请使用支付宝扫描下方二维码

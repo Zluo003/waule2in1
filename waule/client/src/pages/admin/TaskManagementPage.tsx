@@ -275,7 +275,7 @@ const TaskManagementPage = () => {
   const getTypeBadge = (type: string) => {
     if (type === 'IMAGE') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-neutral-500/20 text-neutral-400">
           <Image className="w-3 h-3" />
           图片
         </span>
@@ -322,7 +322,7 @@ const TaskManagementPage = () => {
             fetchStats();
             fetchTasks();
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-neutral-500 text-white rounded-lg hover:bg-neutral-600 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           刷新
@@ -381,7 +381,7 @@ const TaskManagementPage = () => {
             <p className="text-2xl font-bold">{stats.overview.failure}</p>
             <p className="text-xs opacity-60">今日: {stats.today.failure}</p>
           </div>
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
+          <div className="bg-gradient-to-br from-neutral-700 to-neutral-600 rounded-xl p-4 text-white">
             <div className="flex items-center gap-2 mb-1">
               <DollarSign className="w-4 h-4 opacity-80" />
               <span className="text-xs opacity-80">7日消耗积分</span>
@@ -446,7 +446,7 @@ const TaskManagementPage = () => {
               onChange={(e) =>
                 setFilters((prev) => ({ ...prev, nickname: e.target.value }))
               }
-              className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-text-light-primary dark:text-text-dark-primary placeholder-gray-400 focus:outline-none focus:border-purple-500"
+              className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-text-light-primary dark:text-text-dark-primary placeholder-gray-400 focus:outline-none focus:border-neutral-500"
             />
           </div>
           <select
@@ -455,7 +455,7 @@ const TaskManagementPage = () => {
               setFilters((prev) => ({ ...prev, status: e.target.value }));
               setPagination((prev) => ({ ...prev, page: 1 }));
             }}
-            className="px-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:border-purple-500"
+            className="px-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:border-neutral-500"
           >
             <option value="">全部状态</option>
             <option value="PENDING">等待中</option>
@@ -469,7 +469,7 @@ const TaskManagementPage = () => {
               setFilters((prev) => ({ ...prev, type: e.target.value }));
               setPagination((prev) => ({ ...prev, page: 1 }));
             }}
-            className="px-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:border-purple-500"
+            className="px-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:border-neutral-500"
           >
             <option value="">全部类型</option>
             <option value="IMAGE">图片</option>
@@ -500,7 +500,7 @@ const TaskManagementPage = () => {
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition-all"
+            className="px-6 py-2 bg-gradient-to-r from-neutral-800 to-neutral-700 text-white rounded-lg hover:shadow-lg transition-all"
           >
             搜索
           </button>
@@ -517,7 +517,7 @@ const TaskManagementPage = () => {
                 onChange={(e) =>
                   setFilters((prev) => ({ ...prev, dateFrom: e.target.value }))
                 }
-                className="px-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:border-purple-500"
+                className="px-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:border-neutral-500"
               />
             </div>
             <div>
@@ -528,7 +528,7 @@ const TaskManagementPage = () => {
                 onChange={(e) =>
                   setFilters((prev) => ({ ...prev, dateTo: e.target.value }))
                 }
-                className="px-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:border-purple-500"
+                className="px-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:border-neutral-500"
               />
             </div>
             <button
@@ -556,7 +556,7 @@ const TaskManagementPage = () => {
       <div className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent" />
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-neutral-500 border-t-transparent" />
           </div>
         ) : tasks.length === 0 ? (
           <div className="text-center py-20 text-gray-400">暂无任务数据</div>

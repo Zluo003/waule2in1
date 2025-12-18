@@ -184,7 +184,7 @@ const AssetLibraryPanel = ({ isOpen, onClose, onAssetSelect }: AssetLibraryPanel
       
       <div className="fixed right-0 top-0 h-screen w-[520px] bg-card-light dark:bg-card-dark shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-300 relative">
         {/* Gradient border on left */}
-        <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-purple-500/30 via-pink-500/50 to-cyan-500/30"></div>
+        <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-neutral-500/20 via-neutral-400/30 to-neutral-500/20"></div>
         {/* 面板头部 */}
         <div className="flex items-center justify-between p-6">
           <div className="flex items-center gap-2">
@@ -219,8 +219,8 @@ const AssetLibraryPanel = ({ isOpen, onClose, onAssetSelect }: AssetLibraryPanel
                         onClick={() => setSelectedType(type)}
                         className={`h-8 w-full px-3 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1 border ${
                           selectedType === type
-                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white border-transparent shadow-md'
-                            : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border-slate-200 dark:border-white/10 hover:border-purple-400 dark:hover:border-purple-400/50'
+                            ? 'bg-neutral-800 dark:bg-white text-white dark:text-black text-white border-transparent shadow-md'
+                            : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border-slate-200 dark:border-white/10 hover:border-neutral-400 dark:hover:border-neutral-400/50'
                         }`}
                       >
                         {type === 'IMAGE' ? '图片' : type === 'VIDEO' ? '视频' : '音频'}
@@ -237,8 +237,8 @@ const AssetLibraryPanel = ({ isOpen, onClose, onAssetSelect }: AssetLibraryPanel
                         onClick={() => setSelectedCategory(cat)}
                         className={`h-8 w-full px-3 rounded-md text-xs font-medium transition-all flex items-center justify-center gap-1 border ${
                           selectedCategory === cat
-                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 text-white border-transparent shadow-md'
-                            : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border-slate-200 dark:border-white/10 hover:border-purple-400 dark:hover:border-purple-400/50'
+                            ? 'bg-neutral-800 dark:bg-white text-white dark:text-black text-white border-transparent shadow-md'
+                            : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border-slate-200 dark:border-white/10 hover:border-neutral-400 dark:hover:border-neutral-400/50'
                         }`}
                       >
                         {cat === 'ROLE' ? '角色' : cat === 'SCENE' ? '场景' : cat === 'PROP' ? '道具' : cat === 'AUDIO' ? '音频' : '其他'}
@@ -254,7 +254,7 @@ const AssetLibraryPanel = ({ isOpen, onClose, onAssetSelect }: AssetLibraryPanel
                       <select
                         value={selectedLibraryId}
                         onChange={(e) => handleLibraryChange(e.target.value)}
-                        className="flex-1 h-8 px-3 text-xs bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        className="flex-1 h-8 px-3 text-xs bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500"
                       >
                         {filteredLibs.map((lib) => (
                           <option key={lib.id} value={lib.id}>

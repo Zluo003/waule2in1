@@ -525,9 +525,9 @@ const ImageEditingNode = ({ data, id, selected }: NodeProps<ImageEditingNodeData
 
   return (
     <div
-      className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${
+      className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${
         selected 
-          ? 'border-purple-400 shadow-purple-400/50' 
+          ? 'border-neutral-400 shadow-neutral-400/50' 
           : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'
       }`}
       style={{ width: 320 }}
@@ -549,7 +549,7 @@ const ImageEditingNode = ({ data, id, selected }: NodeProps<ImageEditingNodeData
       />
 
       {/* 头部 - Aurora渐变样式（与图片生成节点一致） */}
-      <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 from-pink-200/50 via-purple-500/20 via-purple-200/50 to-cyan-500/20 to-cyan-200/50 dark:from-pink-500/20 dark:via-purple-500/20 dark:to-cyan-500/20">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl">
         <div className="flex items-center gap-2">
           <Pencil className="w-4 h-4 text-slate-800 dark:text-white" />
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">图片编辑</span>
@@ -583,7 +583,7 @@ const ImageEditingNode = ({ data, id, selected }: NodeProps<ImageEditingNodeData
               {points.map((point) => (
                 <div
                   key={point.id}
-                  className="absolute w-6 h-6 -ml-3 -mt-3 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg border-2 border-white cursor-pointer hover:scale-110 transition-transform"
+                  className="absolute w-6 h-6 -ml-3 -mt-3 bg-neutral-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg border-2 border-white cursor-pointer hover:scale-110 transition-transform"
                   style={{
                     left: `${point.x * 100}%`,
                     top: `${point.y * 100}%`,
@@ -639,7 +639,7 @@ const ImageEditingNode = ({ data, id, selected }: NodeProps<ImageEditingNodeData
               <button
                 onClick={identifyPoints}
                 disabled={isIdentifying || !mainImageUrl}
-                className="text-[10px] text-purple-500 hover:text-purple-600 disabled:opacity-50 flex items-center gap-1"
+                className="text-[10px] text-neutral-500 hover:text-neutral-600 flex items-center gap-1"
               >
                 {isIdentifying ? (
                   <Loader2 className="w-3 h-3 animate-spin" />
@@ -658,7 +658,7 @@ const ImageEditingNode = ({ data, id, selected }: NodeProps<ImageEditingNodeData
                   <span
                     draggable
                     onDragStart={(e) => handlePointDragStart(e, point)}
-                    className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 cursor-grab active:cursor-grabbing nodrag"
+                    className="w-5 h-5 bg-neutral-500 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 cursor-grab active:cursor-grabbing nodrag"
                     title="拖动到指令框插入标记"
                   >
                     {point.id}
@@ -693,7 +693,7 @@ const ImageEditingNode = ({ data, id, selected }: NodeProps<ImageEditingNodeData
             onDragOver={handlePromptDragOver}
             onDrop={handlePromptDrop}
             placeholder="描述你想要的修改..."
-            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-purple-400 dark:focus:border-purple-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
+            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
             style={{ minHeight: '60px' }}
           />
         </div>
@@ -704,7 +704,7 @@ const ImageEditingNode = ({ data, id, selected }: NodeProps<ImageEditingNodeData
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           disabled={isLoading || !mainImageUrl || !prompt.trim()}
-          className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${isLoading ? 'bg-gray-600 dark:bg-gray-700 text-white cursor-wait border-transparent dark:border-white/10' : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md hover:shadow-lg border-transparent dark:border-white/10'}`}
+          className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all flex items-center justify-center gap-2 ${isLoading || !mainImageUrl || !prompt.trim() ? 'bg-neutral-800 dark:bg-white text-white dark:text-black cursor-not-allowed border-transparent' : 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md hover:shadow-lg border-transparent dark:border-white/10 active:scale-95'}`}
         >
           {isLoading ? (
             <>
@@ -718,11 +718,11 @@ const ImageEditingNode = ({ data, id, selected }: NodeProps<ImageEditingNodeData
               {/* 积分/免费显示 */}
               {!creditsLoading && (
                 isFreeUsage ? (
-                  <span className="ml-1 px-1.5 py-0.5 bg-amber-500/40 text-amber-200 rounded text-[9px]">
-                    免费，今日剩{freeUsageRemaining}次
+                  <span className="ml-1 px-1.5 py-0.5 text-neutral-400 dark:text-neutral-500 rounded text-[9px]">
+                    免费，今日剩{Math.floor(freeUsageRemaining)}次
                   </span>
                 ) : credits !== null && credits > 0 ? (
-                  <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[9px]">
+                  <span className="ml-1 px-1.5 py-0.5 text-neutral-400 dark:text-neutral-500 text-[9px]">
                     {credits}积分
                   </span>
                 ) : null

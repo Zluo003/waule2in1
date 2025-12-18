@@ -527,10 +527,10 @@ const AIModelsPage = () => {
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
       TEXT_GENERATION: 'bg-blue-500/20 text-blue-400',
-      IMAGE_GENERATION: 'bg-purple-500/20 text-purple-400',
+      IMAGE_GENERATION: 'bg-neutral-500/20 text-neutral-400',
       VIDEO_GENERATION: 'bg-green-500/20 text-green-400',
       VIDEO_EDITING: 'bg-emerald-500/20 text-emerald-400',
-      AUDIO_SYNTHESIS: 'bg-pink-500/20 text-pink-400',
+      AUDIO_SYNTHESIS: 'bg-neutral-500/20 text-neutral-400',
     };
     return colors[type] || 'bg-gray-500/20 text-gray-400';
   };
@@ -962,7 +962,7 @@ const AIModelsPage = () => {
               {formData.type === 'AUDIO_SYNTHESIS' && (
                 <div className="bg-background-dark rounded-lg p-4">
                   <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-pink-400">library_music</span>
+                    <span className="material-symbols-outlined text-neutral-400">library_music</span>
                     模型能力（音频）
                   </h3>
                   <p className="text-sm text-gray-400 mb-4">控制此音频模型在工作流中开放的功能与对应节点的模型下拉列表可见性</p>
@@ -1050,8 +1050,8 @@ const AIModelsPage = () => {
                   {[
                     { value: 'TEXT', label: '文本', icon: 'description', color: 'blue' },
                     { value: 'IMAGE', label: '图片', icon: 'image', color: 'tiffany' },
-                    { value: 'VIDEO', label: '视频', icon: 'videocam', color: 'purple' },
-                    { value: 'AUDIO', label: '音乐', icon: 'audio_file', color: 'pink' },
+                    { value: 'VIDEO', label: '视频', icon: 'videocam', color: 'neutral' },
+                    { value: 'AUDIO', label: '音乐', icon: 'audio_file', color: 'neutral' },
                     { value: 'DOCUMENT', label: '文档', icon: 'insert_drive_file', color: 'amber' },
                   ].map((inputType) => (
                     <button
@@ -1210,7 +1210,7 @@ const AIModelsPage = () => {
               {formData.type === 'IMAGE_GENERATION' && (
                 <div className="bg-background-dark rounded-lg p-4">
                   <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-purple-400">image</span>
+                    <span className="material-symbols-outlined text-neutral-400">image</span>
                     图片生成参数
                   </h3>
                   
@@ -1502,7 +1502,7 @@ const AIModelsPage = () => {
               {formData.type === 'AUDIO_SYNTHESIS' && (
                 <div className="bg-background-dark rounded-lg p-4">
                   <h3 className="text-lg font-bold text白 mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-pink-400">record_voice_over</span>
+                    <span className="material-symbols-outlined text-neutral-400">record_voice_over</span>
                     语音合成参数（CosyVoice）
                   </h3>
                   <div className="grid grid-cols-2 gap-4">

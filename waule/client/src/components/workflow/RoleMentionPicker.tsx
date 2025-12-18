@@ -171,7 +171,7 @@ const RoleMentionPicker = ({ onSelect, onClose, position }: RoleMentionPickerPro
             onClick={() => onSelect(role.metadata.name, role.id)}
             className={`w-full px-3 py-2 text-left flex items-center gap-2 transition-colors ${
               index === selectedIndex
-                ? 'bg-purple-500/20 dark:bg-purple-500/30'
+                ? 'bg-neutral-500/20 dark:bg-neutral-500/30'
                 : 'hover:bg-slate-100 dark:hover:bg-white/5'
             }`}
           >
@@ -182,8 +182,8 @@ const RoleMentionPicker = ({ onSelect, onClose, position }: RoleMentionPickerPro
                 className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-white/10"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-purple-500/20 dark:bg-purple-500/30 flex items-center justify-center">
-                <span className="material-symbols-outlined text-purple-500 dark:text-purple-400 text-base">
+              <div className="w-8 h-8 rounded-full bg-neutral-500/20 dark:bg-neutral-500/30 flex items-center justify-center">
+                <span className="material-symbols-outlined text-neutral-500 dark:text-neutral-400 text-base">
                   person
                 </span>
               </div>
@@ -194,7 +194,7 @@ const RoleMentionPicker = ({ onSelect, onClose, position }: RoleMentionPickerPro
               </div>
             </div>
             {index === selectedIndex && (
-              <span className="material-symbols-outlined text-purple-500 dark:text-purple-400 text-sm">
+              <span className="material-symbols-outlined text-neutral-500 dark:text-neutral-400 text-sm">
                 arrow_forward
               </span>
             )}

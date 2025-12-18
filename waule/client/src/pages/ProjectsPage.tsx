@@ -313,8 +313,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 />
 
                 {isUploadingThumbnail ? (
-                  <div className={`w-full ${isEdit ? 'aspect-[16/9]' : 'h-44'} border-2 border-dashed border-purple-400 dark:border-purple-400/50 rounded-md flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5`}>
-                    <span className="material-symbols-outlined text-2xl text-purple-500 animate-spin">progress_activity</span>
+                  <div className={`w-full ${isEdit ? 'aspect-[16/9]' : 'h-44'} border-2 border-dashed border-neutral-400 dark:border-neutral-400/50 rounded-md flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5`}>
+                    <span className="material-symbols-outlined text-2xl text-neutral-500 animate-spin">progress_activity</span>
                     <span className="text-xs text-slate-600 dark:text-slate-400">正在上传...</span>
                   </div>
                 ) : thumbnail ? (
@@ -336,7 +336,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className={`w-full ${isEdit ? 'aspect-[16/9]' : 'h-44'} border-2 border-dashed border-slate-300 dark:border-white/20 rounded-md hover:border-purple-400 dark:hover:border-purple-400/50 transition-colors flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5`}
+                    className={`w-full ${isEdit ? 'aspect-[16/9]' : 'h-44'} border-2 border-dashed border-slate-300 dark:border-white/20 rounded-md hover:border-neutral-400 dark:hover:border-neutral-400/50 transition-colors flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5`}
                   >
                     <span className="material-symbols-outlined text-2xl text-slate-400 dark:text-white/50" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>
                       add_photo_alternate
@@ -411,7 +411,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                       onChange={(e) => handleSearchUsers(e.target.value)}
                       onFocus={() => searchQuery && setShowSearchDropdown(true)}
                       placeholder="@用户昵称 添加协作者"
-                      className="w-full px-3 py-1.5 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-neutral-500"
                     />
                     {isSearching && (
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-sm animate-spin text-slate-400">progress_activity</span>
@@ -424,18 +424,18 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                             key={user.id}
                             type="button"
                             onClick={() => handleAddCollaborator(user)}
-                            className={`w-full px-3 py-2 flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-white/10 text-left ${user.isEveryone ? 'bg-purple-50 dark:bg-purple-900/20' : ''}`}
+                            className={`w-full px-3 py-2 flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-white/10 text-left ${user.isEveryone ? 'bg-neutral-50 dark:bg-neutral-900/20' : ''}`}
                           >
                             {user.isEveryone ? (
-                              <span className="material-symbols-outlined text-purple-500 text-lg">groups</span>
+                              <span className="material-symbols-outlined text-neutral-500 text-lg">groups</span>
                             ) : user.avatar ? (
                               <img src={user.avatar} alt="" className="w-6 h-6 rounded-full object-cover" />
                             ) : (
                               <span className="material-symbols-outlined text-slate-400 text-lg">account_circle</span>
                             )}
-                            <span className={`text-sm ${user.isEveryone ? 'text-purple-600 dark:text-purple-400 font-medium' : 'text-slate-800 dark:text-white'}`}>
+                            <span className={`text-sm ${user.isEveryone ? 'text-neutral-600 dark:text-neutral-400 font-medium' : 'text-slate-800 dark:text-white'}`}>
                               {user.nickname || user.username}
-                              {user.isEveryone && <span className="text-xs ml-1 text-purple-400">（公开共享）</span>}
+                              {user.isEveryone && <span className="text-xs ml-1 text-neutral-400">（公开共享）</span>}
                             </span>
                           </button>
                         ))}
@@ -525,8 +525,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, type: 'DRAMA' }))}
                   className={`px-3 py-2 rounded-md border transition-all text-left ${formData.type === 'DRAMA'
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : 'border-slate-200 dark:border-white/10 hover:border-purple-400'
+                      ? 'border-neutral-500 bg-neutral-500/10'
+                      : 'border-slate-200 dark:border-white/10 hover:border-neutral-400'
                     }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -542,8 +542,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, type: 'QUICK' }))}
                   className={`px-3 py-2 rounded-md border transition-all text-left ${formData.type === 'QUICK'
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : 'border-slate-200 dark:border-white/10 hover:border-purple-400'
+                      ? 'border-neutral-500 bg-neutral-500/10'
+                      : 'border-slate-200 dark:border-white/10 hover:border-neutral-400'
                     }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -568,7 +568,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
             </button>
             <button
               type="submit"
-              className="flex-1 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-md transition-all font-medium active:scale-95"
+              className="flex-1 px-3 py-2 bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg text-white rounded-md transition-all font-medium active:scale-95"
             >
               {isEdit ? '保存更改' : '创建项目'}
             </button>
@@ -787,39 +787,40 @@ const ProjectsPage = () => {
 
   return (
     <div className="p-8">
-      {/* 顶部区域 - 标题、搜索、按钮垂直居中 */}
-      <div className="flex items-center justify-between gap-8 mb-12 h-12">
+      {/* 顶部区域 - 标题、搜索、按钮等距横向排列 */}
+      <div className="flex items-center justify-between gap-8 mb-12">
         {/* 标题 */}
-        <h1 className="text-4xl font-bold text-text-light-primary dark:text-text-dark-primary whitespace-nowrap m-0 leading-none flex items-center h-full">
-          {activeTab === 'QUICK' ? '快速创作' : activeTab === 'DRAMA' ? '剧集创作' : '我的项目'}
+        <h1 className="text-4xl font-bold text-text-light-primary dark:text-text-dark-primary whitespace-nowrap">
+          {activeTab === 'DRAMA' ? '剧集创作' : '快速创作'}
         </h1>
 
-        {/* 搜索栏 - 胶囊状 */}
-        <div className="flex-1 flex items-center justify-center h-full">
-          <div className="relative w-full max-w-md flex items-center">
-            <span className="material-symbols-outlined absolute left-4 text-text-light-tertiary dark:text-text-dark-tertiary">
-              search
-            </span>
-            <input
-              type="text"
-              placeholder="搜索项目..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 pr-4 h-12 w-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
-              style={{ outline: 'none', boxShadow: 'none' }}
-            />
-          </div>
+        {/* 搜索栏 */}
+        <div className="relative flex-1 max-w-md">
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-text-light-tertiary dark:text-text-dark-tertiary">
+            search
+          </span>
+          <input
+            type="text"
+            placeholder="搜索项目..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-12 pr-4 py-2.5 w-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
+            style={{ outline: 'none', boxShadow: 'none' }}
+          />
         </div>
 
-        {/* 创建按钮 */}
+        </div>
+
+      {/* 创建按钮 - 左侧工具栏下方悬浮 */}
+      <div className="fixed left-[24px] bottom-8 z-50">
         <div className="group relative">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+            className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black dark:hover:bg-white hover:text-white dark:hover:text-black hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
           >
-            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
+            <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
           </button>
-          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">创建新项目</span>
+          <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">创建新项目</span>
         </div>
       </div>
 
@@ -838,7 +839,7 @@ const ProjectsPage = () => {
           <p className="text-text-light-secondary dark:text-text-dark-secondary mb-6">创建你的第一个AI短剧项目</p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white font-medium rounded-lg transition-all shadow-md active:scale-95"
+            className="px-6 py-3 bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg text-white font-medium rounded-lg transition-all shadow-md active:scale-95"
           >
             立即创建
           </button>
@@ -881,59 +882,59 @@ const ProjectsPage = () => {
                   navigate(`/projects/${project.id}/episodes`);
                 }
               }}
-              className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-purple-400 dark:hover:border-purple-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3] flex flex-col"
+              className="relative border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3]"
             >
-              {/* 缩略图 */}
-              <div className="h-[70%] bg-slate-100 dark:bg-white/5 relative overflow-hidden">
+              {/* 缩略图 - 充满整个卡片 */}
+              <div className="absolute inset-0">
                 <ProjectCover thumbnail={project.thumbnail} name={project.name} />
-
-                {/* 操作按钮组 - 仅所有者可见 */}
-                {(project.isOwner !== false) && (
-                  <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditModal(project);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
-                      title="编辑项目"
-                    >
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(project.id);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center bg-red-500 hover:bg-red-600 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
-                      title="删除项目"
-                    >
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>delete</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* 共享状态标识 */}
-                {project.isShared && (
-                  <div className="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-semibold text-white bg-blue-500/80 backdrop-blur-sm flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">group</span>
-                    共享
-                  </div>
-                )}
-                {project.hasCollaborators && !project.isShared && (
-                  <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg text-xs font-semibold text-white bg-green-500/80 backdrop-blur-sm flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">share</span>
-                    已共享
-                  </div>
-                )}
               </div>
 
-              {/* 项目信息 */}
-              <div className="h-[30%] p-3 flex flex-col justify-center border-t border-slate-200 dark:border-white/10">
-                <h3 className="font-bold text-sm text-slate-800 dark:text-white truncate">
+              {/* 操作按钮组 - 仅所有者可见 */}
+              {(project.isOwner !== false) && (
+                <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditModal(project);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+                    title="编辑项目"
+                  >
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(project.id);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+                    title="删除项目"
+                  >
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>delete</span>
+                  </button>
+                </div>
+              )}
+
+              {/* 共享状态标识 */}
+              {project.isShared && (
+                <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium text-white bg-black/50 dark:bg-white/20 backdrop-blur-sm flex items-center gap-1 z-10">
+                  <span className="material-symbols-outlined text-xs">group</span>
+                  共享
+                </div>
+              )}
+              {project.hasCollaborators && !project.isShared && (
+                <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium text-white bg-black/50 dark:bg-white/20 backdrop-blur-sm flex items-center gap-1 z-10">
+                  <span className="material-symbols-outlined text-xs">share</span>
+                  已共享
+                </div>
+              )}
+
+              {/* 项目信息 - 悬浮于图片上方，半透明磨砂效果 */}
+              <div className="absolute bottom-3 left-3 right-3 p-3 bg-white/50 dark:bg-black/50 backdrop-blur-md rounded-xl z-10">
+                <h3 className="font-semibold text-sm text-neutral-900 dark:text-white truncate">
                   {project.name}
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 truncate">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 truncate">
                   {project.description || '暂无描述'}
                 </p>
               </div>
@@ -1017,8 +1018,8 @@ const ProjectCover: React.FC<{ thumbnail?: string | null; name: string }> = ({ t
   
   if (!thumbnail || failed || !current) {
     return (
-      <div className="w-full h-full flex items-center justify-center">
-        <span className="material-symbols-outlined text-3xl text-tiffany-300 dark:text-white/30">movie</span>
+      <div className="w-full h-full flex items-center justify-center bg-neutral-100 dark:bg-neutral-900">
+        <span className="material-symbols-outlined text-3xl text-neutral-400 dark:text-neutral-600">movie</span>
       </div>
     );
   }

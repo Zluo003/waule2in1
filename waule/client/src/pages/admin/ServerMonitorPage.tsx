@@ -304,7 +304,7 @@ const ServerMonitorPage = () => {
               <p className="text-2xl font-bold">{metrics.cpu.usage}%</p>
               <p className="text-xs opacity-60">{metrics.cpu.count} 核心</p>
             </div>
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
+            <div className="bg-gradient-to-br from-neutral-700 to-neutral-600 rounded-xl p-4 text-white">
               <p className="text-xs opacity-80">内存使用率</p>
               <p className="text-2xl font-bold">{metrics.memory.usage}%</p>
               <p className="text-xs opacity-60">{formatBytes(metrics.memory.used)} / {formatBytes(metrics.memory.total)}</p>
@@ -382,7 +382,7 @@ const ServerMonitorPage = () => {
                       {formatBytes(metrics.memory.used)} / {formatBytes(metrics.memory.total)}
                     </span>
                   </div>
-                  <ProgressBar value={metrics.memory.usage} color="purple" showLabel={false} />
+                  <ProgressBar value={metrics.memory.usage} color="gray" showLabel={false} />
                 </div>
                 <div>
                   <div className="flex justify-between items-center mb-1">
@@ -478,7 +478,7 @@ const ServerMonitorPage = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs text-gray-500">Heap Used</p>
-                      <p className="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                      <p className="text-sm font-semibold text-neutral-600 dark:text-neutral-400">
                         {formatBytes(metrics.process.memory.heapUsed)}
                       </p>
                     </div>

@@ -49,7 +49,7 @@ const ROLE_LABELS: Record<string, string> = {
 const ROLE_COLORS: Record<string, string> = {
   USER: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200',
   VIP: 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200',
-  SVIP: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200',
+  SVIP: 'bg-neutral-100 dark:bg-neutral-900/30 text-neutral-800 dark:text-neutral-200',
 };
 
 const UserLevelConfigPage = () => {
@@ -362,7 +362,7 @@ const UserLevelConfigPage = () => {
                       <span className={`px-2 py-1 text-xs rounded ${
                         model.type === 'TEXT_GENERATION' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
                         model.type === 'IMAGE_GENERATION' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
-                        model.type === 'VIDEO_GENERATION' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
+                        model.type === 'VIDEO_GENERATION' ? 'bg-neutral-100 dark:bg-neutral-900/30 text-neutral-700 dark:text-neutral-300' :
                         'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                       }`}>
                         {model.type}

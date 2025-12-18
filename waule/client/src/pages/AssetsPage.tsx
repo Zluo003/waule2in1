@@ -54,7 +54,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options })
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute right-0 top-0 bottom-0 px-4 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 rounded-r-full text-xs cursor-pointer flex items-center gap-1 min-w-[100px] justify-center"
+        className="absolute right-0 top-0 bottom-0 px-4 bg-neutral-800 dark:bg-white text-white dark:text-black rounded-r-full text-xs cursor-pointer flex items-center gap-1 min-w-[100px] justify-center"
         style={{ outline: 'none !important', boxShadow: 'none !important', border: 'none', color: isDark ? 'white' : 'black' } as any}
       >
         <span className="whitespace-nowrap" style={{ color: isDark ? 'white' : 'black' }}>{selectedOption?.label}</span>
@@ -299,7 +299,7 @@ const LibraryModal: React.FC<LibraryModalProps> = ({
               required
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-3 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full px-3 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500"
               placeholder="例如: 角色素材库"
               maxLength={100}
             />
@@ -321,8 +321,8 @@ const LibraryModal: React.FC<LibraryModalProps> = ({
               />
               
               {isUploadingThumbnail ? (
-                <div className="w-full aspect-[16/9] border-2 border-dashed border-purple-400 dark:border-purple-400/50 rounded-md flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5">
-                  <span className="material-symbols-outlined text-2xl text-purple-500 animate-spin">progress_activity</span>
+                <div className="w-full aspect-[16/9] border-2 border-dashed border-neutral-400 dark:border-neutral-400/50 rounded-md flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5">
+                  <span className="material-symbols-outlined text-2xl text-neutral-500 animate-spin">progress_activity</span>
                   <span className="text-xs text-slate-600 dark:text-slate-400">正在上传...</span>
                 </div>
               ) : thumbnail ? (
@@ -344,7 +344,7 @@ const LibraryModal: React.FC<LibraryModalProps> = ({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full aspect-[16/9] border-2 border-dashed border-slate-300 dark:border-white/20 rounded-md hover:border-purple-400 dark:hover:border-purple-400/50 transition-colors flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5"
+                  className="w-full aspect-[16/9] border-2 border-dashed border-slate-300 dark:border-white/20 rounded-md hover:border-neutral-400 dark:hover:border-neutral-400/50 transition-colors flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5"
                 >
                   <span className="material-symbols-outlined text-2xl text-slate-400 dark:text-white/50" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>
                     add_photo_alternate
@@ -371,7 +371,7 @@ const LibraryModal: React.FC<LibraryModalProps> = ({
                       onChange={(e) => handleSearchUsers(e.target.value)}
                       onFocus={() => searchQuery && setShowSearchDropdown(true)}
                       placeholder="@用户昵称 添加协作者"
-                      className="w-full px-3 py-1.5 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-neutral-500"
                     />
                     {isSearching && (
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-sm animate-spin text-slate-400">progress_activity</span>
@@ -439,7 +439,7 @@ const LibraryModal: React.FC<LibraryModalProps> = ({
             <textarea
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              className="w-full px-3 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
+              className="w-full px-3 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-neutral-500 resize-none"
               rows={2}
               placeholder="简要描述资产库用途..."
               maxLength={500}
@@ -458,8 +458,8 @@ const LibraryModal: React.FC<LibraryModalProps> = ({
                   onClick={() => setFormData((prev: any) => ({ ...prev, category: cat }))}
                   className={`py-3 rounded-lg border transition-all text-center ${
                     formData.category === cat
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : 'border-slate-200 dark:border-white/10 hover:border-purple-400'
+                      ? 'border-neutral-800 dark:border-white bg-neutral-100 dark:bg-white/20'
+                      : 'border-slate-200 dark:border-white/10 hover:border-neutral-400'
                   }`}
                 >
                   <span className="material-symbols-outlined text-slate-800 dark:text-white text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>
@@ -483,7 +483,7 @@ const LibraryModal: React.FC<LibraryModalProps> = ({
             </button>
             <button
               type="submit"
-              className="flex-1 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-md transition-all font-medium active:scale-95"
+              className="flex-1 px-3 py-2 bg-neutral-800 dark:bg-white hover:bg-neutral-700 dark:hover:bg-neutral-200 text-white dark:text-black rounded-md transition-all font-medium active:scale-95"
             >
               {isEdit ? '保存更改' : '创建资产库'}
             </button>
@@ -795,7 +795,7 @@ const AssetsPage = () => {
         <div className="group relative">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+            className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-white/10 text-black dark:text-white border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:bg-neutral-800 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
           >
             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
           </button>
@@ -818,7 +818,7 @@ const AssetsPage = () => {
           <p className="text-text-light-secondary dark:text-text-dark-secondary mb-6">创建你的第一个资产库来管理素材</p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white font-medium rounded-lg transition-all active:scale-95"
+            className="px-6 py-3 bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg text-white font-medium rounded-lg transition-all active:scale-95"
           >
             立即创建
           </button>
@@ -846,10 +846,10 @@ const AssetsPage = () => {
           {(categoryFilter === 'ALL' || categoryFilter === 'ROLE') && (
             <div
               onClick={() => navigate('/assets/sora-characters')}
-              className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-purple-400 dark:hover:border-purple-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3] flex flex-col"
+              className="relative border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3]"
             >
-              {/* 缩略图区域 */}
-              <div className="h-[70%] bg-slate-100 dark:bg-white/5 relative overflow-hidden flex items-center justify-center">
+              {/* 缩略图 - 充满整个卡片 */}
+              <div className="absolute inset-0">
                 {soraLibraryCover ? (
                   <img
                     src={soraLibraryCover.startsWith('data:') || soraLibraryCover.startsWith('http') || soraLibraryCover.startsWith('/') ? soraLibraryCover : `${API_URL}${soraLibraryCover}`}
@@ -857,38 +857,40 @@ const AssetsPage = () => {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="material-symbols-outlined text-3xl text-tiffany-300 dark:text-white/30">face</span>
-                )}
-                
-                {/* 编辑按钮 - 左上角悬浮显示 */}
-                <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openSoraEditModal();
-                    }}
-                    className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95 cursor-pointer"
-                    title="编辑Sora角色库"
-                  >
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
-                  </button>
-                </div>
-
-                {/* 已共享标识 */}
-                {soraHasCollaborators && (
-                  <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg text-xs font-semibold text-white bg-green-500/80 backdrop-blur-sm flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">share</span>
-                    已共享
+                  <div className="w-full h-full flex items-center justify-center bg-neutral-100 dark:bg-neutral-900">
+                    <span className="material-symbols-outlined text-3xl text-neutral-400 dark:text-neutral-600">face</span>
                   </div>
                 )}
               </div>
+                
+              {/* 编辑按钮 - 左上角悬浮显示 */}
+              <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5 z-10">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openSoraEditModal();
+                  }}
+                  className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95 cursor-pointer"
+                  title="编辑Sora角色库"
+                >
+                  <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
+                </button>
+              </div>
 
-              {/* 信息区域 */}
-              <div className="h-[30%] p-3 flex flex-col justify-center border-t border-slate-200 dark:border-white/10">
-                <h3 className="font-bold text-sm text-slate-800 dark:text-white truncate">
+              {/* 已共享标识 */}
+              {soraHasCollaborators && (
+                <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium text-white bg-black/50 dark:bg-white/20 backdrop-blur-sm flex items-center gap-1 z-10">
+                  <span className="material-symbols-outlined text-xs">share</span>
+                  已共享
+                </div>
+              )}
+
+              {/* 信息区域 - 悬浮于图片上方 */}
+              <div className="absolute bottom-3 left-3 right-3 p-3 bg-white/50 dark:bg-black/50 backdrop-blur-md rounded-xl z-10">
+                <h3 className="font-semibold text-sm text-neutral-900 dark:text-white truncate">
                   Sora角色库
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">已创建 {soraCharacterCount} 个Sora专用角色</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">已创建 {soraCharacterCount} 个Sora专用角色</p>
               </div>
             </div>
           )}
@@ -897,10 +899,10 @@ const AssetsPage = () => {
             <div
               key={library.id}
               onClick={() => navigate(`/assets/${library.id}`)}
-              className="bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden hover:border-purple-400 dark:hover:border-purple-400/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3] flex flex-col"
+              className="relative border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden hover:border-neutral-400 dark:hover:border-neutral-600 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-pointer aspect-[4/3]"
             >
-              {/* 缩略图 */}
-              <div className="h-[70%] bg-slate-100 dark:bg-white/5 relative overflow-hidden">
+              {/* 缩略图 - 充满整个卡片 */}
+              <div className="absolute inset-0">
                 {library.thumbnail ? (
                   <img
                     src={library.thumbnail.startsWith('data:') || library.thumbnail.startsWith('http') ? library.thumbnail : `${API_URL}${library.thumbnail}`}
@@ -912,77 +914,71 @@ const AssetsPage = () => {
                     }}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span className="material-symbols-outlined text-3xl text-tiffany-300 dark:text-white/30">
+                  <div className="w-full h-full flex items-center justify-center bg-neutral-100 dark:bg-neutral-900">
+                    <span className="material-symbols-outlined text-3xl text-neutral-400 dark:text-neutral-600">
                       {(library.category ?? 'OTHER') === 'ROLE' ? 'person' : (library.category ?? 'OTHER') === 'SCENE' ? 'landscape' : (library.category ?? 'OTHER') === 'PROP' ? 'inventory_2' : (library.category ?? 'OTHER') === 'AUDIO' ? 'music_note' : 'widgets'}
                     </span>
                   </div>
                 )}
-                
-                {/* 操作按钮组 - 仅所有者可见 */}
-                {(library.isOwner !== false) && (
-                  <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditModal(library);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
-                      title="编辑资产库"
-                    >
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(library.id);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center bg-red-500 hover:bg-red-600 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
-                      title="删除资产库"
-                    >
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>delete</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* 共享状态标识 */}
-                {library.isShared && (
-                  <div className="absolute top-2 left-2 px-2 py-1 rounded-lg text-xs font-semibold text-white bg-blue-500/80 backdrop-blur-sm flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">group</span>
-                    共享
-                  </div>
-                )}
-                {library.hasCollaborators && !library.isShared && (
-                  <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg text-xs font-semibold text-white bg-green-500/80 backdrop-blur-sm flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">share</span>
-                    已共享
-                  </div>
-                )}
-
-                {/* 分类标识 */}
-                <div className={`absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-semibold text-white backdrop-blur-sm ${
-                  (library.category ?? 'OTHER') === 'ROLE' ? 'bg-purple-600/80' :
-                  (library.category ?? 'OTHER') === 'SCENE' ? 'bg-emerald-600/80' :
-                  (library.category ?? 'OTHER') === 'PROP' ? 'bg-amber-500/80' :
-                  (library.category ?? 'OTHER') === 'AUDIO' ? 'bg-pink-500/80' : 'bg-gray-600/80'
-                }`}>
-                  {(library.category ?? 'OTHER') === 'ROLE' ? '角色库' : (library.category ?? 'OTHER') === 'SCENE' ? '场景库' : (library.category ?? 'OTHER') === 'PROP' ? '道具库' : (library.category ?? 'OTHER') === 'AUDIO' ? '音频库' : '其他'}
-                </div>
-
-                {/* 资产数量标记 */}
-                <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-sm text-white text-xs rounded-lg flex items-center gap-1">
-                  <span className="material-symbols-outlined text-xs">photo</span>
-                  {library._count.assets}
-                </div>
               </div>
+                
+              {/* 操作按钮组 - 仅所有者可见 */}
+              {(library.isOwner !== false) && (
+                <div className="absolute top-2 left-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditModal(library);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+                    title="编辑资产库"
+                  >
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>edit</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(library.id);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center bg-black/60 dark:bg-white/80 hover:bg-black dark:hover:bg-white text-white dark:text-black rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+                    title="删除资产库"
+                  >
+                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>delete</span>
+                  </button>
+                </div>
+              )}
 
-              {/* 资产库信息 */}
-              <div className="h-[30%] p-3 flex flex-col justify-center border-t border-slate-200 dark:border-white/10">
-                <h3 className="font-bold text-sm text-slate-800 dark:text-white truncate">
-                  {library.name}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5 line-clamp-1">
-                  {library.description || '暂无描述'}
+              {/* 共享状态标识 */}
+              {library.isShared && (
+                <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium text-white bg-black/50 dark:bg-white/20 backdrop-blur-sm flex items-center gap-1 z-10">
+                  <span className="material-symbols-outlined text-xs">group</span>
+                  共享
+                </div>
+              )}
+              {library.hasCollaborators && !library.isShared && (
+                <div className="absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium text-white bg-black/50 dark:bg-white/20 backdrop-blur-sm flex items-center gap-1 z-10">
+                  <span className="material-symbols-outlined text-xs">share</span>
+                  已共享
+                </div>
+              )}
+
+              {/* 资产库信息 - 悬浮于图片上方 */}
+              <div className="absolute bottom-3 left-3 right-3 p-3 bg-white/50 dark:bg-black/50 backdrop-blur-md rounded-xl z-10">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm text-neutral-900 dark:text-white truncate flex-1">
+                    {library.name}
+                  </h3>
+                  <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                    (library.category ?? 'OTHER') === 'ROLE' ? 'bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300' :
+                    (library.category ?? 'OTHER') === 'SCENE' ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' :
+                    (library.category ?? 'OTHER') === 'PROP' ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' :
+                    (library.category ?? 'OTHER') === 'AUDIO' ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                  }`}>
+                    {(library.category ?? 'OTHER') === 'ROLE' ? '角色' : (library.category ?? 'OTHER') === 'SCENE' ? '场景' : (library.category ?? 'OTHER') === 'PROP' ? '道具' : (library.category ?? 'OTHER') === 'AUDIO' ? '音频' : '其他'}
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 truncate">
+                  {library.description || `${library._count.assets} 个资产`}
                 </p>
               </div>
             </div>
@@ -1079,7 +1075,7 @@ const AssetsPage = () => {
                     )}
                   </div>
                 ) : (
-                  <label className="w-full aspect-[16/9] border-2 border-dashed border-slate-300 dark:border-white/20 rounded-md hover:border-purple-400 dark:hover:border-purple-400/50 transition-colors flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5 cursor-pointer">
+                  <label className="w-full aspect-[16/9] border-2 border-dashed border-slate-300 dark:border-white/20 rounded-md hover:border-neutral-400 dark:hover:border-neutral-400/50 transition-colors flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5 cursor-pointer">
                     <span className="material-symbols-outlined text-2xl text-slate-400 dark:text-white/50" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>
                       add_photo_alternate
                     </span>
@@ -1123,7 +1119,7 @@ const AssetsPage = () => {
                     onChange={(e) => handleSoraSearchUsers(e.target.value)}
                     onFocus={() => soraSearchQuery && setShowSoraSearchDropdown(true)}
                     placeholder="@用户昵称 添加协作者"
-                    className="w-full px-3 py-2 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-neutral-500"
                   />
                   {isSoraSearching && (
                     <span className="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-sm animate-spin text-slate-400">progress_activity</span>
@@ -1195,7 +1191,7 @@ const AssetsPage = () => {
                   setShowSoraSearchDropdown(false);
                   loadSoraCharacterCount(); // 刷新共享状态
                 }}
-                className="w-full px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-md transition-all font-medium active:scale-95"
+                className="w-full px-4 py-2 bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg text-white rounded-md transition-all font-medium active:scale-95"
               >
                 完成
               </button>

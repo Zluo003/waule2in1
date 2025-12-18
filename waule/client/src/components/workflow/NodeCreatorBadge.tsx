@@ -33,7 +33,7 @@ const NodeCreatorBadge: React.FC<NodeCreatorBadgeProps> = ({ createdBy, isShared
           className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-md"
         />
       ) : (
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-lg font-medium border-2 border-white dark:border-slate-700 shadow-md">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-neutral-800 to-neutral-700 flex items-center justify-center text-white text-lg font-medium border-2 border-white dark:border-slate-700 shadow-md">
           {(nickname || '?')[0].toUpperCase()}
         </div>
       )}

@@ -50,7 +50,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options })
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute right-0 top-0 bottom-0 px-4 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 rounded-r-full text-xs cursor-pointer flex items-center gap-1 min-w-[100px] justify-center"
+        className="absolute right-0 top-0 bottom-0 px-4 bg-neutral-800 dark:bg-white text-white dark:text-black rounded-r-full text-xs cursor-pointer flex items-center gap-1 min-w-[100px] justify-center"
         style={{ outline: 'none !important', boxShadow: 'none !important', border: 'none', color: isDark ? 'white' : 'black' } as any}
       >
         <span className="whitespace-nowrap" style={{ color: isDark ? 'white' : 'black' }}>{selectedOption?.label}</span>
@@ -250,7 +250,7 @@ const RecycleBinPage = () => {
         <div className="flex items-center gap-2 whitespace-nowrap">
           <button
             onClick={() => { setSelectionMode(!selectionMode); if (!selectionMode) setSelectedIds([]); }}
-            className={`px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${selectionMode ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-slate-200 dark:border-white/10 hover:border-purple-400'}`}
+            className={`px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${selectionMode ? 'bg-neutral-800 dark:bg-white text-white dark:text-black text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-slate-200 dark:border-white/10 hover:border-neutral-400'}`}
           >
             <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>check_box</span>
             选择
@@ -259,7 +259,7 @@ const RecycleBinPage = () => {
           <button
             onClick={() => { clearSelection(); setSelectionMode(false); }}
             disabled={!selectionMode}
-            className={`px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${selectionMode ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-slate-200 dark:border-white/10'} disabled:opacity-50`}
+            className={`px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${selectionMode ? 'bg-neutral-800 dark:bg-white text-white dark:text-black text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-slate-200 dark:border-white/10'} disabled:opacity-50`}
           >
             <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>close</span>
             取消
@@ -291,7 +291,7 @@ const RecycleBinPage = () => {
           {items.map((item) => (
             <div 
               key={item.id} 
-              className={`relative group mb-4 bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 ${selectedIds.includes(item.id) ? 'border-purple-500 dark:border-purple-400' : 'border-slate-200 dark:border-white/10'} rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:border-purple-400 dark:hover:border-purple-400/50`} 
+              className={`relative group mb-4 bg-white/80 dark:bg-black/60 backdrop-blur-xl border-2 ${selectedIds.includes(item.id) ? 'border-neutral-500 dark:border-neutral-400' : 'border-slate-200 dark:border-white/10'} rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:border-neutral-400 dark:hover:border-neutral-400/50`} 
               style={{ breakInside: 'avoid' }} 
               onClick={() => { if (selectionMode) { toggleSelect(item.id); } else { setPreviewItem(item); } }}
               onMouseEnter={(e) => handleCardHover(e.currentTarget, true)}
@@ -306,7 +306,7 @@ const RecycleBinPage = () => {
               
               {/* 选中时的右上角勾选标识 */}
               {selectedIds.includes(item.id) && (
-                <div className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 rounded-full shadow-lg">
+                <div className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-neutral-800 dark:bg-white text-white dark:text-black rounded-full shadow-lg">
                   <span className="material-symbols-outlined text-white text-lg" style={{ fontVariationSettings: '"FILL" 1, "wght" 400' }}>check</span>
                 </div>
               )}
@@ -316,7 +316,7 @@ const RecycleBinPage = () => {
               {/* 下载按钮 - 仅在非选择模式下显示 */}
               {!selectionMode && (
                 <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <a href={item.url} download={item.originalName || item.name} onClick={(e) => e.stopPropagation()} className="w-8 h-8 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95">
+                  <a href={item.url} download={item.originalName || item.name} onClick={(e) => e.stopPropagation()} className="w-8 h-8 flex items-center justify-center bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95">
                     <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>download</span>
                   </a>
                 </div>
@@ -358,7 +358,7 @@ const RecycleBinPage = () => {
               )}
             </div>
             <div className="absolute bottom-4 right-4">
-              <a href={previewItem.url} download={previewItem.originalName || previewItem.name} className="w-10 h-10 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95">
+              <a href={previewItem.url} download={previewItem.originalName || previewItem.name} className="w-10 h-10 flex items-center justify-center bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg text-white rounded-full transition-all shadow-md active:scale-95">
                 <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>download</span>
               </a>
             </div>

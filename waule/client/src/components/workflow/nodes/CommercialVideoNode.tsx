@@ -307,8 +307,8 @@ const CommercialVideoNode = ({ data, selected, id }: NodeProps<CommercialVideoNo
 
   return (
     <div
-      className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${
-        selected ? 'border-purple-400 shadow-purple-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'
+      className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${
+        selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'
       }`}
       style={{ width: 320 }}
     >
@@ -320,7 +320,7 @@ const CommercialVideoNode = ({ data, selected, id }: NodeProps<CommercialVideoNo
       />
 
       {/* 节点头部 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>
             featured_video
@@ -365,7 +365,7 @@ const CommercialVideoNode = ({ data, selected, id }: NodeProps<CommercialVideoNo
             }}
             disabled={isProcessing}
             placeholder="描述你想要的广告内容..."
-            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-purple-400 dark:focus:border-purple-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30 overflow-hidden"
+            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30 overflow-hidden"
             rows={2}
           />
         </div>
@@ -387,9 +387,9 @@ const CommercialVideoNode = ({ data, selected, id }: NodeProps<CommercialVideoNo
                 disabled={isProcessing}
                 className={`nodrag px-2 py-1 text-[10px] font-bold rounded-lg transition-all ${
                   duration === dur
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
-                } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    ? 'bg-neutral-800 dark:bg-white text-white dark:text-black text-white'
+                    : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700'
+                } ${isProcessing ? 'cursor-not-allowed' : ''}`}
               >
                 {dur}s
               </button>
@@ -414,9 +414,9 @@ const CommercialVideoNode = ({ data, selected, id }: NodeProps<CommercialVideoNo
                 disabled={isProcessing}
                 className={`nodrag px-2 py-1 text-[10px] font-bold rounded-lg transition-all ${
                   ratio === r
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
-                } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    ? 'bg-neutral-800 dark:bg-white text-white dark:text-black text-white'
+                    : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700'
+                } ${isProcessing ? 'cursor-not-allowed' : ''}`}
               >
                 {r}
               </button>
@@ -444,9 +444,9 @@ const CommercialVideoNode = ({ data, selected, id }: NodeProps<CommercialVideoNo
                 disabled={isProcessing}
                 className={`nodrag px-2 py-1 text-[10px] font-bold rounded-lg transition-all ${
                   language === lang.value
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
-                } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    ? 'bg-neutral-800 dark:bg-white text-white dark:text-black text-white'
+                    : 'bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-700'
+                } ${isProcessing ? 'cursor-not-allowed' : ''}`}
               >
                 {lang.label}
               </button>
@@ -461,8 +461,8 @@ const CommercialVideoNode = ({ data, selected, id }: NodeProps<CommercialVideoNo
           disabled={isProcessing || images.length === 0 || !prompt.trim() || (data as any)._canEdit === false}
           className={`w-full px-4 py-2.5 text-[11px] font-bold rounded-xl transition-all ${
             isProcessing || images.length === 0 || !prompt.trim() || (data as any)._canEdit === false
-              ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]'
+              ? 'bg-neutral-800 dark:bg-white text-white dark:text-black cursor-not-allowed'
+              : 'bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]'
           }`}
         >
           <div className="flex items-center justify-center space-x-2">
@@ -474,7 +474,7 @@ const CommercialVideoNode = ({ data, selected, id }: NodeProps<CommercialVideoNo
             <span>{isProcessing ? '生成中...' : '开始生成'}</span>
             {/* 积分显示 */}
             {!isProcessing && !creditsLoading && credits !== null && credits > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[9px]">
+              <span className="ml-1 px-1.5 py-0.5 text-neutral-400 dark:text-neutral-500 text-[9px]">
                 {credits}积分
               </span>
             )}

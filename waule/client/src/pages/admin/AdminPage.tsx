@@ -95,7 +95,7 @@ const GrowthBadge = ({ rate }: { rate: string | number }) => {
 const RoleBadge = ({ role }: { role: string }) => {
   const colors: Record<string, string> = {
     ADMIN: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    SVIP: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    SVIP: 'bg-neutral-100 text-neutral-700 dark:bg-neutral-900/30 dark:text-neutral-400',
     VIP: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
     USER: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
   };
@@ -185,7 +185,7 @@ const AdminDashboard = () => {
           <p className="text-2xl font-bold">{stats?.users?.total?.toLocaleString() || 0}</p>
           <p className="text-xs opacity-60">活跃: {stats?.users?.active || 0}</p>
         </div>
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
+        <div className="bg-gradient-to-br from-neutral-700 to-neutral-600 rounded-xl p-4 text-white">
           <p className="text-xs opacity-80">付费用户</p>
           <p className="text-2xl font-bold">{stats?.users?.paidTotal || 0}</p>
           <p className="text-xs opacity-60">VIP: {stats?.users?.vip || 0} | SVIP: {stats?.users?.svip || 0}</p>
@@ -218,7 +218,7 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-purple-500 text-lg">folder</span>
+            <span className="material-symbols-outlined text-neutral-500 text-lg">folder</span>
             <span className="text-sm text-gray-500 dark:text-gray-400">活跃项目</span>
           </div>
           <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats?.projects?.active || 0}</p>
@@ -311,7 +311,7 @@ const AdminDashboard = () => {
             {stats?.recent?.users?.map((user: any) => (
               <div key={user.id} className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-border-dark last:border-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-sm font-medium">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-neutral-400 to-neutral-500 flex items-center justify-center text-white text-sm font-medium">
                     {(user.nickname || user.phone || '?')[0]}
                   </div>
                   <div>
@@ -362,7 +362,7 @@ const AdminDashboard = () => {
       {stats?.usage?.byOperation && stats.usage.byOperation.length > 0 && (
         <div className="mt-6 bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-xl p-5">
           <h3 className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-            <span className="material-symbols-outlined text-purple-500">analytics</span>
+            <span className="material-symbols-outlined text-neutral-500">analytics</span>
             7天AI使用分布
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">

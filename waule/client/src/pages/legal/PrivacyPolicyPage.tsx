@@ -7,8 +7,8 @@ const PrivacyPolicyPage = () => {
     <div className="min-h-screen bg-[#030014] text-gray-300">
       {/* 背景效果 */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[300px] h-[300px] bg-pink-600/10 rounded-full blur-[100px]" />
+        <div className="absolute top-[-20%] left-[-10%] w-[400px] h-[400px] bg-neutral-600/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[300px] h-[300px] bg-neutral-600/10 rounded-full blur-[100px]" />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto px-6 py-16">
@@ -199,7 +199,7 @@ const PrivacyPolicyPage = () => {
               如您对本隐私政策有任何疑问、意见或请求，请通过以下方式联系我们：
             </p>
             <div className="mt-4 space-y-2">
-              <p>邮箱：<span className="text-purple-400">privacy@waule.com</span></p>
+              <p>邮箱：<span className="text-neutral-400">privacy@waule.com</span></p>
               <p>地址：<span className="text-gray-400">请通过邮件联系获取</span></p>
             </div>
           </section>

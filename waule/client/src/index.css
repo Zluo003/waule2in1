@@ -2,6 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Audio player light mode - invert colors to show light player */
+audio {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.dark audio {
+  filter: none;
+}
+
+/* Force dark mode text areas and inputs to have pure black background */
+.dark textarea,
+.dark input[type="text"],
+.dark select {
+  background-color: #000000 !important;
+}
+
+/* Electron drag regions */
+.drag {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+  cursor: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 /* Custom scrollbar */
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar {
@@ -48,53 +76,27 @@
   animation: slide-in-right 0.3s ease-out forwards;
 }
 
-/* Dot grid pattern for canvas */
+/* Dot grid pattern for canvas - 极简灰色 */
 .dot-grid {
-  background-image: radial-gradient(circle, rgba(122, 15, 232, 0.15) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
 .dark .dot-grid {
-  background-image: radial-gradient(circle, rgba(122, 15, 232, 0.2) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
 }
 
-/* 工作流画布炫酷背景 */
+/* 工作流画布背景 - 极简点阵 */
 .react-flow {
-  background: 
-    /* 网格线 */
-    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px),
-    /* 渐变背景 */
-    radial-gradient(ellipse at 0% 0%, rgba(147, 51, 234, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 0% 100%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
-  background-size: 
-    40px 40px,
-    40px 40px,
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%;
+  background-color: #fdfdfd !important;
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.15) 1px, transparent 1px) !important;
+  background-size: 24px 24px;
 }
 
 .dark .react-flow {
-  background: 
-    /* 网格线 - 深色模式更明显 */
-    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
-    /* 渐变背景 - 深色模式更鲜艳 */
-    radial-gradient(ellipse at 0% 0%, rgba(147, 51, 234, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(59, 130, 246, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 0% 100%, rgba(16, 185, 129, 0.10) 0%, transparent 50%);
-  background-size: 
-    40px 40px,
-    40px 40px,
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%;
+  background-color: #010101 !important;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.12) 1px, transparent 1px) !important;
+  background-size: 24px 24px;
 }
 
 /* Material Symbols config */
@@ -130,55 +132,41 @@
 }
 
 /* Global styles */
-body {
-  @apply bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white;
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-/* 全局炫酷渐变背景 - 应用于主内容区域 */
+body {
+  @apply font-display text-gray-900 dark:text-white;
+  background-color: #f8f8f8 !important;
+}
+
+.dark body, html.dark body {
+  background-color: #0a0a0a !important;
+}
+
+/* 全局背景 - 保持极简纯色 */
 .global-gradient-bg {
   position: relative;
   overflow: hidden;
 }
 
-.global-gradient-bg::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background: 
-    radial-gradient(ellipse at 0% 0%, rgba(147, 51, 234, 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, 0.05) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-    radial-gradient(ellipse at 0% 100%, rgba(245, 158, 11, 0.04) 0%, transparent 50%);
-}
-
-.dark .global-gradient-bg::before {
-  background: 
-    radial-gradient(ellipse at 0% 0%, rgba(147, 51, 234, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 0%, rgba(236, 72, 153, 0.10) 0%, transparent 50%),
-    radial-gradient(ellipse at 100% 100%, rgba(59, 130, 246, 0.10) 0%, transparent 50%),
-    radial-gradient(ellipse at 0% 100%, rgba(245, 158, 11, 0.08) 0%, transparent 50%);
-}
-
-.global-gradient-bg > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* 统一所有表单元素的主题色为紫色 */
+/* 统一所有表单元素的主题色为中性灰 */
 *,
 *::before,
 *::after {
-  accent-color: #7a0fe8 !important;
+  accent-color: #525252 !important;
 }
 
 /* 覆盖浏览器默认的蓝色主题 */
 :root {
   /* 不使用 color-scheme，避免浏览器使用系统默认蓝色 */
-  --color-primary: #7a0fe8;
-  --color-primary-hover: #6b0dd1;
-  --color-primary-light: #ead5ff;
+  --color-primary: #525252;
+  --color-primary-hover: #404040;
+  --color-primary-light: #e5e5e5;
 }
 
 /* 移除所有蓝色相关的颜色 */
@@ -186,7 +174,7 @@ input:focus,
 select:focus,
 textarea:focus,
 button:focus {
-  outline-color: #7a0fe8 !important;
+  outline-color: #525252 !important;
 }
 
 /* React Flow custom styles */
@@ -260,9 +248,9 @@ button:focus {
   border-image-source: linear-gradient(135deg, #6D28D9, #F59E0B);
 }
 
-/* Select 和 option 样式 - 强制统一为紫色主题 */
+/* Select 和 option 样式 - 强制统一为中性灰主题 */
 select {
-  accent-color: #7a0fe8 !important;
+  accent-color: #525252 !important;
   /* 移除 color-scheme，避免使用系统默认颜色 */
 }
 
@@ -286,8 +274,8 @@ html.dark select option:hover {
 html.dark select option:checked,
 html.dark select option:focus,
 html.dark select option[selected] {
-  background: #7a0fe8 !important;
-  background-color: #7a0fe8 !important;
+  background: #525252 !important;
+  background-color: #525252 !important;
   color: white !important;
   font-weight: 600;
 }
@@ -307,8 +295,8 @@ select option:hover {
 select option:checked,
 select option:focus,
 select option[selected] {
-  background: #7a0fe8 !important;
-  background-color: #7a0fe8 !important;
+  background: #525252 !important;
+  background-color: #525252 !important;
   color: white !important;
   font-weight: 600;
 }
@@ -323,22 +311,22 @@ select::-webkit-scrollbar-track {
 }
 
 select::-webkit-scrollbar-thumb {
-  background: #7a0fe8;
+  background: #525252;
   border-radius: 6px;
 }
 
 select::-webkit-scrollbar-thumb:hover {
-  background: #6b0dd1;
+  background: #404040;
 }
 
 /* 覆盖系统默认的选中样式 */
 select option::selection {
-  background: #7a0fe8 !important;
+  background: #525252 !important;
   color: white !important;
 }
 
 select option::-moz-selection {
-  background: #7a0fe8 !important;
+  background: #525252 !important;
   color: white !important;
 }
 
@@ -444,6 +432,7 @@ input[type="range"].slider-purple:disabled {
 .react-flow__node input[type='email'],
 .react-flow__node textarea,
 .react-flow__node select {
+  font-family: 'DM Sans', 'Noto Sans SC', sans-serif;
   font-size: 12px;
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
@@ -458,13 +447,13 @@ input[type="range"].slider-purple:disabled {
 :root.light .react-flow__node input[type='email'],
 :root.light .react-flow__node textarea,
 :root.light .react-flow__node select {
-  background: rgba(241, 245, 249, 1);
+  background: #f8f8f8;
   color: #0f172a;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e5e5;
 }
 :root.light .react-flow__node input:focus,
 :root.light .react-flow__node textarea:focus,
-:root.light .react-flow__node select:focus { background: #ffffff; border-color: #a855f7; }
+:root.light .react-flow__node select:focus { background: #ffffff; border-color: #a3a3a3; }
 
 /* dark */
 :root.dark .react-flow__node input[type='text'],
@@ -472,13 +461,13 @@ input[type="range"].slider-purple:disabled {
 :root.dark .react-flow__node input[type='email'],
 :root.dark .react-flow__node textarea,
 :root.dark .react-flow__node select {
-  background: rgba(255, 255, 255, 0.05);
+  background: #0a0a0a;
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #262626;
 }
 :root.dark .react-flow__node input:focus,
 :root.dark .react-flow__node textarea:focus,
-:root.dark .react-flow__node select:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(168, 85, 247, 0.5); }
+:root.dark .react-flow__node select:focus { background: #171717; border-color: #525252; }
 
 /* Range slider with dynamic gradient background */
 :root {
@@ -514,7 +503,7 @@ input[type="range"].slider-purple:disabled {
 
 .react-flow__node input[type='range']::-webkit-slider-thumb:hover {
   transform: scale(1.1);
-  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2);
+  box-shadow: 0 0 0 4px rgba(82, 82, 82, 0.2);
 }
 
 .react-flow__node input[type='range']::-moz-range-thumb {
@@ -530,7 +519,7 @@ input[type="range"].slider-purple:disabled {
 
 .react-flow__node input[type='range']::-moz-range-thumb:hover {
   transform: scale(1.1);
-  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2);
+  box-shadow: 0 0 0 4px rgba(82, 82, 82, 0.2);
 }
 
 /* Remove default track background since we use inline style */

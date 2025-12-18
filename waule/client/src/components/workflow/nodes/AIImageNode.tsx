@@ -967,7 +967,7 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
   if (!isExpanded && !data.config.generatedImageUrl) {
     return (
       <div
-        className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'
+        className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'
         }`}
         style={{ width: 320 }}
         onDoubleClick={() => {
@@ -1004,7 +1004,7 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
         />
 
         {/* 节点头部 - Aurora渐变样式 */}
-        <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+        <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>image</span>
             <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">{data.label}</span>
@@ -1042,7 +1042,7 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
   // 极简展开状态
   return (
     <div
-      className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'
+      className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'
       }`}
       style={{ width: 320 }}
     >
@@ -1060,7 +1060,7 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
       />
 
       {/* 节点头部 - Aurora渐变样式 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>image</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">{data.label}</span>
@@ -1105,7 +1105,7 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
                   userEditedPromptRef.current = true;
                   setPrompt(e.target.value);
                 }}
-                className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-purple-400 dark:focus:border-purple-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
+                className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
                 placeholder="输入您的创意"
                 style={{ minHeight: '60px' }}
               />
@@ -1144,10 +1144,10 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
                       <img
                         src={imgUrl}
                         alt={`图片${index + 1}`}
-                        className="w-full h-full object-cover rounded-md border border-slate-200 dark:border-white/10 group-hover:border-purple-400 dark:group-hover:border-purple-400 transition-colors"
+                        className="w-full h-full object-cover rounded-md border border-slate-200 dark:border-white/10 group-hover:border-neutral-400 dark:group-hover:border-neutral-400 transition-colors"
                       />
                       {/* 序号标签 */}
-                      <div className="absolute top-0 left-0 bg-purple-600 text-white text-xs px-1.5 py-0.5 rounded-br">
+                      <div className="absolute top-0 left-0 bg-neutral-600 text-white text-xs px-1.5 py-0.5 rounded-br">
                         {index + 1}
                       </div>
 
@@ -1172,7 +1172,7 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
                         onClick={() => setImageSize(res)}
                         className={`nodrag py-2 rounded-lg text-[10px] font-bold transition-colors border ${
                           imageSize === res
-                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md border-transparent dark:border-white/10'
+                            ? 'bg-neutral-800 dark:bg-white text-white dark:text-black text-white shadow-md border-transparent dark:border-white/10'
                             : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white/70 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10'
                         }`}
                       >
@@ -1192,7 +1192,7 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">出图数量</label>
-                  <span className="text-xs font-mono text-purple-500 dark:text-purple-400">{maxImages} 张</span>
+                  <span className="text-xs font-mono text-neutral-500 dark:text-neutral-400">{maxImages} 张</span>
                 </div>
                 <input
                   type="range"
@@ -1200,7 +1200,10 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
                   max="15"
                   value={maxImages}
                   onChange={(e) => setMaxImages(Number(e.target.value))}
-                  className="nodrag w-full h-2 bg-slate-200 dark:bg-white/10 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  className="nodrag w-full h-2 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #404040 0%, #525252 ${((maxImages - 1) / 14) * 50}%, #06b6d4 ${((maxImages - 1) / 14) * 100}%, var(--range-bg-color) ${((maxImages - 1) / 14) * 100}%, var(--range-bg-color) 100%)`
+                  }}
                 />
                 <div className="flex justify-between text-[9px] text-slate-400 dark:text-white/40">
                   <span>1张</span>
@@ -1224,8 +1227,8 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
                     <button
                       onClick={() => setRatio('16:9')}
                       className={`nodrag py-2 rounded text-sm font-medium transition-colors border ${ratio === '16:9'
-                          ? 'bg-purple-600 text-white border-purple-500'
-                          : 'bg-purple-950/50 text-purple-300 border-purple-700/30 hover:bg-purple-900/50'
+                          ? 'bg-neutral-600 text-white border-neutral-500'
+                          : 'bg-neutral-950/50 text-neutral-300 border-neutral-700/30 hover:bg-neutral-900/50'
                         }`}
                     >
                       <div className="flex items-center justify-center gap-2">
@@ -1236,8 +1239,8 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
                     <button
                       onClick={() => setRatio('9:16')}
                       className={`nodrag py-2 rounded text-sm font-medium transition-colors border ${ratio === '9:16'
-                          ? 'bg-purple-600 text-white border-purple-500'
-                          : 'bg-purple-950/50 text-purple-300 border-purple-700/30 hover:bg-purple-900/50'
+                          ? 'bg-neutral-600 text-white border-neutral-500'
+                          : 'bg-neutral-950/50 text-neutral-300 border-neutral-700/30 hover:bg-neutral-900/50'
                         }`}
                     >
                       <div className="flex items-center justify-center gap-2">
@@ -1284,7 +1287,7 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
               onPointerDown={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               disabled={isGenerating || !prompt.trim() || data._canEdit === false}
-              className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${isGenerating ? 'bg-gray-600 dark:bg-gray-700 text-white cursor-wait border-transparent dark:border-white/10' : 'bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 text-white shadow-md hover:shadow-lg border-transparent dark:border-white/10'}`}
+              className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all flex items-center justify-center gap-2 ${isGenerating || !prompt.trim() ? 'bg-neutral-800 dark:bg-white text-white dark:text-black cursor-not-allowed border-transparent' : 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md hover:shadow-lg border-transparent dark:border-white/10 active:scale-95'}`}
             >
               {isGenerating ? (
                 <>
@@ -1298,11 +1301,11 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
                   {/* 积分/免费显示 */}
                   {!creditsLoading && (
                     isFreeUsage ? (
-                      <span className="ml-1 px-1.5 py-0.5 bg-amber-500/40 text-amber-200 rounded text-[9px]">
-                        免费，今日剩{freeUsageRemaining}次
+                      <span className="ml-1 px-1.5 py-0.5 text-neutral-400 dark:text-neutral-500 rounded text-[9px]">
+                        免费，今日剩{Math.floor(freeUsageRemaining)}次
                       </span>
                     ) : credits !== null && credits > 0 ? (
-                      <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[9px]">
+                      <span className="ml-1 px-1.5 py-0.5 text-neutral-400 dark:text-neutral-500 text-[9px]">
                         {credits}积分
                       </span>
                     ) : null

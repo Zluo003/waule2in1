@@ -405,7 +405,7 @@ const AudioSynthesizeNode = ({ data, id, selected }: NodeProps<NodeData>) => {
 
 
   return (
-    <div className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`} style={{ width: 320 }}>
+    <div className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`} style={{ width: 320 }}>
       {/* 创建者头像徽章 */}
       <NodeCreatorBadge createdBy={(data as any).createdBy} isSharedWorkflow={(data as any)._isSharedWorkflow} />
       <CustomHandle
@@ -415,7 +415,7 @@ const AudioSynthesizeNode = ({ data, id, selected }: NodeProps<NodeData>) => {
         className="!w-3 !h-3 !border-2 !rounded-full !bg-white dark:!bg-black !border-slate-400 dark:!border-white hover:!scale-150 !transition-transform !cursor-crosshair !shadow-[0_0_5px_rgba(255,255,255,0.5)]"
       />
 
-      <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>record_voice_over</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">{data.label}</span>
@@ -455,7 +455,7 @@ const AudioSynthesizeNode = ({ data, id, selected }: NodeProps<NodeData>) => {
               options={[{ value: '', label: '选择音色' }, ...(language === 'custom' ? savedVoices.map(v => ({ value: v.voiceId, label: v.prefix || v.voiceId })) : SYSTEM_VOICES.filter(v => { const l = v.label; if (language === 'zh') return l.startsWith('中文 (普通话)'); if (language === 'yue') return l.startsWith('中文 (粤语)'); if (language === 'en') return l.startsWith('英文 '); if (language === 'ja') return l.startsWith('日文 '); if (language === 'ko') return l.startsWith('韩文 '); return true; }).map(v => ({ value: v.id, label: v.label.replace(/^中文 \(普通话\) |^中文 \(粤语\) |^英文 |^日文 |^韩文 /, '') })))]}
             />
           </div>
-          <button onClick={() => handleSynthesize(true)} disabled={isBusy} className={`mt-auto w-9 h-9 rounded-full flex items-center justify-center text-white hover:shadow-lg ${isBusy ? 'bg-gray-600 dark:bg-gray-700' : ''}`} style={!isBusy ? { background: document.documentElement.classList.contains('dark') ? 'linear-gradient(to right, #4b1b77, #6f153f)' : 'linear-gradient(to right, #a855f7, #ec4899)' } : undefined}>
+          <button onClick={() => handleSynthesize(true)} disabled={isBusy} className={`mt-auto w-9 h-9 rounded-full flex items-center justify-center text-white hover:shadow-lg ${isBusy ? 'bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400' : ''}`} style={!isBusy ? { background: document.documentElement.classList.contains('dark') ? 'linear-gradient(to right, #4b1b77, #6f153f)' : 'linear-gradient(to right, #525252, #404040)' } : undefined}>
             <span className="material-symbols-outlined text-base">play_arrow</span>
           </button>
         </div>
@@ -467,10 +467,10 @@ const AudioSynthesizeNode = ({ data, id, selected }: NodeProps<NodeData>) => {
             onChange={(e) => { setText(e.target.value); updateNodeData({ text: e.target.value }); }}
             onMouseDown={(e) => e.stopPropagation()}
             placeholder="输入要合成的文本"
-            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-purple-400 dark:focus:border-purple-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
+            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 focus:bg-white dark:focus:bg-white/10 border-slate-200 dark:border-white/10 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/30"
           />
         </div>
-        <button onClick={() => handleSynthesize(false)} disabled={isBusy || (data as any)._canEdit === false} className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 text-white shadow-md hover:shadow-lg ${isBusy || (data as any)._canEdit === false ? 'bg-gray-600 dark:bg-gray-700' : 'border-transparent dark:border-white/10'}`} style={!(isBusy || (data as any)._canEdit === false) ? { background: document.documentElement.classList.contains('dark') ? 'linear-gradient(to right, #4b1b77, #6f153f)' : 'linear-gradient(to right, #a855f7, #ec4899)' } : undefined}>
+        <button onClick={() => handleSynthesize(false)} disabled={isBusy || (data as any)._canEdit === false} className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 text-white shadow-md hover:shadow-lg ${isBusy || (data as any)._canEdit === false ? 'bg-neutral-300 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400' : 'border-transparent dark:border-white/10'}`} style={!(isBusy || (data as any)._canEdit === false) ? { background: document.documentElement.classList.contains('dark') ? 'linear-gradient(to right, #4b1b77, #6f153f)' : 'linear-gradient(to right, #525252, #404040)' } : undefined}>
           {isBusy ? '合成中...' : '生成语音'}
         </button>
       </div>

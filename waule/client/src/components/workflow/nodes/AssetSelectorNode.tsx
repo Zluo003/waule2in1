@@ -314,9 +314,9 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
     
     // Create left-to-right gradient for waveform
     const gradient = ctx.createLinearGradient(0, 0, w, 0);
-    gradient.addColorStop(0, '#a855f7');    // purple-500
+    gradient.addColorStop(0, '#525252');    // neutral-600
     gradient.addColorStop(0.5, '#d946ef');  // fuchsia-500
-    gradient.addColorStop(1, '#ec4899');    // pink-500
+    gradient.addColorStop(1, '#404040');    // neutral-500
     
     for (let i = 0; i < n; i++) {
       const v = Math.min(1, Math.max(0, vals[i]));
@@ -349,7 +349,7 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
       const rg = selectedInput as RoleGroup;
 
       return (
-        <div className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-lg transition-all p-4 ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`} style={{ width: MEDIA_NODE_WIDTH }}>
+        <div className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-lg transition-all p-4 ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`} style={{ width: MEDIA_NODE_WIDTH }}>
           <CustomHandle type="source" position={Position.Right} id={`${id}-source`} className="!w-3 !h-3 !border-2 !rounded-full !bg-white dark:!bg-black !border-slate-400 dark:!border-white hover:!scale-150 !transition-transform !cursor-crosshair !shadow-[0_0_5px_rgba(255,255,255,0.5)]" />
           <div className="relative group flex flex-col gap-4">
             <div
@@ -412,7 +412,7 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
                 ))}
               </div>
               <div className="nodrag absolute bottom-2 right-2 flex gap-1.5 z-10">
-                <button onClick={handleOpenAssetPanel} className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95" title="重新选择">
+                <button onClick={handleOpenAssetPanel} className="w-7 h-7 flex items-center justify-center bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95" title="重新选择">
                   <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>swap_horiz</span>
                 </button>
               </div>
@@ -429,7 +429,7 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
     if (asset.type === 'IMAGE' && imageDimensions) {
       return (
         <div
-          className={`relative border rounded-2xl overflow-hidden shadow-lg transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
+          className={`relative border rounded-2xl overflow-hidden shadow-lg transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
           style={{ width: MEDIA_NODE_WIDTH }}
         >
           <CustomHandle
@@ -449,7 +449,7 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
             <div className="nodrag absolute bottom-2 right-2 flex gap-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={handleOpenAssetPanel}
-                className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+                className="w-7 h-7 flex items-center justify-center bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
                 title="重新选择"
               >
                 <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>swap_horiz</span>
@@ -464,7 +464,7 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
     if (asset.type === 'VIDEO' && videoDimensions) {
       return (
         <div
-          className={`relative border rounded-2xl overflow-hidden shadow-lg transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
+          className={`relative border rounded-2xl overflow-hidden shadow-lg transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
           style={{ width: MEDIA_NODE_WIDTH }}
         >
           <CustomHandle
@@ -500,7 +500,7 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
             <div className="nodrag absolute bottom-2 right-2 flex gap-1.5 z-20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
               <button
                 onClick={handleOpenAssetPanel}
-                className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+                className="w-7 h-7 flex items-center justify-center bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
                 title="重新选择"
               >
                 <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>swap_horiz</span>
@@ -515,7 +515,7 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
   if (asset.type === 'AUDIO') {
     return (
       <div
-        className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-lg transition-all p-4 ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
+        className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-lg transition-all p-4 ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
         style={{ width: 400 }}
       >
         <CustomHandle
@@ -527,7 +527,7 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
         <div className="space-y-3">
           <p className="text-sm text-center text-slate-800 dark:text-white truncate">{asset.name}</p>
           <div className="flex items-center gap-2">
-            <button onClick={() => { const a = audioRef.current; if (!a) return; if (audioIsPlaying) { a.pause(); setAudioIsPlaying(false); } else { a.play(); setAudioIsPlaying(true); } }} className="nodrag w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg flex items-center justify-center transition-all shadow-md active:scale-95">
+            <button onClick={() => { const a = audioRef.current; if (!a) return; if (audioIsPlaying) { a.pause(); setAudioIsPlaying(false); } else { a.play(); setAudioIsPlaying(true); } }} className="nodrag w-8 h-8 rounded-full bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg flex items-center justify-center transition-all shadow-md active:scale-95">
               <span className="material-symbols-outlined text-white text-lg" style={{ fontVariationSettings: '"FILL" 1, "wght" 400' }}>{audioIsPlaying ? 'pause' : 'play_arrow'}</span>
             </button>
             <span className="text-xs text-slate-600 dark:text-slate-400">{(() => { const s = audioDurationSec; if (!s || !isFinite(s)) return '0:00'; const m = Math.floor(s / 60); const ss = Math.floor(s % 60); return `${m}:${ss.toString().padStart(2, '0')}`; })()}</span>
@@ -541,7 +541,7 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
         <div className="nodrag absolute bottom-2 right-2 flex gap-1.5 z-10">
           <button
             onClick={handleOpenAssetPanel}
-            className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+            className="w-7 h-7 flex items-center justify-center bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
             title="重新选择"
           >
             <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>swap_horiz</span>
@@ -565,7 +565,7 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
 
       return (
         <div
-          className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-lg transition-all p-4 ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
+          className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-lg transition-all p-4 ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
           style={{ width: 400 }}
         >
       <CustomHandle
@@ -586,7 +586,7 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
           <div className="nodrag absolute bottom-2 right-2 flex gap-1.5 z-10">
             <button
               onClick={handleOpenAssetPanel}
-              className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+              className="w-7 h-7 flex items-center justify-center bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
               title="重新选择"
             >
               <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>swap_horiz</span>
@@ -600,7 +600,7 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
   // 未选择资产时，显示选择按钮
   return (
     <div
-      className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-lg transition-all p-6 ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
+      className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-lg transition-all p-6 ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
       style={{ width: MEDIA_NODE_WIDTH }}
     >
       <CustomHandle
@@ -624,7 +624,7 @@ const AssetSelectorNode = ({ data, id, selected }: NodeProps<AssetSelectorNodeDa
         </div>
         <button
           onClick={handleOpenAssetPanel}
-          className="nodrag w-full px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-md transition-all flex items-center justify-center gap-2 font-medium active:scale-95"
+          className="nodrag w-full px-4 py-2.5 bg-neutral-800 dark:bg-white text-white dark:text-black hover:shadow-lg text-white rounded-md transition-all flex items-center justify-center gap-2 font-medium active:scale-95"
         >
           <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>folder_open</span>
           <span>选择素材</span>

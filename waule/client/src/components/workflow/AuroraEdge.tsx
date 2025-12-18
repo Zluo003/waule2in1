@@ -26,8 +26,8 @@ const AuroraEdge = memo(({
     <g className="aurora-edge">
       <defs>
         <linearGradient id={`aurora-grad-${id}`} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#ec4899" stopOpacity={0.5} />
-          <stop offset="50%" stopColor="#a855f7" stopOpacity={1} />
+          <stop offset="0%" stopColor="#404040" stopOpacity={0.5} />
+          <stop offset="50%" stopColor="#525252" stopOpacity={1} />
           <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.5} />
         </linearGradient>
         <filter id={`aurora-glow-${id}`}>
@@ -44,7 +44,7 @@ const AuroraEdge = memo(({
         id={id}
         d={edgePath}
         fill="none"
-        stroke={selected ? '#a855f7' : 'currentColor'}
+        stroke={selected ? '#525252' : 'currentColor'}
         strokeWidth={2}
         className="opacity-30 dark:text-white/40 text-slate-300"
         style={{ pointerEvents: 'none' }}

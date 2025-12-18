@@ -306,10 +306,10 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
 
   // 获取文件图标
   const getFileIcon = (mimeType: string): { icon: string; color: string } => {
-    if (mimeType.startsWith('image/')) return { icon: 'image', color: 'text-tiffany-400' };
-    if (mimeType.startsWith('video/')) return { icon: 'movie', color: 'text-green-400' };
-    if (mimeType.startsWith('audio/')) return { icon: 'audio_file', color: 'text-blue-400' };
-    return { icon: 'description', color: 'text-tiffany-400' };
+    if (mimeType.startsWith('image/')) return { icon: 'image', color: 'text-neutral-500 dark:text-neutral-400' };
+    if (mimeType.startsWith('video/')) return { icon: 'movie', color: 'text-neutral-500 dark:text-neutral-400' };
+    if (mimeType.startsWith('audio/')) return { icon: 'audio_file', color: 'text-neutral-500 dark:text-neutral-400' };
+    return { icon: 'description', color: 'text-neutral-500 dark:text-neutral-400' };
   };
 
   // 当上传文件后，如果是图片，获取其尺寸
@@ -438,9 +438,9 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
     ctx.clearRect(0, 0, w, h);
     const n = vals.length, gap = 2, bw = Math.max(1, Math.floor((w - (n - 1) * gap) / n));
     const gradient = ctx.createLinearGradient(0, 0, w, 0);
-    gradient.addColorStop(0, '#a855f7');
+    gradient.addColorStop(0, '#525252');
     gradient.addColorStop(0.5, '#d946ef');
-    gradient.addColorStop(1, '#ec4899');
+    gradient.addColorStop(1, '#404040');
     for (let i = 0; i < n; i++) {
       const v = Math.min(1, Math.max(0, vals[i]));
       const bh = Math.max(2, Math.floor(v * h));
@@ -461,10 +461,10 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
   };
 
   const supportedFormats = [
-    { type: 'image', formats: ['PNG', 'JPG', 'JPEG'], icon: 'image', color: 'tiffany' },
-    { type: 'video', formats: ['MP4', 'MOV'], icon: 'movie', color: 'green' },
-    { type: 'audio', formats: ['MP3', 'WAV'], icon: 'audio_file', color: 'blue' },
-    { type: 'document', formats: ['PDF', 'DOCX', 'XLSX', 'TXT'], icon: 'description', color: 'tiffany' },
+    { type: 'image', formats: ['PNG', 'JPG', 'JPEG'], icon: 'image', color: 'neutral' },
+    { type: 'video', formats: ['MP4', 'MOV'], icon: 'movie', color: 'neutral' },
+    { type: 'audio', formats: ['MP3', 'WAV'], icon: 'audio_file', color: 'neutral' },
+    { type: 'document', formats: ['PDF', 'DOCX', 'XLSX', 'TXT'], icon: 'description', color: 'neutral' },
   ];
 
   const file = uploadedFiles[0];
@@ -483,7 +483,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
   if (file && file.type === 'IMAGE' && imageDimensions) {
     return (
       <div
-        className={`relative border rounded-2xl overflow-hidden shadow-lg transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
+        className={`relative border rounded-2xl overflow-hidden shadow-lg transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
         style={{ width: MEDIA_NODE_WIDTH }}
       >
         
@@ -505,7 +505,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
           <div className="nodrag absolute bottom-2 right-2 flex gap-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
             <button
               onClick={handleReplaceFile}
-              className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+              className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-neutral-800 to-neutral-700 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
               title="重新上传"
             >
               <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>upload</span>
@@ -526,7 +526,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
   if (file && file.type === 'VIDEO' && videoDimensions) {
     return (
       <div
-        className={`relative border rounded-2xl overflow-hidden shadow-lg transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
+        className={`relative border rounded-2xl overflow-hidden shadow-lg transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
         style={{ width: MEDIA_NODE_WIDTH }}
       >
         
@@ -563,7 +563,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
           <div className="nodrag absolute bottom-2 right-2 flex gap-1.5 z-20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
             <button
               onClick={handleReplaceFile}
-              className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+              className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-neutral-800 to-neutral-700 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
               title="重新上传"
             >
               <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>upload</span>
@@ -584,7 +584,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
   if (file && file.type === 'AUDIO') {
     return (
       <div
-        className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-lg transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
+        className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-lg transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
         style={{ width: 400 }}
       >
         
@@ -596,7 +596,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
         />
         <div className="space-y-3 p-4">
           <div className="flex items-center gap-2">
-            <button onClick={toggleAudio} className="nodrag w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg flex items-center justify-center transition-all shadow-md active:scale-95">
+            <button onClick={toggleAudio} className="nodrag w-8 h-8 rounded-full bg-gradient-to-r from-neutral-800 to-neutral-700 hover:shadow-lg flex items-center justify-center transition-all shadow-md active:scale-95">
               <span className="material-symbols-outlined text-white text-lg" style={{ fontVariationSettings: '"FILL" 1, "wght" 400' }}>{audioIsPlaying ? 'pause' : 'play_arrow'}</span>
             </button>
             <span className="text-xs text-slate-600 dark:text-slate-400">{formatAudio(audioDurationSec)}</span>
@@ -609,7 +609,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
           <div className="nodrag absolute bottom-2 right-2 flex gap-1.5 z-10">
             <button
               onClick={handleReplaceFile}
-              className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+              className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-neutral-800 to-neutral-700 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
               title="重新上传"
             >
               <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>upload</span>
@@ -630,7 +630,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
   if (file && file.type === 'DOCUMENT') {
     return (
         <div
-          className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-lg transition-all p-4 ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
+          className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-lg transition-all p-4 ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
           style={{ width: 400 }}
         >
           
@@ -652,7 +652,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
           <div className="nodrag absolute bottom-2 right-2 flex gap-1.5 z-10">
             <button
               onClick={handleReplaceFile}
-              className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
+              className="w-7 h-7 flex items-center justify-center bg-gradient-to-r from-neutral-800 to-neutral-700 hover:shadow-lg text-white rounded-full transition-all backdrop-blur-sm shadow-md active:scale-95"
               title="重新上传"
             >
               <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>upload</span>
@@ -673,7 +673,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
   // Default: no file uploaded or unknown type
   return (
     <div
-      className={`relative bg-white/80 dark:bg-black/60 backdrop-blur-xl border rounded-2xl shadow-lg transition-all ring-1 ${selected ? 'border-purple-400 shadow-purple-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
+      className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-lg transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-slate-200 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`}
       style={{ width: 320 }}
     >
       
@@ -685,7 +685,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
       />
 
       {/* 节点头部 - Aurora风格 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b rounded-t-2xl border-slate-200 dark:border-white/10 bg-gradient-to-r from-pink-500/20 dark:from-pink-500/20 from-pink-200/50 via-purple-500/20 dark:via-purple-500/20 via-purple-200/50 to-cyan-500/20 dark:to-cyan-500/20 to-cyan-200/50">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>upload_file</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">{data.label}</span>
@@ -720,7 +720,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
               if ((data as any)._canEdit === false) return;
               handleFileUpload(e.dataTransfer.files);
             }}
-            className={`nodrag w-full p-6 bg-slate-100 dark:bg-white/5 border-2 border-dashed border-slate-300 dark:border-white/20 rounded-xl cursor-pointer hover:border-purple-400 dark:hover:border-purple-400/50 transition-colors ${
+            className={`nodrag w-full p-6 bg-slate-100 dark:bg-white/5 border-2 border-dashed border-slate-300 dark:border-white/20 rounded-xl cursor-pointer hover:border-neutral-400 dark:hover:border-neutral-400/50 transition-colors ${
               isUploading || (data as any)._canEdit === false ? 'opacity-50 pointer-events-none' : ''
             }`}
           >
@@ -733,7 +733,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
               </p>
               {isUploading && (
                 <div className="w-full h-2 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden mt-2">
-                  <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all" style={{ width: `${uploadProgress}%` }} />
+                  <div className="h-full bg-gradient-to-r from-neutral-800 to-neutral-700 transition-all" style={{ width: `${uploadProgress}%` }} />
                 </div>
               )}
               <p className="text-xs text-slate-400 dark:text-white/50">支持多种格式，最大100MB</p>

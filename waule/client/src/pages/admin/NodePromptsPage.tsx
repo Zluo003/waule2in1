@@ -282,14 +282,14 @@ const NodePromptsPage = () => {
         <div className="flex gap-2">
           <button
             onClick={handleInitHDUpscale}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-neutral-500/20 text-neutral-400 rounded-lg hover:bg-neutral-500/30 transition-colors"
           >
             <Sparkles className="w-4 h-4" />
             初始化高清放大
           </button>
           <button
             onClick={handleInitImageFusion}
-            className="flex items-center gap-2 px-4 py-2 bg-pink-500/20 text-pink-400 rounded-lg hover:bg-pink-500/30 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-neutral-500/20 text-neutral-400 rounded-lg hover:bg-neutral-500/30 transition-colors"
           >
             <Sparkles className="w-4 h-4" />
             初始化智能溶图
@@ -320,7 +320,7 @@ const NodePromptsPage = () => {
           <div className="flex-1 overflow-y-auto p-2">
             {loading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="w-6 h-6 border-2 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-neutral-500/20 border-t-neutral-500 rounded-full animate-spin" />
               </div>
             ) : templates.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -336,7 +336,7 @@ const NodePromptsPage = () => {
                       onClick={() => handleSelectTemplate(template)}
                       className={`w-full text-left px-3 py-2.5 rounded-lg transition-all ${
                         selectedTemplate?.id === template.id
-                          ? 'bg-purple-500/20 text-purple-400'
+                          ? 'bg-neutral-500/20 text-neutral-400'
                           : 'text-gray-400 hover:bg-white/5 hover:text-white'
                       }`}
                     >
@@ -404,7 +404,7 @@ const NodePromptsPage = () => {
                   <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center gap-1.5 px-4 py-1.5 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-4 py-1.5 bg-neutral-500 text-white rounded-lg hover:bg-neutral-600 transition-colors disabled:opacity-50"
                   >
                     {saving ? (
                       <RotateCcw className="w-4 h-4 animate-spin" />
@@ -435,7 +435,7 @@ const NodePromptsPage = () => {
                         });
                       }}
                       disabled={!isCreating}
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-purple-500 disabled:opacity-50"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-neutral-500 disabled:opacity-50"
                     >
                       <option value="" className="bg-gray-800">请选择节点类型</option>
                       {AVAILABLE_NODE_TYPES.map((node) => (
@@ -454,7 +454,7 @@ const NodePromptsPage = () => {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="如: 高清放大节点"
-                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neutral-500"
                     />
                   </div>
                 </div>
@@ -466,7 +466,7 @@ const NodePromptsPage = () => {
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="节点功能描述"
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neutral-500"
                   />
                 </div>
 
@@ -490,7 +490,7 @@ const NodePromptsPage = () => {
                         onChange={(e) => setFormData({ ...formData, systemPrompt: e.target.value })}
                         placeholder="设定 AI 的角色和行为..."
                         rows={8}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 font-mono text-sm"
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neutral-500 font-mono text-sm"
                       />
                     </div>
                   )}
@@ -506,7 +506,7 @@ const NodePromptsPage = () => {
                       <span className="text-sm font-medium text-gray-300">
                         用户提示词模板 <span className="text-red-400">*</span>
                       </span>
-                      <div className="flex items-center gap-1 text-xs text-purple-400">
+                      <div className="flex items-center gap-1 text-xs text-neutral-400">
                         <Info className="w-3 h-3" />
                         支持 {'{{变量}}'} 语法
                       </div>
@@ -526,7 +526,7 @@ const NodePromptsPage = () => {
                         }
                         placeholder="用户提示词模板，使用 {{变量名}} 插入动态内容..."
                         rows={12}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 font-mono text-sm"
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neutral-500 font-mono text-sm"
                       />
                     </div>
                   )}
@@ -554,7 +554,7 @@ const NodePromptsPage = () => {
                         }
                         placeholder="用于增强/优化用户输入的提示词..."
                         rows={6}
-                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 font-mono text-sm"
+                        className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neutral-500 font-mono text-sm"
                       />
                     </div>
                   )}
@@ -563,8 +563,8 @@ const NodePromptsPage = () => {
                 {/* 使用说明 - 根据节点类型显示不同变量 */}
                 {formData.nodeType === 'hdUpscale' ? (
                   <div className="space-y-3">
-                    <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg text-sm">
-                      <p className="font-medium mb-2 text-purple-300">🔍 高清放大可用变量（点击复制）</p>
+                    <div className="p-3 bg-neutral-500/10 border border-neutral-500/20 rounded-lg text-sm">
+                      <p className="font-medium mb-2 text-neutral-300">🔍 高清放大可用变量（点击复制）</p>
                       <div className="grid grid-cols-2 gap-2">
                         {HD_UPSCALE_VARIABLES.map((v) => (
                           <button
@@ -576,7 +576,7 @@ const NodePromptsPage = () => {
                             }}
                             className="flex items-center gap-2 p-2 bg-black/20 rounded hover:bg-black/30 transition-colors text-left"
                           >
-                            <code className="text-purple-400 text-xs">{`{{${v.name}}}`}</code>
+                            <code className="text-neutral-400 text-xs">{`{{${v.name}}}`}</code>
                             <span className="text-gray-400 text-xs truncate">{v.desc}：{v.example}</span>
                           </button>
                         ))}
