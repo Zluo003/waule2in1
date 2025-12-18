@@ -148,8 +148,8 @@ const EpisodeModal: React.FC<EpisodeModalProps> = ({ isEdit = false, onSubmit, o
               className="hidden" 
             />
             {isUploadingThumbnail ? (
-              <div className="w-full h-36 border-2 border-dashed border-purple-400 dark:border-purple-400/50 rounded-lg flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5">
-                <span className="material-symbols-outlined text-2xl text-purple-500 animate-spin">progress_activity</span>
+              <div className="w-full h-36 border-2 border-dashed border-neutral-600 dark:border-neutral-600/50 rounded-lg flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5">
+                <span className="material-symbols-outlined text-2xl text-neutral-800 animate-spin">progress_activity</span>
                 <span className="text-xs text-slate-600 dark:text-slate-400">正在上传...</span>
               </div>
             ) : thumbnail ? (
@@ -167,7 +167,7 @@ const EpisodeModal: React.FC<EpisodeModalProps> = ({ isEdit = false, onSubmit, o
               <button 
                 type="button" 
                 onClick={() => fileInputRef.current?.click()} 
-                className="w-full h-36 border-2 border-dashed border-slate-300 dark:border-white/20 rounded-lg hover:border-purple-400 dark:hover:border-purple-400/50 transition-colors flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5"
+                className="w-full h-36 border-2 border-dashed border-slate-300 dark:border-white/20 rounded-lg hover:border-neutral-600 dark:hover:border-neutral-600/50 transition-colors flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5"
               >
                 <span className="material-symbols-outlined text-2xl text-slate-400 dark:text-white/50" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>add_photo_alternate</span>
                 <span className="text-xs text-slate-600 dark:text-slate-400">点击上传封面图片</span>
@@ -226,7 +226,7 @@ const EpisodeModal: React.FC<EpisodeModalProps> = ({ isEdit = false, onSubmit, o
             <button
               type="submit"
               disabled={!hasAvailableNumbers}
-              className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium active:scale-95"
+              className="flex-1 px-4 py-2 bg-neutral-800 dark:bg-white hover:shadow-lg text-white dark:text-black rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium active:scale-95"
             >
               {isEdit ? '保存更改' : '创建剧集'}
             </button>
@@ -445,9 +445,9 @@ const EpisodesPage = () => {
       <div className="fixed top-4 left-[136px] z-40 flex items-center gap-4 h-[72px]">
         <button
           onClick={() => navigate('/drama')}
-          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent rounded-lg transition-all"
+          className="group w-10 h-10 flex items-center justify-center bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-neutral-700 hover:bg-black dark:hover:bg-white hover:border-transparent rounded-lg transition-all"
         >
-          <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
+          <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400 group-hover:text-white dark:group-hover:text-black" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
         </button>
         <span className="text-2xl font-semibold text-neutral-900 dark:text-white font-display">{project?.name || '剧集列表'}</span>
       </div>
@@ -464,7 +464,7 @@ const EpisodesPage = () => {
               });
               setShowCreateModal(true);
             }}
-            className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
+            className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black dark:hover:bg-white hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
           >
             <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
           </button>
@@ -498,7 +498,7 @@ const EpisodesPage = () => {
               });
               setShowCreateModal(true);
             }}
-            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-lg transition-all inline-flex items-center gap-2 font-medium active:scale-95"
+            className="px-6 py-3 bg-neutral-800 dark:bg-white hover:shadow-lg text-white dark:text-black rounded-lg transition-all inline-flex items-center gap-2 font-medium active:scale-95"
           >
             <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>add</span>
             新建剧集
@@ -647,7 +647,7 @@ const EpisodesPage = () => {
             <div className="p-6 max-h-[400px] overflow-y-auto">
               {loadingCollaborators ? (
                 <div className="flex items-center justify-center py-8">
-                  <span className="material-symbols-outlined text-2xl text-purple-500 animate-spin">progress_activity</span>
+                  <span className="material-symbols-outlined text-2xl text-neutral-800 animate-spin">progress_activity</span>
                 </div>
               ) : collaborators.length === 0 ? (
                 <div className="text-center py-8 text-slate-500 dark:text-slate-400">
@@ -666,7 +666,7 @@ const EpisodesPage = () => {
                         {collab.avatar ? (
                           <img src={collab.avatar} alt="" className="w-10 h-10 rounded-full object-cover" />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-neutral-800 dark:bg-white flex items-center justify-center">
                             <span className="material-symbols-outlined text-white text-lg">person</span>
                           </div>
                         )}
@@ -682,7 +682,7 @@ const EpisodesPage = () => {
                       <select
                         value={collab.permission}
                         onChange={(e) => handleUpdatePermission(collab.userId, e.target.value as 'READ' | 'EDIT')}
-                        className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-800"
                       >
                         <option value="READ">只读</option>
                         <option value="EDIT">编辑</option>
@@ -700,7 +700,7 @@ const EpisodesPage = () => {
                   setSelectedEpisode(null);
                   setCollaborators([]);
                 }}
-                className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                className="w-full py-2.5 bg-neutral-800 dark:bg-white text-white dark:text-black rounded-xl font-medium hover:shadow-lg transition-all"
               >
                 完成
               </button>

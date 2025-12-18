@@ -102,7 +102,7 @@ const TenantLoginPage = ({ tenantId, tenantName }: TenantLoginPageProps) => {
         <div className="absolute inset-0 bg-gradient-to-br from-[#0c0118] via-[#050510] to-[#030014]" />
         {/* 动态光晕跟随鼠标 */}
         <div 
-          className="absolute w-[600px] h-[600px] bg-purple-600/15 rounded-full blur-[120px] transition-all duration-1000 ease-out"
+          className="absolute w-[600px] h-[600px] bg-neutral-700/15 rounded-full blur-[120px] transition-all duration-1000 ease-out"
           style={{
             left: `calc(${mousePosition.x}% - 300px)`,
             top: `calc(${mousePosition.y}% - 300px)`,
@@ -119,32 +119,32 @@ const TenantLoginPage = ({ tenantId, tenantName }: TenantLoginPageProps) => {
         {/* Logo */}
         <div className="flex items-center justify-center gap-4 mb-8">
           <div className="relative">
-            <div className="w-14 h-14 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-purple-500/30">
+            <div className="w-14 h-14 bg-gradient-to-br from-violet-500 via-neutral-800 to-fuchsia-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-neutral-800/30">
               <span className="material-symbols-outlined text-white text-3xl">auto_awesome</span>
             </div>
-            <div className="absolute -inset-1 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 rounded-2xl blur opacity-30 animate-pulse" />
+            <div className="absolute -inset-1 bg-gradient-to-br from-violet-500 via-neutral-800 to-fuchsia-500 rounded-2xl blur opacity-30 animate-pulse" />
           </div>
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-white tracking-tight">Waule <span className="text-purple-400/80 font-normal text-xl">企业版</span></h1>
+            <h1 className="text-3xl font-bold text-white tracking-tight">Waule <span className="text-neutral-600/80 font-normal text-xl">企业版</span></h1>
           </div>
         </div>
 
         {/* 卡片 */}
         <div className="relative">
           {/* 卡片光晕 */}
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500/20 via-purple-500/20 to-fuchsia-500/20 rounded-[28px] blur-xl opacity-50" />
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500/20 via-neutral-800/20 to-fuchsia-500/20 rounded-[28px] blur-xl opacity-50" />
           
           <div className="relative bg-[#0a0a15]/80 backdrop-blur-2xl border border-white/[0.08] rounded-[24px] p-8 shadow-2xl">
             {/* 卡片顶部装饰线 */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent rounded-full" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-transparent via-neutral-800 to-transparent rounded-full" />
             
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-purple-500/20 rounded-xl mb-4">
-                <span className="material-symbols-outlined text-purple-400 text-2xl">waving_hand</span>
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-neutral-800/20 rounded-xl mb-4">
+                <span className="material-symbols-outlined text-neutral-600 text-2xl">waving_hand</span>
               </div>
               <h2 className="text-xl font-bold text-white mb-1">欢迎回来</h2>
               <p className="text-gray-400 text-sm flex items-center justify-center gap-1.5">
-                <span className="material-symbols-outlined text-purple-400 text-sm">business</span>
+                <span className="material-symbols-outlined text-neutral-600 text-sm">business</span>
                 {tenantName}
               </p>
             </div>
@@ -154,7 +154,7 @@ const TenantLoginPage = ({ tenantId, tenantName }: TenantLoginPageProps) => {
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-300">用户名</label>
                 <div className="relative group">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-500 text-xl transition-colors group-focus-within:text-purple-400">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-500 text-xl transition-colors group-focus-within:text-neutral-600">
                     person
                   </span>
                   <input
@@ -162,7 +162,7 @@ const TenantLoginPage = ({ tenantId, tenantName }: TenantLoginPageProps) => {
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     placeholder="请输入用户名"
-                    className="w-full pl-12 pr-4 py-3.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:bg-white/[0.05] focus:ring-2 focus:ring-purple-500/20 transition-all"
+                    className="w-full pl-12 pr-4 py-3.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-neutral-800/50 focus:bg-white/[0.05] focus:ring-2 focus:ring-neutral-800/20 transition-all"
                   />
                 </div>
               </div>
@@ -171,7 +171,7 @@ const TenantLoginPage = ({ tenantId, tenantName }: TenantLoginPageProps) => {
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-300">密码</label>
                 <div className="relative group">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-500 text-xl transition-colors group-focus-within:text-purple-400">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-500 text-xl transition-colors group-focus-within:text-neutral-600">
                     lock
                   </span>
                   <input
@@ -179,12 +179,12 @@ const TenantLoginPage = ({ tenantId, tenantName }: TenantLoginPageProps) => {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     placeholder="请输入密码"
-                    className="w-full pl-12 pr-12 py-3.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:bg-white/[0.05] focus:ring-2 focus:ring-purple-500/20 transition-all"
+                    className="w-full pl-12 pr-12 py-3.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-neutral-800/50 focus:bg-white/[0.05] focus:ring-2 focus:ring-neutral-800/20 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-purple-400 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-neutral-600 transition-colors"
                   >
                     <span className="material-symbols-outlined text-xl">
                       {showPassword ? 'visibility_off' : 'visibility'}
@@ -197,7 +197,7 @@ const TenantLoginPage = ({ tenantId, tenantName }: TenantLoginPageProps) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="relative w-full py-3.5 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white font-semibold rounded-xl overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-xl hover:shadow-purple-500/25"
+                className="relative w-full py-3.5 bg-gradient-to-r from-violet-600 via-neutral-700 to-fuchsia-600 text-white font-semibold rounded-xl overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:shadow-xl hover:shadow-neutral-800/25"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   {loading ? (
@@ -215,7 +215,7 @@ const TenantLoginPage = ({ tenantId, tenantName }: TenantLoginPageProps) => {
                   )}
                 </span>
                 {/* 悬停渐变 */}
-                <div className="absolute inset-0 bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-r from-violet-500 via-neutral-800 to-fuchsia-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 {/* 光泽效果 */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -227,9 +227,9 @@ const TenantLoginPage = ({ tenantId, tenantName }: TenantLoginPageProps) => {
             <div className="mt-6 pt-6 border-t border-white/[0.06]">
               <Link
                 to="/admin-login"
-                className="flex items-center justify-center gap-2 w-full py-3 bg-white/[0.03] border border-white/[0.06] rounded-xl text-gray-400 hover:text-white hover:bg-white/[0.06] hover:border-purple-500/30 transition-all group"
+                className="flex items-center justify-center gap-2 w-full py-3 bg-white/[0.03] border border-white/[0.06] rounded-xl text-gray-400 hover:text-white hover:bg-white/[0.06] hover:border-neutral-800/30 transition-all group"
               >
-                <span className="material-symbols-outlined text-lg group-hover:text-purple-400 transition-colors">admin_panel_settings</span>
+                <span className="material-symbols-outlined text-lg group-hover:text-neutral-600 transition-colors">admin_panel_settings</span>
                 <span className="text-sm font-medium">管理员入口</span>
               </Link>
               <p className="text-xs text-gray-600 text-center mt-3">

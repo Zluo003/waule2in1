@@ -88,14 +88,14 @@ const TenantReportsTab = () => {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="bg-white/10 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="bg-white/10 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-neutral-800"
             />
             <span className="text-gray-400">至</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="bg-white/10 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="bg-white/10 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-neutral-800"
             />
           </div>
           <div className="flex gap-2">
@@ -121,7 +121,7 @@ const TenantReportsTab = () => {
           <button
             onClick={fetchReport}
             disabled={loading}
-            className="ml-auto flex items-center gap-2 px-4 py-1.5 bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white text-sm rounded-lg transition-colors"
+            className="ml-auto flex items-center gap-2 px-4 py-1.5 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 text-white text-sm rounded-lg transition-colors"
           >
             <span className="material-symbols-outlined text-sm">refresh</span>
             刷新
@@ -153,19 +153,19 @@ const TenantReportsTab = () => {
             </div>
             <p className="text-2xl font-bold text-green-500">{data.summary.totalSuccessTasks.toLocaleString()}</p>
           </div>
-          <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/20 rounded-xl p-4">
+          <div className="bg-gradient-to-br from-neutral-800/20 to-neutral-800/20 border border-neutral-800/20 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="material-symbols-outlined text-purple-500">image</span>
+              <span className="material-symbols-outlined text-neutral-800">image</span>
               <span className="text-xs text-gray-400">图片产出</span>
             </div>
-            <p className="text-2xl font-bold text-purple-500">{data.summary.totalImages.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-neutral-800">{data.summary.totalImages.toLocaleString()}</p>
           </div>
-          <div className="bg-gradient-to-br from-pink-500/20 to-rose-500/20 border border-pink-500/20 rounded-xl p-4">
+          <div className="bg-gradient-to-br from-neutral-800/20 to-rose-500/20 border border-neutral-800/20 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <span className="material-symbols-outlined text-pink-500">movie</span>
+              <span className="material-symbols-outlined text-neutral-800">movie</span>
               <span className="text-xs text-gray-400">视频产出</span>
             </div>
-            <p className="text-2xl font-bold text-pink-500">{data.summary.totalVideos.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-neutral-800">{data.summary.totalVideos.toLocaleString()}</p>
           </div>
           <div className="bg-gradient-to-br from-cyan-500/20 to-teal-500/20 border border-cyan-500/20 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -188,7 +188,7 @@ const TenantReportsTab = () => {
         
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <span className="material-symbols-outlined animate-spin text-4xl text-purple-500">progress_activity</span>
+            <span className="material-symbols-outlined animate-spin text-4xl text-neutral-800">progress_activity</span>
           </div>
         ) : data?.report.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
@@ -225,13 +225,13 @@ const TenantReportsTab = () => {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                        <div className="w-8 h-8 bg-gradient-to-br from-neutral-800 to-neutral-800 rounded-full flex items-center justify-center text-white text-sm font-bold">
                           {(item.nickname || item.username).charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <p className="text-sm font-medium text-white">{item.nickname || item.username}</p>
                           {item.isAdmin && (
-                            <span className="text-xs text-purple-400">管理员</span>
+                            <span className="text-xs text-neutral-600">管理员</span>
                           )}
                         </div>
                       </div>
@@ -254,8 +254,8 @@ const TenantReportsTab = () => {
                         {item.successRate}%
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-purple-400">{item.imageCount}</td>
-                    <td className="px-4 py-3 text-right text-pink-400">{item.videoCount}</td>
+                    <td className="px-4 py-3 text-right text-neutral-600">{item.imageCount}</td>
+                    <td className="px-4 py-3 text-right text-neutral-600">{item.videoCount}</td>
                     <td className="px-4 py-3 text-right">
                       <span className="text-cyan-400" title="每消耗1积分的成功任务数">
                         {item.efficiency.toFixed(2)}

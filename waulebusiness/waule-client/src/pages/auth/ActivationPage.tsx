@@ -67,7 +67,7 @@ const ActivationPage = ({ deviceFingerprint, onActivated }: ActivationPageProps)
       {/* 渐变背景 */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-[#0c0118] via-[#0a0a1a] to-[#030014]" />
-        <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-purple-600/15 rounded-full blur-[150px]" />
+        <div className="absolute top-[-30%] left-[-20%] w-[70%] h-[70%] bg-neutral-700/15 rounded-full blur-[150px]" />
         <div className="absolute bottom-[-30%] right-[-20%] w-[60%] h-[60%] bg-indigo-600/10 rounded-full blur-[150px]" />
       </div>
 
@@ -75,7 +75,7 @@ const ActivationPage = ({ deviceFingerprint, onActivated }: ActivationPageProps)
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-14 h-14 bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/25">
+            <div className="w-14 h-14 bg-gradient-to-br from-neutral-800 via-fuchsia-500 to-neutral-800 rounded-2xl flex items-center justify-center shadow-lg shadow-neutral-800/25">
               <span className="material-symbols-outlined text-white text-3xl">auto_awesome</span>
             </div>
             <div>
@@ -87,8 +87,8 @@ const ActivationPage = ({ deviceFingerprint, onActivated }: ActivationPageProps)
           {/* 激活卡片 */}
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
             <div className="text-center mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                <span className="material-symbols-outlined text-purple-400 text-2xl">key</span>
+              <div className="w-12 h-12 bg-gradient-to-br from-neutral-800/20 to-neutral-800/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <span className="material-symbols-outlined text-neutral-600 text-2xl">key</span>
               </div>
               <h2 className="text-xl font-bold text-white mb-1">激活客户端</h2>
               <p className="text-gray-400">请输入管理员提供的激活码</p>
@@ -103,7 +103,7 @@ const ActivationPage = ({ deviceFingerprint, onActivated }: ActivationPageProps)
                   value={activationCode}
                   onChange={(e) => handleCodeChange(e.target.value)}
                   placeholder="WAULE-XXXX-XXXX-XXXX"
-                  className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-center font-mono tracking-wider placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                  className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white text-center font-mono tracking-wider placeholder-gray-500 focus:outline-none focus:border-neutral-800/50 focus:ring-2 focus:ring-neutral-800/20 transition-all"
                   maxLength={20}
                 />
               </div>
@@ -118,7 +118,7 @@ const ActivationPage = ({ deviceFingerprint, onActivated }: ActivationPageProps)
                   value={deviceName}
                   onChange={(e) => setDeviceName(e.target.value)}
                   placeholder="如：张三的办公电脑"
-                  className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                  className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-neutral-800/50 focus:ring-2 focus:ring-neutral-800/20 transition-all"
                 />
               </div>
 
@@ -126,7 +126,7 @@ const ActivationPage = ({ deviceFingerprint, onActivated }: ActivationPageProps)
               <button
                 type="submit"
                 disabled={loading || !activationCode}
-                className="w-full py-3.5 bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3.5 bg-gradient-to-r from-neutral-800 via-fuchsia-500 to-neutral-800 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-neutral-800/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? '激活中...' : '激活'}
               </button>

@@ -374,7 +374,7 @@ const VoiceCloneNode = ({ data, id, selected }: NodeProps<NodeData>) => {
                         value={promptText}
                         onChange={(e) => { setPromptText(e.target.value); updateNode({ promptText: e.target.value }); }}
                         placeholder="输入提示音频对应的文本内容..."
-                        className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500"
+                        className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none transition-colors leading-relaxed bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500"
                         rows={2}
                         onMouseDown={(e) => e.stopPropagation()}
                     />
@@ -387,7 +387,7 @@ const VoiceCloneNode = ({ data, id, selected }: NodeProps<NodeData>) => {
                         value={previewText}
                         onChange={(e) => { setPreviewText(e.target.value); updateNode({ previewText: e.target.value }); }}
                         placeholder="输入用于生成试听音频的文本..."
-                        className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500"
+                        className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none transition-colors leading-relaxed bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500"
                         rows={2}
                         onMouseDown={(e) => e.stopPropagation()}
                     />

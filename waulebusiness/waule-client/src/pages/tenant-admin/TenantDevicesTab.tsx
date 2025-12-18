@@ -105,8 +105,8 @@ const TenantDevicesTab = () => {
 
         <div className="bg-white dark:bg-card-dark border border-gray-200 dark:border-white/10 rounded-2xl p-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center">
-              <span className="material-symbols-outlined text-2xl text-purple-500">devices</span>
+            <div className="w-12 h-12 bg-neutral-800/10 rounded-xl flex items-center justify-center">
+              <span className="material-symbols-outlined text-2xl text-neutral-800">devices</span>
             </div>
             <div>
               <p className="text-sm text-gray-500">客户端配额</p>
@@ -144,7 +144,7 @@ const TenantDevicesTab = () => {
                 </div>
                 <button
                   onClick={() => copyToClipboard(activation.activationCode, '激活码已复制')}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm text-purple-600 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm text-neutral-700 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
                 >
                   <span className="material-symbols-outlined text-lg">content_copy</span>
                   复制
@@ -164,7 +164,7 @@ const TenantDevicesTab = () => {
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-3 border-purple-500/20 border-t-purple-500" />
+            <div className="animate-spin rounded-full h-10 w-10 border-3 border-neutral-800/20 border-t-neutral-800" />
           </div>
         ) : activations.filter(a => a.isActivated).length === 0 ? (
           <div className="text-center py-20">
@@ -178,8 +178,8 @@ const TenantDevicesTab = () => {
             {activations.filter(a => a.isActivated).map((activation) => (
               <div key={activation.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl flex items-center justify-center">
-                    <span className="material-symbols-outlined text-purple-500">computer</span>
+                  <div className="w-12 h-12 bg-gradient-to-br from-neutral-800/20 to-neutral-800/20 rounded-xl flex items-center justify-center">
+                    <span className="material-symbols-outlined text-neutral-800">computer</span>
                   </div>
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">

@@ -119,7 +119,7 @@ const SoraCharactersPage: React.FC = () => {
       <div className="fixed top-4 left-[136px] z-40 flex items-center gap-4 h-[72px]">
         <button
           onClick={() => navigate('/assets')}
-          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent rounded-lg transition-all"
+          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-neutral-700 hover:bg-black dark:hover:bg-white hover:border-transparent rounded-lg transition-all"
         >
           <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
         </button>

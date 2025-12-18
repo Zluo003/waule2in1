@@ -222,7 +222,7 @@ const RecycleBinPage = () => {
             placeholder="搜索项目名或文件名..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="pl-12 pr-28 py-2.5 w-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
+            className="pl-12 pr-28 py-2.5 w-full bg-white dark:bg-[#18181b] border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
             style={{ outline: 'none', boxShadow: 'none' }}
           />
           {/* 自定义下拉菜单 - 在搜索栏内部右侧 */}
@@ -244,7 +244,7 @@ const RecycleBinPage = () => {
         <div className="flex items-center gap-2 whitespace-nowrap">
           <button
             onClick={() => { setSelectionMode(!selectionMode); if (!selectionMode) setSelectedIds([]); }}
-            className={`px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${selectionMode ? 'bg-black dark:bg-white text-white dark:text-black' : 'bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent'}`}
+            className={`px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${selectionMode ? 'bg-black dark:bg-white text-white dark:text-black' : 'bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black dark:hover:bg-white hover:border-transparent'}`}
           >
             <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>check_box</span>
             选择
@@ -253,7 +253,7 @@ const RecycleBinPage = () => {
           <button
             onClick={() => { clearSelection(); setSelectionMode(false); }}
             disabled={!selectionMode}
-            className="px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent disabled:opacity-50"
+            className="px-4 py-2.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black dark:hover:bg-white hover:border-transparent disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>close</span>
             取消

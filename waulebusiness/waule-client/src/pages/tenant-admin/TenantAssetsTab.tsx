@@ -34,8 +34,8 @@ type AssetType = 'all' | 'image' | 'video' | 'audio';
 
 const assetTypeLabels: Record<string, { label: string; icon: string; color: string }> = {
   image: { label: '图片', icon: 'image', color: 'text-blue-500 bg-blue-500/10' },
-  video: { label: '视频', icon: 'movie', color: 'text-purple-500 bg-purple-500/10' },
-  audio: { label: '音频', icon: 'music_note', color: 'text-pink-500 bg-pink-500/10' },
+  video: { label: '视频', icon: 'movie', color: 'text-neutral-800 bg-neutral-800/10' },
+  audio: { label: '音频', icon: 'music_note', color: 'text-neutral-800 bg-neutral-800/10' },
 };
 
 const TenantAssetsTab = () => {
@@ -132,7 +132,7 @@ const TenantAssetsTab = () => {
             }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               viewMode === 'all'
-                ? 'bg-white dark:bg-white/10 text-purple-600 dark:text-purple-400 shadow-sm'
+                ? 'bg-white dark:bg-white/10 text-neutral-700 dark:text-neutral-600 shadow-sm'
                 : 'text-gray-600 dark:text-gray-400'
             }`}
           >
@@ -146,7 +146,7 @@ const TenantAssetsTab = () => {
             }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               viewMode === 'recycle'
-                ? 'bg-white dark:bg-white/10 text-purple-600 dark:text-purple-400 shadow-sm'
+                ? 'bg-white dark:bg-white/10 text-neutral-700 dark:text-neutral-600 shadow-sm'
                 : 'text-gray-600 dark:text-gray-400'
             }`}
           >
@@ -164,7 +164,7 @@ const TenantAssetsTab = () => {
               type="text"
               placeholder="搜索用户昵称或用户名..."
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-neutral-800"
             />
           </div>
         </div>
@@ -180,7 +180,7 @@ const TenantAssetsTab = () => {
               }}
               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 assetType === type
-                  ? 'bg-purple-500 text-white'
+                  ? 'bg-neutral-800 text-white'
                   : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/15'
               }`}
             >
@@ -194,7 +194,7 @@ const TenantAssetsTab = () => {
       <div className="bg-white dark:bg-card-dark border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-3 border-purple-500/20 border-t-purple-500" />
+            <div className="animate-spin rounded-full h-10 w-10 border-3 border-neutral-800/20 border-t-neutral-800" />
           </div>
         ) : assets.length === 0 ? (
           <div className="text-center py-20">
@@ -230,7 +230,7 @@ const TenantAssetsTab = () => {
                   <div
                     key={asset.id}
                     onClick={() => setSelectedAsset(asset)}
-                    className="group cursor-pointer bg-gray-50 dark:bg-white/5 rounded-xl overflow-hidden hover:ring-2 hover:ring-purple-500/50 transition-all"
+                    className="group cursor-pointer bg-gray-50 dark:bg-white/5 rounded-xl overflow-hidden hover:ring-2 hover:ring-neutral-800/50 transition-all"
                   >
                     {/* 预览 */}
                     <div className="aspect-square relative bg-gray-100 dark:bg-white/10">
@@ -261,8 +261,8 @@ const TenantAssetsTab = () => {
                           </div>
                         </div>
                       ) : asset.type === 'audio' ? (
-                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-pink-500/20 to-purple-500/20">
-                          <span className="material-symbols-outlined text-4xl text-pink-500">music_note</span>
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-neutral-800/20 to-neutral-800/20">
+                          <span className="material-symbols-outlined text-4xl text-neutral-800">music_note</span>
                           <span className="text-xs text-gray-500">点击播放</span>
                         </div>
                       ) : (
@@ -325,7 +325,7 @@ const TenantAssetsTab = () => {
                             className="p-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
                             title="下载"
                           >
-                            <span className="material-symbols-outlined text-sm text-gray-500 hover:text-purple-500">download</span>
+                            <span className="material-symbols-outlined text-sm text-gray-500 hover:text-neutral-800">download</span>
                           </button>
                         </div>
                       </div>
@@ -411,7 +411,7 @@ const TenantAssetsTab = () => {
                         <div class="p-8 text-center">
                           <p class="text-gray-500 mb-4">视频预览失败</p>
                           <a href="${getAssetUrl(selectedAsset.url)}" target="_blank" rel="noopener noreferrer" 
-                             class="inline-flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600">
+                             class="inline-flex items-center gap-2 px-4 py-2 bg-neutral-800 text-white rounded-lg hover:bg-neutral-700">
                             <span class="material-symbols-outlined text-sm">open_in_new</span>
                             在新窗口打开
                           </a>
@@ -421,7 +421,7 @@ const TenantAssetsTab = () => {
                   />
                 ) : selectedAsset.type === 'audio' ? (
                   <div className="p-8 flex flex-col items-center justify-center gap-4">
-                    <span className="material-symbols-outlined text-6xl text-purple-500">music_note</span>
+                    <span className="material-symbols-outlined text-6xl text-neutral-800">music_note</span>
                     <audio 
                       src={getAssetUrl(selectedAsset.url)} 
                       controls 
@@ -433,7 +433,7 @@ const TenantAssetsTab = () => {
                         e.currentTarget.parentElement!.innerHTML += `
                           <p class="text-gray-500 mb-4">音频预览失败</p>
                           <a href="${getAssetUrl(selectedAsset.url)}" target="_blank" rel="noopener noreferrer" 
-                             class="inline-flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600">
+                             class="inline-flex items-center gap-2 px-4 py-2 bg-neutral-800 text-white rounded-lg hover:bg-neutral-700">
                             <span class="material-symbols-outlined text-sm">open_in_new</span>
                             在新窗口打开
                           </a>

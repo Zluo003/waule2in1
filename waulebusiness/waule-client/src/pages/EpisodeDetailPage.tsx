@@ -119,6 +119,29 @@ export default function EpisodeDetailPageNew() {
   
   // 存储每个 shot 的主素材时长
   const [shotDurations, setShotDurations] = useState<Record<number, number>>({})
+  
+  // 全局资产（应用到所有分镜）- 从localStorage加载
+  const [globalAssets, setGlobalAssets] = useState<{
+    roles: string[];
+    scenes: string[];
+    props: string[];
+    audios: string[];
+  }>(() => {
+    if (episodeId) {
+      try {
+        const saved = localStorage.getItem(`episode_${episodeId}_globalAssets`)
+        if (saved) return JSON.parse(saved)
+      } catch {}
+    }
+    return { roles: [], scenes: [], props: [], audios: [] }
+  })
+  
+  // 保存全局资产到localStorage
+  useEffect(() => {
+    if (episodeId) {
+      localStorage.setItem(`episode_${episodeId}_globalAssets`, JSON.stringify(globalAssets))
+    }
+  }, [episodeId, globalAssets])
 
   // 当前选中的镜头
   const currentShot = useMemo(() => {
@@ -228,7 +251,7 @@ export default function EpisodeDetailPageNew() {
   useEffect(() => {
     const loadLibraries = async () => {
       try {
-        const res = await apiClient.assetLibraries.getAll()
+        const res = await apiClient.assetLibraries.getAll({ includeShared: 'true' })
         setAvailableLibraries(res.data || [])
       } catch {}
     }
@@ -351,6 +374,43 @@ export default function EpisodeDetailPageNew() {
     return (currentShot[key] || []).some((a: any) => a.id === assetId)
   }
 
+  // 检查资产是否为全局
+  const isAssetGlobal = (type: 'role' | 'scene' | 'prop' | 'audio', assetId: string) => {
+    const key = type === 'role' ? 'roles' : type === 'scene' ? 'scenes' : type === 'prop' ? 'props' : 'audios'
+    return globalAssets[key].includes(assetId)
+  }
+
+  // 切换资产的全局状态
+  const toggleAssetGlobal = (type: 'role' | 'scene' | 'prop' | 'audio', asset: any) => {
+    const globalKey = type === 'role' ? 'roles' : type === 'scene' ? 'scenes' : type === 'prop' ? 'props' : 'audios'
+    const shotKey = type === 'role' ? 'selectedRoles' : type === 'scene' ? 'selectedScenes' : type === 'prop' ? 'selectedProps' : 'selectedAudios'
+    const isCurrentlyGlobal = globalAssets[globalKey].includes(asset.id)
+    
+    if (isCurrentlyGlobal) {
+      // 关闭全局：从全局列表移除
+      setGlobalAssets(prev => ({
+        ...prev,
+        [globalKey]: prev[globalKey].filter(id => id !== asset.id)
+      }))
+    } else {
+      // 开启全局：添加到全局列表，并添加到所有分镜
+      setGlobalAssets(prev => ({
+        ...prev,
+        [globalKey]: [...prev[globalKey], asset.id]
+      }))
+      // 将该资产添加到所有分镜
+      setShots(prev => prev.map(s => {
+        const current = (s as any)[shotKey] || []
+        const exists = current.some((a: any) => a.id === asset.id)
+        if (exists) return s
+        return {
+          ...s,
+          [shotKey]: [...current, { id: asset.id, name: asset.name, thumbnail: asset.thumbnail, url: asset.url, metadata: asset.metadata }]
+        }
+      }))
+    }
+  }
+
   // 保存资产库配置
   const saveLibraryConfig = (ids: string[]) => {
     setSelectedLibraryIds(ids)
@@ -471,6 +531,13 @@ export default function EpisodeDetailPageNew() {
   // 新增镜头
   const addShot = async () => {
     const newIndex = shots.length > 0 ? Math.max(...shots.map(s => s.shotIndex)) + 1 : 1
+    
+    // 获取全局资产
+    const globalRoleAssets = allRoles.filter(r => globalAssets.roles.includes(r.id)).map(r => ({ id: r.id, name: r.name, thumbnail: r.thumbnail, metadata: r.metadata }))
+    const globalSceneAssets = allScenes.filter(s => globalAssets.scenes.includes(s.id)).map(s => ({ id: s.id, name: s.name, thumbnail: s.thumbnail, url: s.url, metadata: s.metadata }))
+    const globalPropAssets = allProps.filter(p => globalAssets.props.includes(p.id)).map(p => ({ id: p.id, name: p.name, thumbnail: p.thumbnail, url: p.url, metadata: p.metadata }))
+    const globalAudioAssets = allAudios.filter(a => globalAssets.audios.includes(a.id)).map(a => ({ id: a.id, name: a.name, thumbnail: a.thumbnail, url: a.url, metadata: a.metadata }))
+    
     const newShot: ScriptShot = {
       shotIndex: newIndex,
       '画面': '',
@@ -479,6 +546,11 @@ export default function EpisodeDetailPageNew() {
       '声音/对话': '',
       '时长': '',
       '提示词': '',
+      // 添加全局资产
+      selectedRoles: globalRoleAssets,
+      selectedScenes: globalSceneAssets,
+      selectedProps: globalPropAssets,
+      selectedAudios: globalAudioAssets,
     }
     const newShots = [...shots, newShot]
     setShots(newShots)
@@ -514,6 +586,22 @@ export default function EpisodeDetailPageNew() {
     e.preventDefault()
     if (draggedShotIndex === null || draggedShotIndex === shotIndex) return
     setDragOverShotIndex(shotIndex)
+    
+    // 拖动时自动滚动列表
+    const container = e.currentTarget.parentElement?.parentElement
+    if (container) {
+      const rect = container.getBoundingClientRect()
+      const mouseX = e.clientX
+      const edgeThreshold = 80 // 距离边缘多少像素开始滚动
+      
+      if (mouseX < rect.left + edgeThreshold) {
+        // 靠近左边缘，向左滚动
+        setShotListOffset(prev => Math.max(0, prev - 1))
+      } else if (mouseX > rect.right - edgeThreshold) {
+        // 靠近右边缘，向右滚动
+        setShotListOffset(prev => Math.min(Math.max(0, shots.length - 5), prev + 1))
+      }
+    }
   }
 
   const handleDragLeave = () => {
@@ -1038,15 +1126,15 @@ export default function EpisodeDetailPageNew() {
   if (loading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background-light dark:bg-background-dark">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-500 border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-neutral-500 border-t-transparent"></div>
       </div>
     )
   }
 
   return (
-    <div className="h-screen w-full overflow-hidden flex flex-col bg-background-light dark:bg-background-dark">
+    <div className="h-screen w-full overflow-hidden flex flex-col bg-background-light dark:bg-background-dark p-2 gap-2">
       {/* Header */}
-      <header className="h-14 border-b border-slate-400 dark:border-white/20 flex items-center justify-between px-4 bg-white/70 dark:bg-black/30 backdrop-blur-xl shrink-0 overflow-visible relative z-10">
+      <header className="h-14 flex items-center justify-between px-4 bg-white dark:bg-[#18181b] border border-black/10 dark:border-neutral-700 shadow-lg shadow-black/10 dark:shadow-black/30 rounded-xl shrink-0 overflow-visible relative z-10">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate(-1)} 
@@ -1056,7 +1144,7 @@ export default function EpisodeDetailPageNew() {
           </button>
           <div className="h-5 w-px bg-border-light dark:bg-border-dark"></div>
           <h2 className="text-text-light-primary dark:text-text-dark-primary font-bold">
-            《{projectName}》{epNo && <span className="font-normal text-text-light-secondary dark:text-text-dark-secondary text-sm ml-2">第{epNo}集</span>}
+            {projectName}{epNo && <span className="font-normal text-text-light-secondary dark:text-text-dark-secondary text-sm ml-2">第{epNo}集</span>}
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -1065,7 +1153,7 @@ export default function EpisodeDetailPageNew() {
           <div className="group relative">
             <button 
               onClick={() => setShowConfigModal(true)}
-              className="relative w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+              className="relative w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:scale-105 transition-all flex items-center justify-center"
             >
               <span className="material-symbols-outlined text-lg">settings</span>
               {selectedLibraryIds.length > 0 && (
@@ -1080,7 +1168,7 @@ export default function EpisodeDetailPageNew() {
           <div className="group relative">
             <button 
               onClick={openScriptCreator}
-              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:scale-105 transition-all flex items-center justify-center"
             >
               <span className="material-symbols-outlined text-lg">edit_note</span>
             </button>
@@ -1092,7 +1180,7 @@ export default function EpisodeDetailPageNew() {
           <div className="group relative">
             <button 
               onClick={handleExportToJianying}
-              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:scale-105 transition-all flex items-center justify-center"
             >
               <span className="material-symbols-outlined text-lg">content_cut</span>
             </button>
@@ -1103,7 +1191,7 @@ export default function EpisodeDetailPageNew() {
           <div className="group relative">
             <button 
               onClick={exportAllMedia}
-              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:scale-105 transition-all flex items-center justify-center"
             >
               <span className="material-symbols-outlined text-lg">ios_share</span>
             </button>
@@ -1113,10 +1201,10 @@ export default function EpisodeDetailPageNew() {
       </header>
 
       {/* Main Content - Three Columns */}
-      <div className="flex-1 grid grid-cols-[320px_1fr_420px] min-h-0 overflow-hidden">
+      <div className="flex-1 grid grid-cols-[320px_1fr_420px] min-h-0 overflow-hidden gap-2">
         {/* Left Sidebar - Materials */}
-        <div className="border-r border-slate-400 dark:border-white/20 flex flex-col bg-white/70 dark:bg-black/30 backdrop-blur-xl min-h-0 overflow-hidden">
-          <div className="h-10 shrink-0 flex items-center px-4 border-b border-slate-400 dark:border-white/20">
+        <div className="flex flex-col bg-white dark:bg-[#18181b] border border-black/10 dark:border-neutral-700 shadow-lg shadow-black/10 dark:shadow-black/30 rounded-xl min-h-0 overflow-hidden">
+          <div className="h-10 shrink-0 flex items-center px-4">
             <span className="text-text-light-primary dark:text-text-dark-primary font-bold text-sm">素材列表</span>
           </div>
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-0 scrollbar-thin" style={{ scrollbarWidth: 'thin' }}>
@@ -1132,18 +1220,18 @@ export default function EpisodeDetailPageNew() {
                       onClick={() => setSelectedMediaIndex(idx)}
                       className={`group relative flex gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
                         selectedMediaIndex === idx 
-                          ? 'bg-purple-500/5 dark:bg-purple-500/5' 
+                          ? 'bg-neutral-100 dark:bg-neutral-800' 
                           : 'hover:bg-slate-100 dark:hover:bg-card-dark-hover'
                       }`}
-                      style={selectedMediaIndex === idx ? { border: '2px solid', borderImage: 'linear-gradient(to bottom right, rgb(168,85,247), rgb(236,72,153)) 1' } : {}}>
+                      style={selectedMediaIndex === idx ? { border: '2px solid #71717a' } : {}}>
                       <div className="w-24 aspect-video bg-slate-200 dark:bg-border-dark rounded overflow-hidden relative">
                         {m?.type === 'video' && m?.url ? (
                           <video src={m.url} className="w-full h-full object-cover" />
                         ) : m?.type === 'image' && m?.url ? (
                           <img src={m.url} alt="" className="w-full h-full object-cover" />
                         ) : m?.type === 'audio' && m?.url ? (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-pink-500/20">
-                            <span className="material-symbols-outlined text-2xl text-purple-500">music_note</span>
+                          <div className="w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-neutral-700">
+                            <span className="material-symbols-outlined text-2xl text-neutral-500">music_note</span>
                           </div>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
@@ -1152,7 +1240,7 @@ export default function EpisodeDetailPageNew() {
                         )}
                         {/* 主素材标记 */}
                         {m?.isPrimary && (
-                          <div className="absolute top-1 left-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">主</div>
+                          <div className="absolute top-1 left-1 bg-neutral-800 dark:bg-white text-white dark:text-black text-[10px] px-1.5 py-0.5 rounded font-bold">主</div>
                         )}
                       </div>
                       <div className="flex flex-col justify-center min-w-0 flex-1">
@@ -1170,7 +1258,7 @@ export default function EpisodeDetailPageNew() {
                       {m?.isPrimary ? (
                         <button
                           onClick={(e) => { e.stopPropagation(); unsetPrimaryMedia() }}
-                          className="shrink-0 self-center w-7 h-7 flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all opacity-0 group-hover:opacity-100"
+                          className="shrink-0 self-center w-7 h-7 flex items-center justify-center bg-neutral-800 dark:bg-white text-white dark:text-black rounded-lg hover:bg-neutral-700 dark:hover:bg-neutral-200 transition-all opacity-0 group-hover:opacity-100"
                           title="取消主素材"
                         >
                           <span className="material-symbols-outlined text-base">star</span>
@@ -1178,7 +1266,7 @@ export default function EpisodeDetailPageNew() {
                       ) : !hasPrimary && (
                         <button
                           onClick={(e) => { e.stopPropagation(); setPrimaryMedia(idx) }}
-                          className="shrink-0 self-center w-7 h-7 flex items-center justify-center bg-slate-200 dark:bg-border-dark text-text-light-secondary dark:text-text-dark-secondary rounded-lg hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                          className="shrink-0 self-center w-7 h-7 flex items-center justify-center bg-slate-200 dark:bg-border-dark text-text-light-secondary dark:text-text-dark-secondary rounded-lg hover:bg-neutral-800 dark:hover:bg-white hover:text-white dark:hover:text-black transition-all opacity-0 group-hover:opacity-100"
                           title="设为主素材"
                         >
                           <span className="material-symbols-outlined text-base">star_outline</span>
@@ -1243,8 +1331,8 @@ export default function EpisodeDetailPageNew() {
         </div>
 
         {/* Center - Preview */}
-        <div className="bg-white/70 dark:bg-black/30 backdrop-blur-xl flex flex-col relative overflow-hidden h-full">
-          <div className="h-10 shrink-0 flex items-center justify-between px-4 border-b border-slate-400 dark:border-white/20">
+        <div className="bg-white dark:bg-[#18181b] border border-black/10 dark:border-neutral-700 shadow-lg shadow-black/10 dark:shadow-black/30 rounded-xl flex flex-col relative overflow-hidden h-full">
+          <div className="h-10 shrink-0 flex items-center justify-between px-4">
             <div className="flex items-center gap-3 text-text-light-secondary dark:text-text-dark-secondary text-sm">
               <span className="font-bold text-text-light-primary dark:text-text-dark-primary">分镜头 {currentShotIndex.toString().padStart(2, '0')}</span>
               <span>/</span>
@@ -1261,7 +1349,7 @@ export default function EpisodeDetailPageNew() {
                       setShowMediaImporter(true)
                     }
                   }}
-                  className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+                  className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:scale-105 transition-all flex items-center justify-center"
                 >
                   <span className="material-symbols-outlined text-lg">library_add</span>
                 </button>
@@ -1270,7 +1358,7 @@ export default function EpisodeDetailPageNew() {
               <div className="group relative ml-2">
                 <button 
                   onClick={enterWorkflow}
-                  className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:text-white hover:border-transparent hover:scale-105 transition-all flex items-center justify-center"
+                  className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:scale-105 transition-all flex items-center justify-center"
                 >
                   <span className="material-symbols-outlined text-lg">auto_awesome</span>
                 </button>
@@ -1292,8 +1380,8 @@ export default function EpisodeDetailPageNew() {
                   return <img src={mediaUrl} alt="" className="max-w-full max-h-full rounded-lg object-contain" />;
                 } else if (mediaType === 'audio') {
                   return (
-                    <div className="w-80 p-8 rounded-lg bg-gradient-to-br from-purple-900/50 to-pink-900/50 flex flex-col items-center justify-center">
-                      <span className="material-symbols-outlined text-6xl text-purple-400 mb-4">music_note</span>
+                    <div className="w-80 p-8 rounded-lg bg-neutral-200 dark:bg-neutral-800 flex flex-col items-center justify-center">
+                      <span className="material-symbols-outlined text-6xl text-neutral-500 mb-4">music_note</span>
                       <audio src={mediaUrl} controls className="w-full" />
                     </div>
                   );
@@ -1312,8 +1400,8 @@ export default function EpisodeDetailPageNew() {
         </div>
 
         {/* Right Sidebar - Script */}
-        <div className="border-l border-slate-400 dark:border-white/20 bg-white/70 dark:bg-black/30 backdrop-blur-xl flex flex-col">
-          <div className="h-10 flex items-center justify-between px-4 border-b border-slate-400 dark:border-white/20">
+        <div className="bg-white dark:bg-[#18181b] border border-black/10 dark:border-neutral-700 shadow-lg shadow-black/10 dark:shadow-black/30 rounded-xl flex flex-col">
+          <div className="h-10 flex items-center justify-between px-4">
             <span className="text-text-light-primary dark:text-text-dark-primary font-bold text-sm">脚本</span>
             {canEdit && false && (
               <button className="p-1 rounded hover:bg-slate-200 dark:hover:bg-border-dark text-text-light-secondary dark:text-text-dark-secondary transition-colors">
@@ -1332,7 +1420,7 @@ export default function EpisodeDetailPageNew() {
                     onChange={canEdit ? (e) => updateShotField(currentShotIndex, '画面', e.target.value) : undefined}
                     onBlur={canEdit ? () => saveShots(shots) : undefined}
                     readOnly={!canEdit}
-                    className="flex-1 w-full bg-white/30 dark:bg-white/5 text-text-light-primary dark:text-text-dark-primary rounded-lg p-3 text-sm resize-none border border-slate-400 dark:border-white/20 focus:border-purple-500 focus:outline-none backdrop-blur-sm"
+                    className="flex-1 w-full bg-white/30 dark:bg-white/5 text-text-light-primary dark:text-text-dark-primary rounded-lg p-3 text-sm resize-none border border-slate-400 dark:border-white/20 focus:border-neutral-500 focus:outline-none backdrop-blur-sm"
                     placeholder="描述画面内容..."
                   />
                 </div>
@@ -1344,7 +1432,7 @@ export default function EpisodeDetailPageNew() {
                     onChange={canEdit ? (e) => updateShotField(currentShotIndex, '内容/动作', e.target.value) : undefined}
                     onBlur={canEdit ? () => saveShots(shots) : undefined}
                     readOnly={!canEdit}
-                    className="flex-1 w-full bg-white/30 dark:bg-white/5 text-text-light-primary dark:text-text-dark-primary rounded-lg p-3 text-sm resize-none border border-slate-400 dark:border-white/20 focus:border-purple-500 focus:outline-none backdrop-blur-sm"
+                    className="flex-1 w-full bg-white/30 dark:bg-white/5 text-text-light-primary dark:text-text-dark-primary rounded-lg p-3 text-sm resize-none border border-slate-400 dark:border-white/20 focus:border-neutral-500 focus:outline-none backdrop-blur-sm"
                     placeholder="描述角色动作..."
                   />
                 </div>
@@ -1356,7 +1444,7 @@ export default function EpisodeDetailPageNew() {
                     onChange={canEdit ? (e) => updateShotField(currentShotIndex, '声音/对话', e.target.value) : undefined}
                     onBlur={canEdit ? () => saveShots(shots) : undefined}
                     readOnly={!canEdit}
-                    className="flex-1 w-full bg-white/30 dark:bg-white/5 text-text-light-primary dark:text-text-dark-primary rounded-lg p-3 text-sm resize-none border border-slate-400 dark:border-white/20 focus:border-purple-500 focus:outline-none backdrop-blur-sm"
+                    className="flex-1 w-full bg-white/30 dark:bg-white/5 text-text-light-primary dark:text-text-dark-primary rounded-lg p-3 text-sm resize-none border border-slate-400 dark:border-white/20 focus:border-neutral-500 focus:outline-none backdrop-blur-sm"
                     placeholder="描述台词或旁白..."
                   />
                 </div>
@@ -1370,10 +1458,10 @@ export default function EpisodeDetailPageNew() {
         </div>
       </div>
 
-      {/* Bottom Panel - Shot Timeline + Resources */}
-      <div className="h-80 border-t border-slate-400 dark:border-white/20 bg-white/70 dark:bg-black/30 backdrop-blur-xl shrink-0 flex flex-col">
-        {/* Shot Timeline */}
-        <div className="flex-1 flex items-center justify-center px-4 gap-3 border-b border-slate-400 dark:border-white/20">
+      {/* Bottom Section - Shot Timeline + Resources */}
+      <div className="h-80 shrink-0 flex flex-col gap-2">
+        {/* Shot Timeline Panel */}
+        <div className="h-32 bg-white dark:bg-[#18181b] border border-black/10 dark:border-neutral-700 shadow-lg shadow-black/10 dark:shadow-black/30 rounded-xl flex items-center justify-center px-4 gap-3">
           {/* Left Arrow */}
           <button
             onClick={() => setShotListOffset(Math.max(0, shotListOffset - 1))}
@@ -1403,13 +1491,13 @@ export default function EpisodeDetailPageNew() {
                 shot.shotIndex === currentShotIndex 
                   ? 'opacity-100' 
                   : 'opacity-60 hover:opacity-100'
-              } ${draggedShotIndex === shot.shotIndex ? 'opacity-50 scale-95' : ''} ${dragOverShotIndex === shot.shotIndex ? 'ring-2 ring-primary-500 ring-offset-2' : ''}`}
+              } ${draggedShotIndex === shot.shotIndex ? 'opacity-50 scale-95' : ''} ${dragOverShotIndex === shot.shotIndex ? 'ring-2 ring-neutral-500 ring-offset-2' : ''}`}
             >
               <div 
                 className={`w-32 h-24 rounded-lg overflow-hidden relative ${
                   shot.shotIndex === currentShotIndex 
-                    ? 'bg-gradient-to-br from-purple-500 to-pink-500 p-[2px] shadow-[0_0_20px_-3px_rgba(168,85,247,0.5)]' 
-                    : 'bg-slate-200 dark:bg-border-dark ring-1 ring-slate-200 dark:ring-white/10 hover:ring-purple-400/50 dark:hover:ring-purple-400/30'
+                    ? 'ring-2 ring-neutral-800 dark:ring-white shadow-lg' 
+                    : 'bg-slate-200 dark:bg-border-dark ring-1 ring-slate-200 dark:ring-white/10 hover:ring-neutral-400 dark:hover:ring-neutral-500'
                 }`}>
                 <div className={`w-full h-full rounded-md overflow-hidden ${shot.shotIndex === currentShotIndex ? 'bg-slate-200 dark:bg-border-dark' : ''}`}>
                 {(() => {
@@ -1420,8 +1508,8 @@ export default function EpisodeDetailPageNew() {
                       return <img src={primaryMedia.url} alt="" className="w-full h-full object-cover" />
                     } else if (primaryMedia.type === 'audio') {
                       return (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-pink-500/20">
-                          <span className="material-symbols-outlined text-2xl text-purple-500">music_note</span>
+                        <div className="w-full h-full flex items-center justify-center bg-neutral-200 dark:bg-neutral-700">
+                          <span className="material-symbols-outlined text-2xl text-neutral-500">music_note</span>
                         </div>
                       )
                     }
@@ -1434,13 +1522,13 @@ export default function EpisodeDetailPageNew() {
                   )
                 })()}
                 {shot.shotIndex === currentShotIndex && (
-                  <div className="absolute top-1 right-1 size-2 bg-primary-500 rounded-full animate-pulse"></div>
+                  <div className="absolute top-1 right-1 size-2 bg-neutral-500 rounded-full animate-pulse"></div>
                 )}
                 </div>
               </div>
               <span className={`text-[10px] text-center ${
                 shot.shotIndex === currentShotIndex 
-                  ? 'text-primary-500 font-bold' 
+                  ? 'text-neutral-600 dark:text-neutral-400 font-bold' 
                   : 'text-text-light-secondary dark:text-text-dark-secondary'
               }`}>
                 Shot {shot.shotIndex.toString().padStart(2, '0')} - {shotDurations[shot.shotIndex] ? `${Math.round(shotDurations[shot.shotIndex])}s` : (shot['时长'] || '0s')}
@@ -1452,7 +1540,7 @@ export default function EpisodeDetailPageNew() {
           {canEdit && (
             <div 
               onClick={addShot}
-              className="w-12 h-24 rounded-lg border border-dashed border-border-light dark:border-border-dark flex items-center justify-center text-text-light-secondary dark:text-text-dark-secondary hover:text-text-light-primary dark:hover:text-text-dark-primary hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-500/10 cursor-pointer transition-all shrink-0"
+              className="w-12 h-24 rounded-lg border border-dashed border-border-light dark:border-border-dark flex items-center justify-center text-text-light-secondary dark:text-text-dark-secondary hover:text-text-light-primary dark:hover:text-text-dark-primary hover:border-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 cursor-pointer transition-all shrink-0"
             >
               <span className="material-symbols-outlined">add</span>
             </div>
@@ -1482,19 +1570,19 @@ export default function EpisodeDetailPageNew() {
         </div>
 
         {/* Resources Panel - Characters / Scene / Props / Audio (per shot) */}
-        <div className="flex-1 grid grid-cols-4 divide-x divide-slate-400 dark:divide-purple-400/30">
+        <div className="flex-1 grid grid-cols-4 gap-2">
           {/* Characters */}
-          <div className="px-4 py-3 flex flex-col gap-2">
+          <div className="px-4 py-3 flex flex-col gap-2 bg-white dark:bg-[#18181b] border border-black/10 dark:border-neutral-700 shadow-lg shadow-black/10 dark:shadow-black/30 rounded-xl">
             <div className="flex justify-between items-center">
               <h4 className="text-xs font-bold uppercase text-text-light-secondary dark:text-text-dark-secondary tracking-wider flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm">face</span> 角色 {(currentShot?.selectedRoles?.length || 0) > 0 && <span className="text-primary-500">({currentShot?.selectedRoles?.length})</span>}
+                <span className="material-symbols-outlined text-sm">face</span> 角色 {(currentShot?.selectedRoles?.length || 0) > 0 && <span className="text-neutral-600 dark:text-neutral-400">({currentShot?.selectedRoles?.length})</span>}
               </h4>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2">
               {/* 已选角色 */}
               {(currentShot?.selectedRoles || []).map((role: any) => (
                 <div key={role.id} className="shrink-0 flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity group relative mt-2">
-                  <div className="size-12 rounded overflow-hidden bg-purple-500/5">
+                  <div className="size-12 rounded overflow-hidden bg-neutral-100 dark:bg-neutral-800">
                     {role.thumbnail ? (
                       <img src={role.thumbnail} alt={role.name} className="w-full h-full object-cover object-top" />
                     ) : (
@@ -1504,6 +1592,14 @@ export default function EpisodeDetailPageNew() {
                     )}
                   </div>
                   <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary truncate max-w-[50px]">{role.name}</span>
+                  {/* 全局开关 */}
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); toggleAssetGlobal('role', role) }}
+                    className={`text-[8px] px-1.5 py-0.5 rounded-full transition-all ${isAssetGlobal('role', role.id) ? 'bg-neutral-800 dark:bg-white text-white dark:text-black' : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'}`}
+                    title={isAssetGlobal('role', role.id) ? '已应用到所有分镜' : '点击应用到所有分镜'}
+                  >
+                    全局
+                  </button>
                   {/* 删除按钮 */}
                   <button 
                     onClick={() => toggleAssetForShot('role', role)}
@@ -1525,7 +1621,7 @@ export default function EpisodeDetailPageNew() {
                 }}
                 className="shrink-0 flex flex-col items-center gap-1 cursor-pointer opacity-50 hover:opacity-100 transition-opacity mt-2"
               >
-                <div className="size-12 rounded border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center hover:border-primary-500">
+                <div className="size-12 rounded border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center hover:border-neutral-500">
                   <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">add</span>
                 </div>
                 <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary">添加</span>
@@ -1534,28 +1630,38 @@ export default function EpisodeDetailPageNew() {
           </div>
 
           {/* Scene */}
-          <div className="px-4 py-3 flex flex-col gap-2">
+          <div className="px-4 py-3 flex flex-col gap-2 bg-white dark:bg-[#18181b] border border-black/10 dark:border-neutral-700 shadow-lg shadow-black/10 dark:shadow-black/30 rounded-xl">
             <div className="flex justify-between items-center">
               <h4 className="text-xs font-bold uppercase text-text-light-secondary dark:text-text-dark-secondary tracking-wider flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm">landscape</span> 场景 {(currentShot?.selectedScenes?.length || 0) > 0 && <span className="text-primary-500">({currentShot?.selectedScenes?.length})</span>}
+                <span className="material-symbols-outlined text-sm">landscape</span> 场景 {(currentShot?.selectedScenes?.length || 0) > 0 && <span className="text-neutral-600 dark:text-neutral-400">({currentShot?.selectedScenes?.length})</span>}
               </h4>
             </div>
             <div className="flex gap-3 overflow-x-auto">
               {/* 已选场景 */}
               {(currentShot?.selectedScenes || []).map((scene: any) => (
-                <div key={scene.id} className="relative w-24 h-14 rounded overflow-hidden cursor-pointer transition-colors shrink-0 group bg-purple-500/5 mt-2">
-                  {scene.url ? (
-                    <img src={scene.url} alt={scene.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">landscape</span>
-                    </div>
-                  )}
+                <div key={scene.id} className="shrink-0 flex flex-col items-center gap-1 mt-2">
+                  <div className="relative w-24 h-14 rounded overflow-hidden cursor-pointer transition-colors group bg-neutral-100 dark:bg-neutral-800">
+                    {scene.url ? (
+                      <img src={scene.url} alt={scene.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">landscape</span>
+                      </div>
+                    )}
+                    <button 
+                      onClick={() => toggleAssetForShot('scene', scene)}
+                      className="absolute top-0.5 right-0.5 size-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <span className="material-symbols-outlined text-xs">close</span>
+                    </button>
+                  </div>
+                  {/* 全局开关 */}
                   <button 
-                    onClick={() => toggleAssetForShot('scene', scene)}
-                    className="absolute top-0.5 right-0.5 size-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => { e.stopPropagation(); toggleAssetGlobal('scene', scene) }}
+                    className={`text-[8px] px-1.5 py-0.5 rounded-full transition-all ${isAssetGlobal('scene', scene.id) ? 'bg-neutral-800 dark:bg-white text-white dark:text-black' : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'}`}
+                    title={isAssetGlobal('scene', scene.id) ? '已应用到所有分镜' : '点击应用到所有分镜'}
                   >
-                    <span className="material-symbols-outlined text-xs">close</span>
+                    全局
                   </button>
                 </div>
               ))}
@@ -1571,7 +1677,7 @@ export default function EpisodeDetailPageNew() {
                 }}
                 className="shrink-0 flex flex-col items-center gap-1 cursor-pointer opacity-50 hover:opacity-100 transition-opacity mt-2"
               >
-                <div className="size-12 rounded border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center hover:border-primary-500">
+                <div className="size-12 rounded border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center hover:border-neutral-500">
                   <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">add</span>
                 </div>
                 <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary">添加</span>
@@ -1580,28 +1686,38 @@ export default function EpisodeDetailPageNew() {
           </div>
 
           {/* Props */}
-          <div className="px-4 py-3 flex flex-col gap-2">
+          <div className="px-4 py-3 flex flex-col gap-2 bg-white dark:bg-[#18181b] border border-black/10 dark:border-neutral-700 shadow-lg shadow-black/10 dark:shadow-black/30 rounded-xl">
             <div className="flex justify-between items-center">
               <h4 className="text-xs font-bold uppercase text-text-light-secondary dark:text-text-dark-secondary tracking-wider flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm">backpack</span> 道具 {(currentShot?.selectedProps?.length || 0) > 0 && <span className="text-primary-500">({currentShot?.selectedProps?.length})</span>}
+                <span className="material-symbols-outlined text-sm">backpack</span> 道具 {(currentShot?.selectedProps?.length || 0) > 0 && <span className="text-neutral-600 dark:text-neutral-400">({currentShot?.selectedProps?.length})</span>}
               </h4>
             </div>
             <div className="flex gap-3 overflow-x-auto">
               {/* 已选道具 */}
               {(currentShot?.selectedProps || []).map((prop: any) => (
-                <div key={prop.id} className="size-14 rounded overflow-hidden cursor-pointer transition-colors shrink-0 relative group bg-purple-500/5 mt-2">
-                  {prop.url ? (
-                    <img src={prop.url} alt={prop.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">backpack</span>
-                    </div>
-                  )}
+                <div key={prop.id} className="shrink-0 flex flex-col items-center gap-1 mt-2">
+                  <div className="size-14 rounded overflow-hidden cursor-pointer transition-colors relative group bg-neutral-100 dark:bg-neutral-800">
+                    {prop.url ? (
+                      <img src={prop.url} alt={prop.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">backpack</span>
+                      </div>
+                    )}
+                    <button 
+                      onClick={() => toggleAssetForShot('prop', prop)}
+                      className="absolute top-0.5 right-0.5 size-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <span className="material-symbols-outlined text-xs">close</span>
+                    </button>
+                  </div>
+                  {/* 全局开关 */}
                   <button 
-                    onClick={() => toggleAssetForShot('prop', prop)}
-                    className="absolute top-0.5 right-0.5 size-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => { e.stopPropagation(); toggleAssetGlobal('prop', prop) }}
+                    className={`text-[8px] px-1.5 py-0.5 rounded-full transition-all ${isAssetGlobal('prop', prop.id) ? 'bg-neutral-800 dark:bg-white text-white dark:text-black' : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'}`}
+                    title={isAssetGlobal('prop', prop.id) ? '已应用到所有分镜' : '点击应用到所有分镜'}
                   >
-                    <span className="material-symbols-outlined text-xs">close</span>
+                    全局
                   </button>
                 </div>
               ))}
@@ -1617,7 +1733,7 @@ export default function EpisodeDetailPageNew() {
                 }}
                 className="shrink-0 flex flex-col items-center gap-1 cursor-pointer opacity-50 hover:opacity-100 transition-opacity mt-2"
               >
-                <div className="size-12 rounded border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center hover:border-primary-500">
+                <div className="size-12 rounded border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center hover:border-neutral-500">
                   <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">add</span>
                 </div>
                 <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary">添加</span>
@@ -1626,20 +1742,28 @@ export default function EpisodeDetailPageNew() {
           </div>
 
           {/* Audio */}
-          <div className="px-4 py-3 flex flex-col gap-2">
+          <div className="px-4 py-3 flex flex-col gap-2 bg-white dark:bg-[#18181b] border border-black/10 dark:border-neutral-700 shadow-lg shadow-black/10 dark:shadow-black/30 rounded-xl">
             <div className="flex justify-between items-center">
               <h4 className="text-xs font-bold uppercase text-text-light-secondary dark:text-text-dark-secondary tracking-wider flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm">music_note</span> 音频 {(currentShot?.selectedAudios?.length || 0) > 0 && <span className="text-primary-500">({currentShot?.selectedAudios?.length})</span>}
+                <span className="material-symbols-outlined text-sm">music_note</span> 音频 {(currentShot?.selectedAudios?.length || 0) > 0 && <span className="text-neutral-600 dark:text-neutral-400">({currentShot?.selectedAudios?.length})</span>}
               </h4>
             </div>
             <div className="flex gap-3 overflow-x-auto">
               {/* 已选音频 */}
               {(currentShot?.selectedAudios || []).map((audio: any) => (
                 <div key={audio.id} className="shrink-0 flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity group relative mt-2">
-                  <div className="size-12 rounded overflow-hidden flex items-center justify-center bg-purple-500/5">
-                    <span className="material-symbols-outlined text-primary-500">music_note</span>
+                  <div className="size-12 rounded overflow-hidden flex items-center justify-center bg-neutral-100 dark:bg-neutral-800">
+                    <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400">music_note</span>
                   </div>
                   <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary truncate max-w-[50px]">{audio.name}</span>
+                  {/* 全局开关 */}
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); toggleAssetGlobal('audio', audio) }}
+                    className={`text-[8px] px-1.5 py-0.5 rounded-full transition-all ${isAssetGlobal('audio', audio.id) ? 'bg-neutral-800 dark:bg-white text-white dark:text-black' : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-500 dark:text-neutral-400'}`}
+                    title={isAssetGlobal('audio', audio.id) ? '已应用到所有分镜' : '点击应用到所有分镜'}
+                  >
+                    全局
+                  </button>
                   {/* 删除按钮 */}
                   <button 
                     onClick={() => toggleAssetForShot('audio', audio)}
@@ -1661,7 +1785,7 @@ export default function EpisodeDetailPageNew() {
                 }}
                 className="shrink-0 flex flex-col items-center gap-1 cursor-pointer opacity-50 hover:opacity-100 transition-opacity mt-2"
               >
-                <div className="size-12 rounded border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center hover:border-primary-500">
+                <div className="size-12 rounded border-2 border-dashed border-border-light dark:border-border-dark flex items-center justify-center hover:border-neutral-500">
                   <span className="material-symbols-outlined text-text-light-secondary dark:text-text-dark-secondary">add</span>
                 </div>
                 <span className="text-[10px] text-text-light-secondary dark:text-text-dark-secondary">添加</span>
@@ -1674,7 +1798,7 @@ export default function EpisodeDetailPageNew() {
       {/* 资产选择弹窗 - 只有配置了资产库才显示 */}
       {showAssetPicker && selectedLibraryIds.length > 0 && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowAssetPicker(null)}>
-          <div className="bg-card-light dark:bg-card-dark rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-[#18181b] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
               <div>
                 <h2 className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">
@@ -1702,7 +1826,7 @@ export default function EpisodeDetailPageNew() {
                         onClick={() => toggleAssetForShot('role', role)}
                         className={`flex flex-col items-center gap-2 p-3 rounded-xl cursor-pointer transition-all ${
                           isAssetSelected('role', role.id) 
-                            ? 'bg-primary-100 dark:bg-primary-500/20 ring-2 ring-primary-500' 
+                            ? 'bg-neutral-100 dark:bg-neutral-700 ring-2 ring-neutral-500' 
                             : 'hover:bg-slate-100 dark:hover:bg-border-dark'
                         }`}
                       >
@@ -1717,7 +1841,7 @@ export default function EpisodeDetailPageNew() {
                         </div>
                         <span className="text-sm font-medium text-text-light-primary dark:text-text-dark-primary truncate max-w-full">{role.name}</span>
                         {isAssetSelected('role', role.id) && (
-                          <span className="material-symbols-outlined text-primary-500 text-sm">check_circle</span>
+                          <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400 text-sm">check_circle</span>
                         )}
                       </div>
                     ))}
@@ -1739,7 +1863,7 @@ export default function EpisodeDetailPageNew() {
                         onClick={() => toggleAssetForShot('scene', scene)}
                         className={`flex flex-col gap-2 p-3 rounded-xl cursor-pointer transition-all ${
                           isAssetSelected('scene', scene.id) 
-                            ? 'bg-primary-100 dark:bg-primary-500/20 ring-2 ring-primary-500' 
+                            ? 'bg-neutral-100 dark:bg-neutral-700 ring-2 ring-neutral-500' 
                             : 'hover:bg-slate-100 dark:hover:bg-border-dark'
                         }`}
                       >
@@ -1773,7 +1897,7 @@ export default function EpisodeDetailPageNew() {
                         onClick={() => toggleAssetForShot('prop', prop)}
                         className={`flex flex-col gap-2 p-3 rounded-xl cursor-pointer transition-all ${
                           isAssetSelected('prop', prop.id) 
-                            ? 'bg-primary-100 dark:bg-primary-500/20 ring-2 ring-primary-500' 
+                            ? 'bg-neutral-100 dark:bg-neutral-700 ring-2 ring-neutral-500' 
                             : 'hover:bg-slate-100 dark:hover:bg-border-dark'
                         }`}
                       >
@@ -1807,16 +1931,16 @@ export default function EpisodeDetailPageNew() {
                         onClick={() => toggleAssetForShot('audio', audio)}
                         className={`flex flex-col items-center gap-2 p-3 rounded-xl cursor-pointer transition-all ${
                           isAssetSelected('audio', audio.id) 
-                            ? 'bg-primary-100 dark:bg-primary-500/20 ring-2 ring-primary-500' 
+                            ? 'bg-neutral-100 dark:bg-neutral-700 ring-2 ring-neutral-500' 
                             : 'hover:bg-slate-100 dark:hover:bg-border-dark'
                         }`}
                       >
                         <div className="size-16 rounded-lg overflow-hidden bg-slate-100 dark:bg-border-dark flex items-center justify-center">
-                          <span className="material-symbols-outlined text-2xl text-primary-500">music_note</span>
+                          <span className="material-symbols-outlined text-2xl text-neutral-600 dark:text-neutral-400">music_note</span>
                         </div>
                         <span className="text-sm font-medium text-text-light-primary dark:text-text-dark-primary truncate max-w-full">{audio.name}</span>
                         {isAssetSelected('audio', audio.id) && (
-                          <span className="material-symbols-outlined text-primary-500 text-sm">check_circle</span>
+                          <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400 text-sm">check_circle</span>
                         )}
                       </div>
                     ))}
@@ -1828,7 +1952,7 @@ export default function EpisodeDetailPageNew() {
             <div className="p-6 border-t border-border-light dark:border-border-dark flex justify-end">
               <button 
                 onClick={() => setShowAssetPicker(null)}
-                className="px-4 py-2 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600 transition-colors"
+                className="px-4 py-2 rounded-lg bg-neutral-800 dark:bg-white text-white dark:text-black text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-200 transition-colors"
               >
                 完成
               </button>
@@ -1840,7 +1964,7 @@ export default function EpisodeDetailPageNew() {
       {/* 资产库配置弹窗 */}
       {showConfigModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowConfigModal(false)}>
-          <div className="bg-card-light dark:bg-card-dark rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-[#18181b] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
               <div>
                 <h2 className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">配置资产库</h2>
@@ -1871,8 +1995,8 @@ export default function EpisodeDetailPageNew() {
                           key={lib.id}
                           className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                             selectedLibraryIds.includes(lib.id) 
-                              ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10' 
-                              : 'border-border-light dark:border-border-dark hover:border-primary-300'
+                              ? 'border-neutral-500 bg-neutral-100 dark:bg-neutral-800' 
+                              : 'border-border-light dark:border-border-dark hover:border-neutral-400'
                           }`}
                         >
                           <input 
@@ -1892,7 +2016,7 @@ export default function EpisodeDetailPageNew() {
                           </div>
                           <span className="text-sm font-medium text-text-light-primary dark:text-text-dark-primary truncate">{lib.name}</span>
                           {selectedLibraryIds.includes(lib.id) && (
-                            <span className="material-symbols-outlined text-primary-500 ml-auto">check_circle</span>
+                            <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400 ml-auto">check_circle</span>
                           )}
                         </label>
                       ))}
@@ -1913,8 +2037,8 @@ export default function EpisodeDetailPageNew() {
                           key={lib.id}
                           className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                             selectedLibraryIds.includes(lib.id) 
-                              ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10' 
-                              : 'border-border-light dark:border-border-dark hover:border-primary-300'
+                              ? 'border-neutral-500 bg-neutral-100 dark:bg-neutral-800' 
+                              : 'border-border-light dark:border-border-dark hover:border-neutral-400'
                           }`}
                         >
                           <input 
@@ -1934,7 +2058,7 @@ export default function EpisodeDetailPageNew() {
                           </div>
                           <span className="text-sm font-medium text-text-light-primary dark:text-text-dark-primary truncate">{lib.name}</span>
                           {selectedLibraryIds.includes(lib.id) && (
-                            <span className="material-symbols-outlined text-primary-500 ml-auto">check_circle</span>
+                            <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400 ml-auto">check_circle</span>
                           )}
                         </label>
                       ))}
@@ -1955,8 +2079,8 @@ export default function EpisodeDetailPageNew() {
                           key={lib.id}
                           className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                             selectedLibraryIds.includes(lib.id) 
-                              ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10' 
-                              : 'border-border-light dark:border-border-dark hover:border-primary-300'
+                              ? 'border-neutral-500 bg-neutral-100 dark:bg-neutral-800' 
+                              : 'border-border-light dark:border-border-dark hover:border-neutral-400'
                           }`}
                         >
                           <input 
@@ -1976,7 +2100,7 @@ export default function EpisodeDetailPageNew() {
                           </div>
                           <span className="text-sm font-medium text-text-light-primary dark:text-text-dark-primary truncate">{lib.name}</span>
                           {selectedLibraryIds.includes(lib.id) && (
-                            <span className="material-symbols-outlined text-primary-500 ml-auto">check_circle</span>
+                            <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400 ml-auto">check_circle</span>
                           )}
                         </label>
                       ))}
@@ -1997,8 +2121,8 @@ export default function EpisodeDetailPageNew() {
                           key={lib.id}
                           className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                             selectedLibraryIds.includes(lib.id) 
-                              ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10' 
-                              : 'border-border-light dark:border-border-dark hover:border-primary-300'
+                              ? 'border-neutral-500 bg-neutral-100 dark:bg-neutral-800' 
+                              : 'border-border-light dark:border-border-dark hover:border-neutral-400'
                           }`}
                         >
                           <input 
@@ -2018,7 +2142,7 @@ export default function EpisodeDetailPageNew() {
                           </div>
                           <span className="text-sm font-medium text-text-light-primary dark:text-text-dark-primary truncate">{lib.name}</span>
                           {selectedLibraryIds.includes(lib.id) && (
-                            <span className="material-symbols-outlined text-primary-500 ml-auto">check_circle</span>
+                            <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400 ml-auto">check_circle</span>
                           )}
                         </label>
                       ))}
@@ -2039,8 +2163,8 @@ export default function EpisodeDetailPageNew() {
                           key={lib.id}
                           className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                             selectedLibraryIds.includes(lib.id) 
-                              ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10' 
-                              : 'border-border-light dark:border-border-dark hover:border-primary-300'
+                              ? 'border-neutral-500 bg-neutral-100 dark:bg-neutral-800' 
+                              : 'border-border-light dark:border-border-dark hover:border-neutral-400'
                           }`}
                         >
                           <input 
@@ -2060,7 +2184,7 @@ export default function EpisodeDetailPageNew() {
                           </div>
                           <span className="text-sm font-medium text-text-light-primary dark:text-text-dark-primary truncate">{lib.name}</span>
                           {selectedLibraryIds.includes(lib.id) && (
-                            <span className="material-symbols-outlined text-primary-500 ml-auto">check_circle</span>
+                            <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400 ml-auto">check_circle</span>
                           )}
                         </label>
                       ))}
@@ -2082,7 +2206,7 @@ export default function EpisodeDetailPageNew() {
               </button>
               <button 
                 onClick={() => saveLibraryConfig(selectedLibraryIds)}
-                className="px-4 py-2 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600 transition-colors"
+                className="px-4 py-2 rounded-lg bg-neutral-800 dark:bg-white text-white dark:text-black text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-200 transition-colors"
               >
                 确认配置
               </button>
@@ -2094,7 +2218,7 @@ export default function EpisodeDetailPageNew() {
       {/* 导入素材弹窗 */}
       {showMediaImporter && selectedLibraryIds.length > 0 && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowMediaImporter(false)}>
-          <div className="bg-card-light dark:bg-card-dark rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-[#18181b] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
               <div>
                 <h2 className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">导入素材</h2>
@@ -2127,13 +2251,13 @@ export default function EpisodeDetailPageNew() {
                           ))
                           toast.success('素材已导入')
                         }}
-                        className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary-500 transition-all group"
+                        className="relative aspect-video rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-neutral-500 transition-all group"
                       >
                         {isVideo ? (
                           <video src={item.url} className="w-full h-full object-cover" />
                         ) : isAudio ? (
-                          <div className="w-full h-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-3xl text-purple-500">music_note</span>
+                          <div className="w-full h-full bg-gradient-to-br from-neutral-800/20 to-neutral-800/20 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-3xl text-neutral-800">music_note</span>
                           </div>
                         ) : (
                           <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
@@ -2158,7 +2282,7 @@ export default function EpisodeDetailPageNew() {
             <div className="p-6 border-t border-border-light dark:border-border-dark flex justify-end">
               <button 
                 onClick={() => setShowMediaImporter(false)}
-                className="px-4 py-2 rounded-lg bg-primary-500 text-white text-sm font-medium hover:bg-primary-600 transition-colors"
+                className="px-4 py-2 rounded-lg bg-neutral-800 dark:bg-white text-white dark:text-black text-sm font-medium hover:bg-neutral-700 dark:hover:bg-neutral-200 transition-colors"
               >
                 完成
               </button>
@@ -2171,15 +2295,10 @@ export default function EpisodeDetailPageNew() {
       {/* 创建分镜脚本弹窗 */}
       {showScriptCreator && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
+          <div className="bg-white dark:bg-[#18181b] rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
             <div className="p-6 border-b border-border-light dark:border-border-dark shrink-0">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-white">edit_note</span>
-                  </div>
-                  <h2 className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">AI 创建分镜脚本</h2>
-                </div>
+                <h2 className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">AI 创建分镜脚本</h2>
                 <button 
                   onClick={() => setShowScriptCreator(false)}
                   className="text-text-light-tertiary dark:text-text-dark-tertiary hover:text-text-light-primary dark:hover:text-text-dark-primary"
@@ -2198,7 +2317,7 @@ export default function EpisodeDetailPageNew() {
                 <select
                   value={selectedAgentId}
                   onChange={(e) => handleAgentSelect(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-800 text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-black text-text-light-primary dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-neutral-500"
                 >
                   <option value="">请选择智能体</option>
                   {scriptCreatorAgents.map((agent: any) => (
@@ -2206,7 +2325,7 @@ export default function EpisodeDetailPageNew() {
                   ))}
                 </select>
                 {scriptCreatorAgents.length === 0 && (
-                  <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                  <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
                     暂无可用的剧集创作智能体，请先在管理后台配置
                   </p>
                 )}
@@ -2224,8 +2343,8 @@ export default function EpisodeDetailPageNew() {
                         key={role.id}
                         className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                           selectedRoleId === role.id
-                            ? 'border-primary-500 bg-primary-50 dark:bg-primary-500/10'
-                            : 'border-border-light dark:border-border-dark hover:border-primary-300'
+                            ? 'border-neutral-500 bg-neutral-100 dark:bg-neutral-800'
+                            : 'border-border-light dark:border-border-dark hover:border-neutral-400'
                         }`}
                       >
                         <input
@@ -2243,7 +2362,7 @@ export default function EpisodeDetailPageNew() {
                           )}
                         </div>
                         {selectedRoleId === role.id && (
-                          <span className="material-symbols-outlined text-primary-500">check_circle</span>
+                          <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400">check_circle</span>
                         )}
                       </label>
                     ))}
@@ -2261,7 +2380,7 @@ export default function EpisodeDetailPageNew() {
                 <label className="block text-sm font-medium text-text-light-primary dark:text-text-dark-primary mb-2">
                   上传剧本/故事 <span className="text-red-500">*</span>
                 </label>
-                <div className={`border-2 border-dashed rounded-xl p-4 text-center ${scriptFileUrl ? 'border-green-500 bg-green-50 dark:bg-green-500/10' : 'border-border-light dark:border-border-dark'}`}>
+                <div className={`border-2 border-dashed rounded-xl p-4 text-center ${scriptFileUrl ? 'border-neutral-500 bg-neutral-100 dark:bg-neutral-800' : 'border-border-light dark:border-border-dark'}`}>
                   <input
                     type="file"
                     accept=".txt,.pdf,.doc,.docx"
@@ -2270,14 +2389,14 @@ export default function EpisodeDetailPageNew() {
                     id="script-file-input"
                   />
                   <label htmlFor="script-file-input" className="cursor-pointer">
-                    <span className={`material-symbols-outlined text-4xl ${scriptFileUrl ? 'text-green-500' : 'text-text-light-tertiary dark:text-text-dark-tertiary'}`}>
+                    <span className={`material-symbols-outlined text-4xl ${scriptFileUrl ? 'text-neutral-600 dark:text-neutral-400' : 'text-text-light-tertiary dark:text-text-dark-tertiary'}`}>
                       {scriptFileUrl ? 'check_circle' : 'upload_file'}
                     </span>
                     <p className="text-sm text-text-light-secondary dark:text-text-dark-secondary mt-2">
                       {scriptFile ? scriptFile.name : '点击上传文件（支持 TXT、PDF、Word）'}
                     </p>
                     {scriptFileUrl && (
-                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ 已上传，将直接传给AI分析</p>
+                      <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">✓ 已上传，将直接传给AI分析</p>
                     )}
                   </label>
                 </div>
@@ -2293,7 +2412,7 @@ export default function EpisodeDetailPageNew() {
                   onChange={(e) => setScriptRequirements(e.target.value)}
                   placeholder="例如：分镜数量约20个、画风偏卡通、节奏明快..."
                   rows={3}
-                  className="w-full px-4 py-3 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-slate-800 text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                  className="w-full px-4 py-3 rounded-xl border border-border-light dark:border-border-dark bg-white dark:bg-black text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-neutral-500 resize-none"
                 />
               </div>
             </div>
@@ -2308,7 +2427,7 @@ export default function EpisodeDetailPageNew() {
               <button
                 onClick={generateStoryboardScript}
                 disabled={isGeneratingScript || !selectedRoleId || !scriptFile}
-                className="px-6 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-2 rounded-lg bg-neutral-800 dark:bg-white text-white dark:text-black text-sm font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isGeneratingScript ? (
                   <>
@@ -2329,14 +2448,9 @@ export default function EpisodeDetailPageNew() {
 
       {showExportWarning && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-md shadow-2xl">
+          <div className="bg-white dark:bg-[#18181b] rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-6 border-b border-border-light dark:border-border-dark">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">warning</span>
-                </div>
-                <h2 className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">部分分镜缺少主素材</h2>
-              </div>
+              <h2 className="text-lg font-bold text-text-light-primary dark:text-text-dark-primary">部分分镜缺少主素材</h2>
             </div>
             
             <div className="p-6">
@@ -2347,7 +2461,7 @@ export default function EpisodeDetailPageNew() {
                 {missingShotsForExport.map(shotIndex => (
                   <span 
                     key={shotIndex}
-                    className="px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-sm font-medium"
+                    className="px-3 py-1 rounded-full bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 text-sm font-medium"
                   >
                     Shot {String(shotIndex).padStart(2, '0')}
                   </span>
@@ -2367,7 +2481,7 @@ export default function EpisodeDetailPageNew() {
               </button>
               <button 
                 onClick={() => doExportToJianying()}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-medium hover:shadow-lg transition-all"
+                className="px-4 py-2 rounded-lg bg-neutral-800 dark:bg-white text-white dark:text-black text-sm font-medium hover:shadow-lg transition-all"
               >
                 仍要导出
               </button>

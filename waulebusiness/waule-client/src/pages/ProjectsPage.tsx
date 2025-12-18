@@ -327,8 +327,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 />
 
                 {isUploadingThumbnail ? (
-                  <div className={`w-full ${isEdit ? 'aspect-[16/9]' : 'h-44'} border-2 border-dashed border-purple-400 dark:border-purple-400/50 rounded-md flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5`}>
-                    <span className="material-symbols-outlined text-2xl text-purple-500 animate-spin">progress_activity</span>
+                  <div className={`w-full ${isEdit ? 'aspect-[16/9]' : 'h-44'} border-2 border-dashed border-neutral-600 dark:border-neutral-600/50 rounded-md flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5`}>
+                    <span className="material-symbols-outlined text-2xl text-neutral-800 animate-spin">progress_activity</span>
                     <span className="text-xs text-slate-600 dark:text-slate-400">正在上传...</span>
                   </div>
                 ) : thumbnail ? (
@@ -352,7 +352,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className={`w-full ${isEdit ? 'aspect-[16/9]' : 'h-44'} border-2 border-dashed border-slate-300 dark:border-white/20 rounded-md hover:border-purple-400 dark:hover:border-purple-400/50 transition-colors flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5`}
+                    className={`w-full ${isEdit ? 'aspect-[16/9]' : 'h-44'} border-2 border-dashed border-slate-300 dark:border-white/20 rounded-md hover:border-neutral-600 dark:hover:border-neutral-600/50 transition-colors flex flex-col items-center justify-center gap-2 bg-slate-100 dark:bg-white/5`}
                   >
                     <span className="material-symbols-outlined text-2xl text-slate-400 dark:text-white/50" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>
                       add_photo_alternate
@@ -427,7 +427,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                       onChange={(e) => handleSearchUsers(e.target.value)}
                       onFocus={() => searchQuery && setShowSearchDropdown(true)}
                       placeholder="@用户昵称 添加协作者"
-                      className="w-full px-3 py-1.5 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded text-sm text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-neutral-800"
                     />
                     {isSearching && (
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-sm animate-spin text-slate-400">progress_activity</span>
@@ -443,15 +443,15 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                             className={`w-full px-3 py-2 flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-white/10 text-left ${user.isEveryone ? 'bg-purple-50 dark:bg-purple-900/20' : ''}`}
                           >
                             {user.isEveryone ? (
-                              <span className="material-symbols-outlined text-purple-500 text-lg">groups</span>
+                              <span className="material-symbols-outlined text-neutral-800 text-lg">groups</span>
                             ) : user.avatar ? (
                               <img src={user.avatar} alt="" className="w-6 h-6 rounded-full object-cover" />
                             ) : (
                               <span className="material-symbols-outlined text-slate-400 text-lg">account_circle</span>
                             )}
-                            <span className={`text-sm ${user.isEveryone ? 'text-purple-600 dark:text-purple-400 font-medium' : 'text-slate-800 dark:text-white'}`}>
+                            <span className={`text-sm ${user.isEveryone ? 'text-purple-600 dark:text-neutral-600 font-medium' : 'text-slate-800 dark:text-white'}`}>
                               {user.nickname || user.username}
-                              {user.isEveryone && <span className="text-xs ml-1 text-purple-400">（公开共享）</span>}
+                              {user.isEveryone && <span className="text-xs ml-1 text-neutral-600">（公开共享）</span>}
                             </span>
                           </button>
                         ))}
@@ -541,8 +541,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, type: 'DRAMA' }))}
                   className={`px-3 py-2 rounded-md border transition-all text-left ${formData.type === 'DRAMA'
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : 'border-slate-200 dark:border-white/10 hover:border-purple-400'
+                      ? 'border-neutral-800 bg-neutral-800/10'
+                      : 'border-slate-200 dark:border-white/10 hover:border-neutral-600'
                     }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -558,8 +558,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, type: 'QUICK' }))}
                   className={`px-3 py-2 rounded-md border transition-all text-left ${formData.type === 'QUICK'
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : 'border-slate-200 dark:border-white/10 hover:border-purple-400'
+                      ? 'border-neutral-800 bg-neutral-800/10'
+                      : 'border-slate-200 dark:border-white/10 hover:border-neutral-600'
                     }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -584,7 +584,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
             </button>
             <button
               type="submit"
-              className="flex-1 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white rounded-md transition-all font-medium active:scale-95"
+              className="flex-1 px-3 py-2 bg-neutral-800 dark:bg-white hover:shadow-lg text-white dark:text-black rounded-md transition-all font-medium active:scale-95"
             >
               {isEdit ? '保存更改' : '创建项目'}
             </button>
@@ -815,7 +815,7 @@ const ProjectsPage = () => {
             placeholder="搜索项目..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-12 pr-4 h-12 w-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
+            className="pl-12 pr-4 h-12 w-full bg-white dark:bg-[#18181b] border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
             style={{ outline: 'none', boxShadow: 'none' }}
           />
         </div>
@@ -826,7 +826,7 @@ const ProjectsPage = () => {
         <div className="group relative">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
+            className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black dark:hover:bg-white hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
           >
             <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>add</span>
           </button>
@@ -850,7 +850,7 @@ const ProjectsPage = () => {
           <p className="text-text-light-secondary dark:text-text-dark-secondary mb-6">创建你的第一个AI短剧项目</p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600/50 dark:to-pink-600/50 hover:shadow-lg text-white font-medium rounded-lg transition-all shadow-md active:scale-95"
+            className="px-6 py-3 bg-neutral-800 dark:bg-white hover:shadow-lg text-white dark:text-black font-medium rounded-lg transition-all shadow-md active:scale-95"
           >
             立即创建
           </button>
@@ -868,7 +868,7 @@ const ProjectsPage = () => {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="px-6 py-3 bg-card-light dark:bg-card-dark text-text-light-primary dark:text-text-dark-primary font-medium rounded-lg hover:bg-card-light-hover dark:hover:bg-card-dark-hover transition-all border border-border-light dark:border-border-dark"
+              className="px-6 py-3 bg-white dark:bg-[#18181b] text-text-light-primary dark:text-text-dark-primary font-medium rounded-lg hover:bg-card-light-hover dark:hover:bg-card-dark-hover transition-all border border-border-light dark:border-border-dark"
             >
               清除搜索
             </button>

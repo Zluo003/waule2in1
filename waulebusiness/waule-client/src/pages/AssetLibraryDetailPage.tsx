@@ -598,9 +598,9 @@ const AssetLibraryDetailPage = () => {
       <div className="fixed top-4 left-[136px] z-40 flex items-center gap-4 h-[72px]">
         <button
           onClick={() => navigate('/assets')}
-          className="w-10 h-10 flex items-center justify-center bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent rounded-lg transition-all"
+          className="group w-10 h-10 flex items-center justify-center bg-white dark:bg-[#18181b] border border-neutral-200 dark:border-neutral-700 hover:bg-black dark:hover:bg-white hover:border-transparent rounded-lg transition-all"
         >
-          <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
+          <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400 group-hover:text-white dark:group-hover:text-black" style={{ fontVariationSettings: '"FILL" 0, "wght" 200' }}>arrow_back</span>
         </button>
         <span className="text-2xl font-semibold text-neutral-900 dark:text-white font-display">{library.name}</span>
       </div>
@@ -676,7 +676,7 @@ const AssetLibraryDetailPage = () => {
             placeholder="搜索资产..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-12 pr-28 py-2.5 w-full bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
+            className="pl-12 pr-28 py-2.5 w-full bg-white dark:bg-[#18181b] border border-border-light dark:border-border-dark rounded-full text-text-light-primary dark:text-text-dark-primary placeholder:text-text-light-tertiary dark:placeholder:text-text-dark-tertiary outline-none transition-all"
             style={{ outline: 'none', boxShadow: 'none' }}
           />
           {/* 自定义下拉菜单 - 在搜索栏内部右侧 */}
@@ -710,7 +710,7 @@ const AssetLibraryDetailPage = () => {
                 <button
                   onClick={() => uploadInputRef.current?.click()}
                   disabled={uploading}
-                  className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)] disabled:opacity-50"
+                  className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black dark:hover:bg-white hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)] disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>
                     {uploading ? 'progress_activity' : 'upload'}
@@ -731,7 +731,7 @@ const AssetLibraryDetailPage = () => {
                   setRoleOpt2File(null);
                   setShowCreateRole(true);
                 }}
-                className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
+                className="w-10 h-10 rounded-xl bg-white dark:bg-[#18181b] text-neutral-600 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700 hover:bg-black dark:hover:bg-white hover:border-transparent transition-all flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
               >
                 <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: '"FILL" 0, "wght" 500' }}>person_add</span>
               </button>
@@ -752,8 +752,8 @@ const AssetLibraryDetailPage = () => {
       ) : library.category === 'ROLE' ? (
         roles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="h-24 w-24 rounded-full bg-purple-500/10 flex items-center justify-center mb-6 shadow-purple-400/30">
-              <span className="material-symbols-outlined text-purple-400 text-5xl">person</span>
+            <div className="h-24 w-24 rounded-full bg-neutral-800/10 flex items-center justify-center mb-6 shadow-neutral-600/30">
+              <span className="material-symbols-outlined text-neutral-600 text-5xl">person</span>
             </div>
             <h2 className="text-2xl font-bold text-text-light-primary dark:text-text-dark-primary mb-2">还没有角色</h2>
             <p className="text-text-light-secondary dark:text-text-dark-secondary mb-6">创建你的第一个角色</p>
@@ -1019,7 +1019,7 @@ const AssetLibraryDetailPage = () => {
             <div className="grid grid-cols-1 gap-2">
               <div>
                 <label className="text-sm text-slate-600 dark:text-slate-300">角色名称</label>
-                <input value={roleForm.name} onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark text-text-light-primary dark:text-text-dark-primary" maxLength={30} />
+                <input value={roleForm.name} onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-[#18181b] border border-border-light dark:border-border-dark text-text-light-primary dark:text-text-dark-primary" maxLength={30} />
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
@@ -1252,7 +1252,7 @@ const AssetLibraryDetailPage = () => {
             <div className="grid grid-cols-1 gap-2">
               <div>
                 <label className="text-sm text-slate-600 dark:text-slate-300">角色名称</label>
-                <input value={editRoleForm.name} onChange={(e) => setEditRoleForm({ ...editRoleForm, name: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark text-text-light-primary dark:text-text-dark-primary" maxLength={30} />
+                <input value={editRoleForm.name} onChange={(e) => setEditRoleForm({ ...editRoleForm, name: e.target.value })} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-[#18181b] border border-border-light dark:border-border-dark text-text-light-primary dark:text-text-dark-primary" maxLength={30} />
               </div>
             </div>
             <div className="mt-4 flex justify-end gap-2">
@@ -1292,7 +1292,7 @@ const AssetLibraryDetailPage = () => {
       {/* 编辑资产模态框 */}
       {editingAsset && (
         <div className="fixed inset-0 bg-black/60 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-2xl p-6 max-w-2xl w-full shadow-soft-lg">
+          <div className="bg-white dark:bg-[#18181b] border border-border-light dark:border-border-dark rounded-2xl p-6 max-w-2xl w-full shadow-soft-lg">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-text-light-primary dark:text-text-dark-primary">
                 编辑资产

@@ -48,7 +48,7 @@ const TenantAdminPage = () => {
           <div className="py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-neutral-800 to-neutral-800 rounded-xl flex items-center justify-center">
                   <span className="material-symbols-outlined text-white">admin_panel_settings</span>
                 </div>
                 <div>
@@ -142,7 +142,7 @@ const TenantAdminPage = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     activeTab === tab.id
-                      ? 'bg-white/10 text-purple-400 shadow-sm'
+                      ? 'bg-white/10 text-neutral-600 shadow-sm'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >

@@ -374,7 +374,7 @@ const CommercialVideoNode = ({ data, selected, id }: NodeProps<CommercialVideoNo
             }}
             disabled={isProcessing}
             placeholder="描述你想要的广告内容..."
-            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 overflow-hidden"
+            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none transition-colors leading-relaxed bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 overflow-hidden"
             rows={2}
           />
         </div>

@@ -4377,13 +4377,13 @@ const WorkflowEditorInner = () => {
                         <div className="flex-1 min-w-0">
                           <div className="text-sm truncate">{agent.name}</div>
                           {agent.description && (
-                            <div className="text-xs text-purple-400 truncate">{agent.description}</div>
+                            <div className="text-xs text-neutral-600 truncate">{agent.description}</div>
                           )}
                         </div>
                       </button>
                     ))
                   ) : (
-                    <div className="px-4 py-2 text-sm text-purple-400">
+                    <div className="px-4 py-2 text-sm text-neutral-600">
                       暂无可用智能体
                     </div>
                   )}
@@ -4638,7 +4638,7 @@ const WorkflowEditorInner = () => {
                   ))}
                   
                   {videoEditingCapabilities.every((cap) => getModelsForEditingCapability(cap).length === 0) && (
-                    <div className="px-4 py-2 text-sm text-purple-400">暂无支持视频编辑能力的模型</div>
+                    <div className="px-4 py-2 text-sm text-neutral-600">暂无支持视频编辑能力的模型</div>
                   )}
                 </div>
               )}
@@ -4742,13 +4742,13 @@ const WorkflowEditorInner = () => {
                           <div className="flex-1 min-w-0">
                             <div className="text-sm truncate">{agent.name}</div>
                             {agent.description && (
-                              <div className="text-xs text-purple-400 truncate">{agent.description}</div>
+                              <div className="text-xs text-neutral-600 truncate">{agent.description}</div>
                             )}
                           </div>
                         </button>
                       ))
                     ) : (
-                      <div className="px-4 py-2 text-sm text-purple-400">
+                      <div className="px-4 py-2 text-sm text-neutral-600">
                         暂无可用智能体
                       </div>
                     )}
@@ -5012,7 +5012,7 @@ const WorkflowEditorInner = () => {
                   ))}
                   
                   {videoEditingCapabilities.every((cap) => getModelsForEditingCapability(cap).length === 0) && (
-                    <div className="px-4 py-2 text-sm text-purple-400">暂无支持视频编辑能力的模型</div>
+                    <div className="px-4 py-2 text-sm text-neutral-600">暂无支持视频编辑能力的模型</div>
                   )}
                 </div>
               )}
@@ -5093,7 +5093,7 @@ const WorkflowEditorInner = () => {
                   min="1"
                   placeholder="输入幕数（整数）"
                   id="scene-input"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-neutral-800"
                 />
               </div>
               <div>
@@ -5103,7 +5103,7 @@ const WorkflowEditorInner = () => {
                   min="1"
                   placeholder="输入镜数（整数）"
                   id="shot-input"
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-text-dark-primary focus:outline-none focus:ring-2 focus:ring-neutral-800"
                 />
               </div>
               <div className="flex gap-3 pt-2">
@@ -5186,7 +5186,7 @@ const WorkflowEditorInner = () => {
                       toast.error('请输入有效的幕数和镜数（大于0的整数）');
                     }
                   }}
-                  className="flex-1 px-4 py-2 bg-neutral-800 dark:bg-white hover:shadow-lg text-white rounded-lg transition-all"
+                  className="flex-1 px-4 py-2 bg-neutral-800 dark:bg-white hover:shadow-lg text-white dark:text-black rounded-lg transition-all"
                 >
                   确定
                 </button>

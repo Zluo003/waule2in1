@@ -567,7 +567,7 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
                   <div className="font-bold text-sm text-slate-800 dark:text-white truncate">
                     {createdCharacter.customName}
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-neutral-400 font-mono truncate">
+                  <div className="text-xs text-slate-500 dark:text-neutral-400 truncate">
                     {createdCharacter.characterName}
                   </div>
                 </div>

@@ -286,10 +286,10 @@ const SettingsPage = () => {
     <div className="min-h-screen flex items-center justify-center p-4 bg-background-light dark:bg-background-dark">
       <div className="w-full max-w-4xl">
         {/* 个人资料卡片 - 横向布局 */}
-        <div className="bg-card-light dark:bg-card-dark border border-border-light dark:border-border-dark rounded-2xl shadow-soft-lg overflow-hidden">
+        <div className="bg-white dark:bg-[#18181b] border border-border-light dark:border-border-dark rounded-2xl shadow-soft-lg overflow-hidden">
           <div className="flex flex-col md:flex-row">
             {/* 左侧：头像和基本信息 */}
-            <div className="md:w-64 flex-shrink-0 bg-gradient-to-br from-pink-500/10 via-purple-500/10 to-cyan-500/10 dark:from-pink-500/20 dark:via-purple-500/20 dark:to-cyan-500/20 p-6 flex flex-col items-center justify-center">
+            <div className="md:w-64 flex-shrink-0 bg-gradient-to-br from-neutral-800/10 via-neutral-800/10 to-cyan-500/10 dark:from-neutral-800/20 dark:via-neutral-800/20 dark:to-cyan-500/20 p-6 flex flex-col items-center justify-center">
               {/* 头像 */}
               <div className="relative group mb-4">
                 <div className="w-24 h-24 rounded-full border-4 border-white/50 dark:border-white/20 bg-background-light-secondary dark:bg-background-dark-secondary overflow-hidden shadow-lg">
@@ -304,7 +304,7 @@ const SettingsPage = () => {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingAvatar}
-                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-md hover:scale-110 transition-transform disabled:opacity-50"
+                  className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-neutral-800 dark:bg-white flex items-center justify-center shadow-md hover:scale-110 transition-transform disabled:opacity-50"
                 >
                   {isUploadingAvatar ? (
                     <span className="material-symbols-outlined text-white text-base animate-spin">progress_activity</span>
@@ -357,7 +357,7 @@ const SettingsPage = () => {
                       onChange={(e) => { setNickname(e.target.value); setNicknameError(''); setNicknameSuccess(''); }}
                       onBlur={() => { if (nickname && nickname !== user?.nickname) checkNickname(nickname); }}
                       maxLength={20}
-                      className="w-full px-3 py-2 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm text-text-light-primary dark:text-text-dark-primary placeholder-text-light-tertiary dark:placeholder-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                      className="w-full px-3 py-2 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm text-text-light-primary dark:text-text-dark-primary placeholder-text-light-tertiary dark:placeholder-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-neutral-800 transition-all"
                       placeholder="输入昵称"
                     />
                     {isCheckingNickname && (
@@ -367,7 +367,7 @@ const SettingsPage = () => {
                   <button
                     onClick={handleSaveNickname}
                     disabled={isSavingNickname || isCheckingNickname || !nickname || nickname === user?.nickname || !!nicknameError}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium shadow hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                    className="px-4 py-2 bg-neutral-800 dark:bg-white text-white dark:text-black rounded-lg text-sm font-medium shadow hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                   >
                     {isSavingNickname ? <span className="material-symbols-outlined text-base animate-spin">progress_activity</span> : <span className="material-symbols-outlined text-base">check</span>}
                     保存
@@ -408,7 +408,7 @@ const SettingsPage = () => {
                       type={showCurrentPassword ? 'text' : 'password'}
                       value={currentPassword}
                       onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError(''); }}
-                      className="w-full px-3 py-2 pr-9 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm text-text-light-primary dark:text-text-dark-primary placeholder-text-light-tertiary dark:placeholder-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                      className="w-full px-3 py-2 pr-9 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm text-text-light-primary dark:text-text-dark-primary placeholder-text-light-tertiary dark:placeholder-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-neutral-800 transition-all"
                       placeholder="当前密码"
                     />
                     <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-light-tertiary hover:text-text-light-primary">
@@ -420,7 +420,7 @@ const SettingsPage = () => {
                       type={showNewPassword ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => { setNewPassword(e.target.value); setPasswordError(''); }}
-                      className="w-full px-3 py-2 pr-9 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm text-text-light-primary dark:text-text-dark-primary placeholder-text-light-tertiary dark:placeholder-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                      className="w-full px-3 py-2 pr-9 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm text-text-light-primary dark:text-text-dark-primary placeholder-text-light-tertiary dark:placeholder-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-neutral-800 transition-all"
                       placeholder="新密码（≥6位）"
                     />
                     <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-text-light-tertiary hover:text-text-light-primary">
@@ -431,7 +431,7 @@ const SettingsPage = () => {
                     type={showNewPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(''); }}
-                    className="w-full px-3 py-2 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm text-text-light-primary dark:text-text-dark-primary placeholder-text-light-tertiary dark:placeholder-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                    className="w-full px-3 py-2 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm text-text-light-primary dark:text-text-dark-primary placeholder-text-light-tertiary dark:placeholder-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-neutral-800 transition-all"
                     placeholder="确认新密码"
                   />
                 </div>
@@ -440,7 +440,7 @@ const SettingsPage = () => {
                 <button
                   onClick={handleChangePassword}
                   disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
-                  className="mt-3 w-full md:w-auto px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium shadow hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                  className="mt-3 w-full md:w-auto px-6 py-2 bg-neutral-800 dark:bg-white text-white dark:text-black rounded-lg text-sm font-medium shadow hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                 >
                   {isChangingPassword ? (
                     <><span className="material-symbols-outlined text-base animate-spin">progress_activity</span>修改中...</>
@@ -504,7 +504,7 @@ const SettingsPage = () => {
                           setConnectionTestResult(null);
                         }}
                         placeholder="http://192.168.1.100:3002"
-                        className="flex-1 px-3 py-2 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm text-text-light-primary dark:text-text-dark-primary placeholder-text-light-tertiary dark:placeholder-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                        className="flex-1 px-3 py-2 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg text-sm text-text-light-primary dark:text-text-dark-primary placeholder-text-light-tertiary dark:placeholder-text-dark-tertiary focus:outline-none focus:ring-2 focus:ring-neutral-800 transition-all"
                       />
                       <button
                         onClick={handleTestConnection}

@@ -186,7 +186,7 @@ const TenantUsersTab = () => {
               placeholder="搜索用户名、昵称..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-neutral-800/20"
             />
           </div>
           <button
@@ -199,7 +199,7 @@ const TenantUsersTab = () => {
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl hover:shadow-lg hover:shadow-purple-500/25 transition-all"
+          className="flex items-center gap-2 px-4 py-2.5 bg-neutral-800 dark:bg-white text-white dark:text-black rounded-xl hover:shadow-lg hover:shadow-neutral-800/25 transition-all"
         >
           <span className="material-symbols-outlined text-xl">person_add</span>
           新建用户
@@ -210,7 +210,7 @@ const TenantUsersTab = () => {
       <div className="bg-white dark:bg-card-dark border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-3 border-purple-500/20 border-t-purple-500" />
+            <div className="animate-spin rounded-full h-10 w-10 border-3 border-neutral-800/20 border-t-neutral-800" />
           </div>
         ) : users.length === 0 ? (
           <div className="text-center py-20">
@@ -249,7 +249,7 @@ const TenantUsersTab = () => {
                   >
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-medium">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neutral-800 to-neutral-800 flex items-center justify-center text-white font-medium">
                           {(user.nickname || user.username)[0].toUpperCase()}
                         </div>
                         <div>
@@ -264,7 +264,7 @@ const TenantUsersTab = () => {
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
                           user.isAdmin
-                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-neutral-600'
                             : 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-400'
                         }`}
                       >
@@ -369,7 +369,7 @@ const TenantUsersTab = () => {
                   required
                   value={createForm.username}
                   onChange={(e) => setCreateForm({ ...createForm, username: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-800/20 text-gray-900 dark:text-white"
                   placeholder="请输入用户名"
                 />
               </div>
@@ -383,7 +383,7 @@ const TenantUsersTab = () => {
                   minLength={6}
                   value={createForm.password}
                   onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-800/20 text-gray-900 dark:text-white"
                   placeholder="至少6位"
                 />
               </div>
@@ -395,7 +395,7 @@ const TenantUsersTab = () => {
                   type="text"
                   value={createForm.nickname}
                   onChange={(e) => setCreateForm({ ...createForm, nickname: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-800/20 text-gray-900 dark:text-white"
                   placeholder="显示名称（可选）"
                 />
               </div>
@@ -405,7 +405,7 @@ const TenantUsersTab = () => {
                     type="checkbox"
                     checked={createForm.isAdmin}
                     onChange={(e) => setCreateForm({ ...createForm, isAdmin: e.target.checked })}
-                    className="w-4 h-4 rounded text-purple-500 focus:ring-purple-500"
+                    className="w-4 h-4 rounded text-neutral-800 focus:ring-neutral-800"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">设为管理员</span>
                 </label>
@@ -421,7 +421,7 @@ const TenantUsersTab = () => {
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="px-4 py-2 bg-purple-500 text-white rounded-xl hover:bg-purple-600 disabled:opacity-50 transition-colors"
+                  className="px-4 py-2 bg-neutral-800 text-white rounded-xl hover:bg-neutral-700 disabled:opacity-50 transition-colors"
                 >
                   {formLoading ? '创建中...' : '创建'}
                 </button>
@@ -452,7 +452,7 @@ const TenantUsersTab = () => {
                   minLength={6}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-800/20 text-gray-900 dark:text-white"
                   placeholder="至少6位"
                 />
               </div>
@@ -508,7 +508,7 @@ const TenantUsersTab = () => {
             <div className="p-6 overflow-y-auto flex-1">
               {workflowsLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <span className="material-symbols-outlined animate-spin text-4xl text-purple-500">progress_activity</span>
+                  <span className="material-symbols-outlined animate-spin text-4xl text-neutral-800">progress_activity</span>
                 </div>
               ) : userWorkflows.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">

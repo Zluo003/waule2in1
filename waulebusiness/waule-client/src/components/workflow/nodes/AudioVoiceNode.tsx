@@ -205,7 +205,7 @@ const AudioVoiceNode = ({ data, id, selected }: NodeProps<AudioVoiceNodeData>) =
             value={text}
             onChange={(e) => { setText(e.target.value); updateNodeData({ text: e.target.value }); }}
             placeholder="输入要合成的文本"
-            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors font-mono leading-relaxed bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500"
+            className="nodrag w-full p-2 text-xs rounded-md border outline-none resize-none overflow-hidden transition-colors leading-relaxed bg-slate-100 dark:bg-[#000000] backdrop-blur-none hover:bg-slate-200 dark:hover:bg-neutral-800 focus:bg-white dark:focus:bg-neutral-800 border-slate-200 dark:border-neutral-800 focus:border-neutral-400 dark:focus:border-neutral-400/50 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500"
             rows={3}
           />
         </div>

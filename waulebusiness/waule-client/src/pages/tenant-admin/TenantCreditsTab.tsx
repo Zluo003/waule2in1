@@ -145,8 +145,8 @@ const TenantCreditsTab = () => {
         {/* 使用次数 */}
         <div className="bg-white dark:bg-card-dark border border-gray-200 dark:border-white/10 rounded-2xl p-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center">
-              <span className="material-symbols-outlined text-2xl text-purple-500">bolt</span>
+            <div className="w-12 h-12 bg-neutral-800/10 rounded-xl flex items-center justify-center">
+              <span className="material-symbols-outlined text-2xl text-neutral-800">bolt</span>
             </div>
             <div>
               <p className="text-sm text-gray-500">使用次数</p>
@@ -189,7 +189,7 @@ const TenantCreditsTab = () => {
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-3 border-purple-500/20 border-t-purple-500" />
+            <div className="animate-spin rounded-full h-10 w-10 border-3 border-neutral-800/20 border-t-neutral-800" />
           </div>
         ) : logs.length === 0 ? (
           <div className="text-center py-20">
