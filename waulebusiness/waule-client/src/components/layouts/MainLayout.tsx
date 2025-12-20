@@ -46,7 +46,7 @@ const MainLayout = () => {
       </div>
 
       {/* Floating Toolbar - 左侧垂直居中 */}
-      <nav className="fixed left-[24px] top-1/2 -translate-y-1/2 z-50 flex flex-col gap-1 p-2 rounded-2xl bg-white dark:bg-[#18181b] shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
+      <nav className="fixed left-[24px] top-1/2 -translate-y-1/2 z-50 flex flex-col gap-1 p-2 rounded-2xl bg-[#deeaef] dark:bg-[#18181b] shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
         {navigation.map((item) => {
           const isActive = location.pathname.startsWith(item.path);
           return (

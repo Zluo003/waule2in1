@@ -798,6 +798,34 @@ const startScheduledTasks = () => {
   // 🧹 启动僵尸任务定时清理（每5分钟检查，超过30分钟未完成的任务自动取消并退款）
   const taskService = require('./services/task.service').default;
   taskService.startZombieCleanupScheduler(5, 30);
+
+  // 🗑️ OSS 存储清理任务（每天凌晨 3 点执行）
+  const scheduleStorageCleanup = () => {
+    const now = new Date();
+    const nextRun = new Date();
+    nextRun.setHours(3, 0, 0, 0); // 凌晨 3 点
+    if (nextRun <= now) {
+      nextRun.setDate(nextRun.getDate() + 1); // 如果今天已过 3 点，则明天执行
+    }
+    const delay = nextRun.getTime() - now.getTime();
+    
+    logger.info(`[StorageCleanup] 下次清理时间: ${nextRun.toLocaleString()}, ${Math.round(delay / 1000 / 60)} 分钟后`);
+    
+    setTimeout(async () => {
+      try {
+        const { runStorageCleanup } = require('./services/storage-cleanup.service');
+        logger.info('[StorageCleanup] 开始执行 OSS 存储清理...');
+        const result = await runStorageCleanup();
+        logger.info(`[StorageCleanup] 清理完成: 删除=${result.totalDeleted}, 失败=${result.totalFailed}, 耗时=${result.durationMs}ms`);
+      } catch (err: any) {
+        logger.error(`[StorageCleanup] 执行失败: ${err.message}`);
+      }
+      // 递归调度下一次
+      scheduleStorageCleanup();
+    }, delay);
+  };
+  
+  scheduleStorageCleanup();
 };
 
 // 启动服务器

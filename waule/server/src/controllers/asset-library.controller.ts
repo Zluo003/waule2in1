@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { uploadPath, uploadBuffer, ensureAliyunOssUrl } from '../utils/oss';
+import { calculateStorageExpiresAt } from '../utils/storage-expiration';
 
 // 获取所有资产库（包括自己的和共享给我的）
 export const getAssetLibraries = async (req: Request, res: Response) => {
@@ -610,6 +611,9 @@ export const addAssetFromUrl = async (req: Request, res: Response) => {
     // 确定资产类型
     const assetType = getAssetTypeFromMimeType(mimeType);
 
+    // 计算存储过期时间
+    const storageExpiresAt = await calculateStorageExpiresAt(userId);
+
     // 保存到数据库
     const asset = await prisma.asset.create({
       data: {
@@ -622,6 +626,7 @@ export const addAssetFromUrl = async (req: Request, res: Response) => {
         url: fileUrl,
         type: assetType,
         metadata: { source: 'GENERATED', originalUrl: url },
+        storageExpiresAt,
       },
     });
 

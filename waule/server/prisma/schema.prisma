@@ -154,39 +154,42 @@ model Workflow {
 }
 
 model Node {
-  id         String     @id @default(uuid())
-  workflowId String
-  type       NodeType
-  position   Json
-  data       Json
-  status     NodeStatus @default(IDLE)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  workflow   Workflow   @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  id               String     @id @default(uuid())
+  workflowId       String
+  type             NodeType
+  position         Json
+  data             Json
+  status           NodeStatus @default(IDLE)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  storageExpiresAt DateTime?  // OSS存储过期时间，null表示永久保留
+  workflow         Workflow   @relation(fields: [workflowId], references: [id], onDelete: Cascade)
 
   @@index([workflowId])
+  @@index([storageExpiresAt])
   @@map("nodes")
 }
 
 model Asset {
-  id             String        @id @default(uuid())
-  userId         String
-  projectId      String?
-  assetLibraryId String?
-  name           String
-  originalName   String
-  type           AssetType
-  mimeType       String
-  size           Int
-  url            String
-  thumbnail      String?
-  metadata       Json?
-  tags           String[]
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  assetLibrary   AssetLibrary? @relation(fields: [assetLibraryId], references: [id], onDelete: Cascade)
-  project        Project?      @relation(fields: [projectId], references: [id])
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String        @id @default(uuid())
+  userId           String
+  projectId        String?
+  assetLibraryId   String?
+  name             String
+  originalName     String
+  type             AssetType
+  mimeType         String
+  size             Int
+  url              String
+  thumbnail        String?
+  metadata         Json?
+  tags             String[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  storageExpiresAt DateTime?     // OSS存储过期时间，null表示永久保留
+  assetLibrary     AssetLibrary? @relation(fields: [assetLibraryId], references: [id], onDelete: Cascade)
+  project          Project?      @relation(fields: [projectId], references: [id])
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([assetLibraryId, createdAt])
   @@index([userId, createdAt])
@@ -194,6 +197,7 @@ model Asset {
   @@index([name])
   @@index([originalName])
   @@index([projectId, createdAt(sort: Desc), id(sort: Desc)], map: "idx_assets_project")
+  @@index([storageExpiresAt])
   @@map("assets")
 }
 
@@ -330,12 +334,14 @@ model GenerationTask {
   updatedAt          DateTime   @updatedAt
   completedAt        DateTime?
   externalTaskId     String?
+  storageExpiresAt   DateTime?  // OSS存储过期时间，null表示永久保留
 
   @@index([userId])
   @@index([status])
   @@index([createdAt])
   @@index([sourceNodeId])
   @@index([externalTaskId])
+  @@index([storageExpiresAt])
   @@map("generation_tasks")
 }
 
@@ -600,15 +606,16 @@ model RedeemCode {
 }
 
 model UserLevelConfig {
-  id               String   @id @default(uuid())
-  userRole         UserRole @unique
-  dailyGiftCredits Int      @default(0)
-  giftDays         Int      @default(0)
-  giftDescription  String?
-  maxConcurrency   Int      @default(1)
-  isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                   String   @id @default(uuid())
+  userRole             UserRole @unique
+  dailyGiftCredits     Int      @default(0)
+  giftDays             Int      @default(0)
+  giftDescription      String?
+  maxConcurrency       Int      @default(1)
+  storageRetentionDays Int      @default(-1) // OSS存储保留天数，-1表示永久保留
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@map("user_level_configs")
 }

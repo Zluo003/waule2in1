@@ -655,6 +655,7 @@ export const apiClient = {
         giftDays?: number;
         giftDescription?: string;
         maxConcurrency?: number;
+        storageRetentionDays?: number;
         isActive?: boolean;
       }) => apiClient.put('/admin/user-levels/configs', data),
       // 批量更新等级配置
@@ -664,6 +665,7 @@ export const apiClient = {
         giftDays?: number;
         giftDescription?: string;
         maxConcurrency?: number;
+        storageRetentionDays?: number;
         isActive?: boolean;
       }>) => apiClient.put('/admin/user-levels/configs/batch', { configs }),
 

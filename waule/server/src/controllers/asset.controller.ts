@@ -7,6 +7,7 @@ import { uploadBuffer, generatePresignedUrl } from '../utils/oss';
 import { logger } from '../utils/logger';
 import { validateFileMagicBytes, sanitizeFilename, MAX_FILE_SIZES, getFileCategory } from '../utils/fileValidator';
 import { moderateContent, isModerationEnabled } from '../services/content-moderation.service';
+import { calculateStorageExpiresAt } from '../utils/storage-expiration';
 
 // 创建上传目录
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -147,6 +148,9 @@ export const uploadAsset = async (req: Request, res: Response) => {
       ? sanitizeFilename(customName.trim()) 
       : decodedOriginalName;
     
+    // 计算存储过期时间
+    const storageExpiresAt = await calculateStorageExpiresAt(userId);
+
     // 保存到数据库
     const asset = await prisma.asset.create({
       data: {
@@ -159,6 +163,7 @@ export const uploadAsset = async (req: Request, res: Response) => {
         url: fileUrl,
         type: getAssetType(file.mimetype),
         metadata: { source: 'UPLOAD' },
+        storageExpiresAt,
       }
     });
 
@@ -631,6 +636,9 @@ export const confirmDirectUpload = async (req: Request, res: Response) => {
     const displayName = customName?.trim() || decodedOriginalName;
     const assetType = getAssetType(contentType);
 
+    // 计算存储过期时间
+    const storageExpiresAt = await calculateStorageExpiresAt(userId);
+
     // 保存到数据库
     const asset = await prisma.asset.create({
       data: {
@@ -642,6 +650,7 @@ export const confirmDirectUpload = async (req: Request, res: Response) => {
         mimeType: contentType,
         size: size || 0,
         url: publicUrl,
+        storageExpiresAt,
       },
     });
 

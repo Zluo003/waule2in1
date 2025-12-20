@@ -9,6 +9,7 @@ interface LevelConfig {
   giftDays: number;
   giftDescription: string | null;
   maxConcurrency: number;
+  storageRetentionDays: number;
   isActive: boolean;
 }
 
@@ -249,6 +250,7 @@ const UserLevelConfigPage = () => {
                     <th className="px-4 py-3 text-left text-sm font-medium text-slate-600 dark:text-gray-400">每日赠送积分</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-slate-600 dark:text-gray-400">赠送天数</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-slate-600 dark:text-gray-400">最大并发数</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-slate-600 dark:text-gray-400">存储保留</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-slate-600 dark:text-gray-400">规则描述</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-slate-600 dark:text-gray-400">启用</th>
                   </tr>
@@ -294,6 +296,20 @@ const UserLevelConfigPage = () => {
                         />
                       </td>
                       <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="-1"
+                            value={config.storageRetentionDays}
+                            onChange={e => updateLevelConfig(config.userRole, 'storageRetentionDays', parseInt(e.target.value) || -1)}
+                            className="w-20 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white"
+                          />
+                          <span className="text-sm text-slate-500 dark:text-gray-400">
+                            {config.storageRetentionDays === -1 ? '(永久)' : '天'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
                         <input
                           type="text"
                           value={config.giftDescription || ''}
@@ -325,6 +341,7 @@ const UserLevelConfigPage = () => {
                 <li>• <strong>每日赠送积分</strong>：用户每天登录时自动赠送的积分数量，赠送积分不累计（次日清零）</li>
                 <li>• <strong>赠送天数</strong>：新用户注册后赠送积分的天数，0表示无限期（VIP/SVIP会员有效期内持续赠送）</li>
                 <li>• <strong>最大并发数</strong>：用户同时进行的生成任务数量上限</li>
+                <li>• <strong>存储保留</strong>：用户生成内容的OSS存储保留天数，-1表示永久保留。保留期限按内容生成时的用户等级计算</li>
               </ul>
             </div>
           </div>

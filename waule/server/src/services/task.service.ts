@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import OSS from 'ali-oss';
 import { ensureAliyunOssUrl } from '../utils/oss';
+import { calculateStorageExpiresAt } from '../utils/storage-expiration';
 import { getSubjectsFromRoleIds, ViduSubject } from '../utils/role-helpers';
 import * as doubaoService from './ai/doubao.service';
 import * as minimaxiService from './ai/minimaxi.service';
@@ -112,6 +113,9 @@ class TaskService {
     }
 
     // 4. 创建任务
+    // 计算存储过期时间（基于当前用户等级）
+    const storageExpiresAt = await calculateStorageExpiresAt(params.userId);
+
     const task = await prisma.generationTask.create({
       data: {
         userId: params.userId,
@@ -125,6 +129,7 @@ class TaskService {
         progress: 0,
         sourceNodeId: params.sourceNodeId,
         previewNodeCreated: false,
+        storageExpiresAt, // OSS存储过期时间
         metadata: {
           modelName: params.model.name,
           provider: params.model.provider,

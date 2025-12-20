@@ -114,6 +114,7 @@ class UserLevelService {
     giftDays?: number;
     giftDescription?: string;
     maxConcurrency?: number;
+    storageRetentionDays?: number;
     isActive?: boolean;
   }) {
     return prisma.userLevelConfig.upsert({
@@ -124,6 +125,7 @@ class UserLevelService {
         giftDays: data.giftDays ?? 0,
         giftDescription: data.giftDescription,
         maxConcurrency: data.maxConcurrency ?? 1,
+        storageRetentionDays: data.storageRetentionDays ?? -1,
         isActive: data.isActive ?? true,
       },
       update: {
@@ -131,6 +133,7 @@ class UserLevelService {
         ...(data.giftDays !== undefined && { giftDays: data.giftDays }),
         ...(data.giftDescription !== undefined && { giftDescription: data.giftDescription }),
         ...(data.maxConcurrency !== undefined && { maxConcurrency: data.maxConcurrency }),
+        ...(data.storageRetentionDays !== undefined && { storageRetentionDays: data.storageRetentionDays }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
       },
     });

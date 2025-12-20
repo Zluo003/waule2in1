@@ -42,7 +42,7 @@ export const getAllLevelConfigs = asyncHandler(async (req: Request, res: Respons
  * 更新用户等级配置
  */
 export const updateLevelConfig = asyncHandler(async (req: Request, res: Response) => {
-  const { userRole, dailyGiftCredits, giftDays, giftDescription, maxConcurrency, isActive } = req.body;
+  const { userRole, dailyGiftCredits, giftDays, giftDescription, maxConcurrency, storageRetentionDays, isActive } = req.body;
 
   if (!userRole || !['USER', 'VIP', 'SVIP'].includes(userRole)) {
     throw new AppError('无效的用户等级', 400);
@@ -54,6 +54,7 @@ export const updateLevelConfig = asyncHandler(async (req: Request, res: Response
     giftDays,
     giftDescription,
     maxConcurrency,
+    storageRetentionDays,
     isActive,
   });
 
@@ -86,6 +87,7 @@ export const batchUpdateLevelConfigs = asyncHandler(async (req: Request, res: Re
       giftDays: config.giftDays,
       giftDescription: config.giftDescription,
       maxConcurrency: config.maxConcurrency,
+      storageRetentionDays: config.storageRetentionDays,
       isActive: config.isActive,
     });
     results.push(result);
@@ -431,5 +433,32 @@ export const updateUserMembership = asyncHandler(async (req: Request, res: Respo
     success: true,
     message: '用户会员信息更新成功',
     data: user,
+  });
+});
+
+/**
+ * 预览存储清理（不实际删除）
+ */
+export const previewStorageCleanup = asyncHandler(async (req: Request, res: Response) => {
+  const { previewStorageCleanup: preview } = await import('../services/storage-cleanup.service');
+  const result = await preview();
+  
+  res.json({
+    success: true,
+    data: result,
+  });
+});
+
+/**
+ * 手动执行存储清理
+ */
+export const runStorageCleanup = asyncHandler(async (req: Request, res: Response) => {
+  const { runStorageCleanup: cleanup } = await import('../services/storage-cleanup.service');
+  const result = await cleanup();
+  
+  res.json({
+    success: true,
+    message: `清理完成: 删除 ${result.totalDeleted} 个文件, 失败 ${result.totalFailed} 个`,
+    data: result,
   });
 });

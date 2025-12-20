@@ -3747,7 +3747,7 @@ const WorkflowEditorInner = () => {
 
         {/* 左侧分镜列表（无背景，可滚动） - 在镜头工作流中隐藏 */}
         {!isShotWorkflow && nodeGroups.filter(g => g.scene !== undefined && g.shot !== undefined).length > 0 && (
-          <div className="absolute left-4 top-20 bottom-4 z-[100] w-48 overflow-y-auto scrollbar-hide">
+          <div className="absolute left-[100px] top-20 bottom-4 z-[100] w-48 overflow-y-auto scrollbar-hide">
             <div className="space-y-2">
               {nodeGroups
                 .filter(g => g.scene !== undefined && g.shot !== undefined)
@@ -3790,7 +3790,7 @@ const WorkflowEditorInner = () => {
                     }}
                     className={`w-full px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${selectedGroupId === group.id
                       ? 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-lg'
-                      : 'bg-white/90 dark:bg-white/10 text-slate-800 dark:text-slate-300 hover:bg-white dark:hover:bg-white/20'
+                      : 'bg-[#deeaef]/90 dark:bg-white/10 text-slate-800 dark:text-slate-300 hover:bg-[#deeaef] dark:hover:bg-white/20'
                       }`}
                   >
                     {group.name}
@@ -3816,7 +3816,7 @@ const WorkflowEditorInner = () => {
         )}
 
         {/* 右侧工具栏 - 垂直居中悬浮 */}
-        <div className="fixed right-[24px] top-1/2 -translate-y-1/2 z-[100] flex flex-col gap-1 p-2 rounded-2xl bg-white dark:bg-[#18181b] shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
+        <div className="fixed right-[24px] top-1/2 -translate-y-1/2 z-[100] flex flex-col gap-1 p-2 rounded-2xl bg-[#deeaef] dark:bg-[#18181b] shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
           <button
             onClick={() => {
               if (isEpisodeWorkflow && projectId && episodeId) {

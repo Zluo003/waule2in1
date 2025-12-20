@@ -182,6 +182,12 @@ button:focus {
   @apply rounded-xl;
 }
 
+/* Light mode node panel background color */
+:root.light .react-flow__node > div[class*="bg-white"],
+:root:not(.dark) .react-flow__node > div[class*="bg-white"] {
+  background-color: #deeaef !important;
+}
+
 /* Edge styling - hitbox handled in AuroraEdge component */
 .react-flow__edge {
   pointer-events: all !important;
