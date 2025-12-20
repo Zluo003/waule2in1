@@ -31,7 +31,7 @@ const TermsOfServicePage = () => {
             <h2 className="text-xl font-semibold text-white mb-4">欢迎使用 Waule</h2>
             <p>
               感谢您选择 Waule（"我们"、"本平台"）。本服务条款（"条款"）规定了您访问和使用 Waule 
-              网站（waule.com）及相关服务的条件。使用我们的服务即表示您同意受本条款的约束。
+              网站（waule.ai）及相关服务的条件。使用我们的服务即表示您同意受本条款的约束。
               如果您不同意本条款的任何部分，请勿使用我们的服务。
             </p>
           </section>
@@ -160,7 +160,7 @@ const TermsOfServicePage = () => {
               如您对本服务条款有任何疑问，请通过以下方式联系我们：
             </p>
             <p className="mt-2">
-              邮箱：<span className="text-neutral-400">support@waule.com</span>
+              邮箱：<span className="text-neutral-400">support@waule.ai</span>
             </p>
           </section>
         </div>

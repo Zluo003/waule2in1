@@ -136,7 +136,7 @@ const PhoneLoginPage = () => {
             </div>
             <div>
               <h1 className="text-4xl font-bold text-white tracking-tight">Waule</h1>
-              <p className="text-neutral-300 text-sm">waule.com</p>
+              <p className="text-neutral-300 text-sm">waule.ai</p>
             </div>
           </div>
         </div>
@@ -329,7 +329,7 @@ const PhoneLoginPage = () => {
       {/* 页面底部备案信息 - 固定在底部居中 */}
       <div className="absolute bottom-4 left-0 right-0 z-10">
         <div className="text-center text-xs text-gray-600 space-y-1">
-          <p>© 2025 Waule.com - AI创作平台</p>
+          <p>© 2025 Waule.ai - AI创作平台</p>
           <a 
             href="https://beian.miit.gov.cn/" 
             target="_blank" 

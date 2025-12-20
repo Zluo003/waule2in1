@@ -330,13 +330,13 @@ async function generateVideo(options) {
         }
     }
     else if (referenceImage) {
-        const imageDataUrl = await urlToBase64DataUrl(referenceImage);
-        logger_1.logger.info(`[Sora] 图片已转换为base64`);
+        // 直接使用原始HTTP URL，让gateway下载并上传为文件
+        // future-sora-api 需要文件上传，不是URL或base64
         messageContent = [
             { type: 'text', text: prompt || '' },
-            { type: 'image_url', image_url: { url: imageDataUrl } },
+            { type: 'image_url', image_url: { url: referenceImage } },
         ];
-        logger_1.logger.info(`[Sora] 使用参考图进行生成（图生视频模式）`);
+        logger_1.logger.info(`[Sora] 使用参考图进行生成（图生视频模式）, 图片URL: ${referenceImage.substring(0, 80)}...`);
     }
     else {
         messageContent = prompt;
@@ -529,23 +529,35 @@ async function createCharacter(options) {
         if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
             try {
                 logger_1.logger.info(`[Sora] 尝试使用 future-sora-api 创建角色 (HTTP URL)`);
+                logger_1.logger.info(`[Sora] 视频URL: ${videoUrl.substring(0, 100)}...`);
                 const response = await wauleApiClient.futureSoraCreateCharacter({
                     url: videoUrl,
                     timestamps: '1,3',
                 });
+                logger_1.logger.info(`[Sora] future-sora-api 响应:`, JSON.stringify(response).substring(0, 300));
                 // 解析 future-sora-api 返回的角色信息
                 const characterName = response.id || response.username || '';
                 const avatarUrl = response.profile_picture_url || response.permalink || '';
+                // 返回生成的视频URL，让前端截取首帧作为头像
+                const generatedVideoUrl = response.video_url || '';
                 if (characterName) {
-                    logger_1.logger.info(`[Sora] future-sora-api 角色创建成功: @${characterName}`);
+                    logger_1.logger.info(`[Sora] future-sora-api 角色创建成功: @${characterName}, avatar: ${avatarUrl}, videoUrl: ${generatedVideoUrl}`);
                     return {
                         characterName: `@${characterName}`,
                         avatarUrl,
+                        videoUrl: generatedVideoUrl, // 前端用于截取首帧
                     };
+                }
+                else {
+                    logger_1.logger.warn(`[Sora] future-sora-api 返回数据没有角色名:`, response);
                 }
             }
             catch (error) {
-                logger_1.logger.warn(`[Sora] future-sora-api 创建角色失败: ${error.message}`);
+                logger_1.logger.error(`[Sora] future-sora-api 创建角色失败:`, {
+                    message: error.message,
+                    status: error.response?.status,
+                    data: error.response?.data,
+                });
                 // 继续尝试 sora2api
             }
         }

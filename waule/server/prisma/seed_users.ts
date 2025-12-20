@@ -4,11 +4,11 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  const adminEmail = 'admin@waule.com'
+  const adminEmail = 'admin@waule.ai'
   const adminUsername = 'admin'
   const adminPassword = 'admin123'
 
-  const userEmail = 'user@waule.com'
+  const userEmail = 'user@waule.ai'
   const userUsername = 'testuser'
   const userPassword = 'user123'
 

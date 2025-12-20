@@ -95,6 +95,7 @@ export declare class WauleApiClient {
         prompt: string;
         seconds?: number;
         orientation?: string;
+        imageUrl?: string;
     }): Promise<any>;
     /**
      * Future Sora API：查询视频

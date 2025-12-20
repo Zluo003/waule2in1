@@ -134,7 +134,17 @@ exports.loginWithPhone = (0, errorHandler_1.asyncHandler)(async (req, res) => {
             },
         });
         logger_1.logger.info(`新用户注册: ${phone}, 推荐码: ${userReferralCode}`);
-        // 如果有推荐码，绑定推荐关系并发放奖励
+        // 🔧 先处理每日赠送积分（新用户首次登录，当前积分为0，会获得完整的每日赠送）
+        try {
+            const giftResult = await user_level_service_1.userLevelService.processGiftCredits(user.id);
+            if (giftResult.gifted) {
+                logger_1.logger.info(`[Auth] 新用户 ${phone} 首日赠送积分: ${giftResult.amount}`);
+            }
+        }
+        catch (err) {
+            logger_1.logger.warn(`[Auth] 新用户赠送积分失败: ${err.message}`);
+        }
+        // 🔧 再处理推荐码绑定和奖励（在每日赠送之后，奖励是额外的）
         if (inviteCode) {
             try {
                 const result = await referralService.bindReferralAndGrantBonus({
@@ -142,7 +152,7 @@ exports.loginWithPhone = (0, errorHandler_1.asyncHandler)(async (req, res) => {
                     referralCode: inviteCode,
                 });
                 if (result.success) {
-                    logger_1.logger.info(`[Referral] 新用户 ${user.id} 绑定推荐码 ${inviteCode} 成功`);
+                    logger_1.logger.info(`[Referral] 新用户 ${user.id} 绑定推荐码 ${inviteCode} 成功，奖励已发放`);
                 }
                 else {
                     logger_1.logger.warn(`[Referral] 新用户 ${user.id} 绑定推荐码失败: ${result.message}`);
@@ -192,13 +202,16 @@ exports.loginWithPhone = (0, errorHandler_1.asyncHandler)(async (req, res) => {
         data: { lastLoginAt: new Date() },
     });
     // 处理每日赠送积分（异步执行，不阻塞登录）
-    user_level_service_1.userLevelService.processGiftCredits(user.id).then(result => {
-        if (result.gifted) {
-            logger_1.logger.info(`用户 ${phone} 获得每日赠送积分: ${result.amount}`);
-        }
-    }).catch(err => {
-        logger_1.logger.warn(`用户 ${phone} 赠送积分处理失败:`, err.message);
-    });
+    // 注意：新用户已在注册流程中同步处理过，这里只处理老用户
+    if (!isNewUser) {
+        user_level_service_1.userLevelService.processGiftCredits(user.id).then(result => {
+            if (result.gifted) {
+                logger_1.logger.info(`用户 ${phone} 获得每日赠送积分: ${result.amount}`);
+            }
+        }).catch(err => {
+            logger_1.logger.warn(`用户 ${phone} 赠送积分处理失败:`, err.message);
+        });
+    }
     logger_1.logger.info(`用户登录: ${phone}`);
     // 返回用户信息（不包含敏感信息）
     const { password: _, ...userWithoutPassword } = user;

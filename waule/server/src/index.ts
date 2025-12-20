@@ -497,7 +497,7 @@ if (process.env.NODE_ENV !== 'production' && swaggerJsdoc) {
         description: 'AI视频短剧制作平台 API 文档',
         contact: {
           name: 'Waule Team',
-          email: 'support@waule.com',
+          email: 'support@waule.ai',
         },
       },
       servers: [
@@ -553,7 +553,7 @@ const corsOptions: cors.CorsOptions = {
     }
     
     // 空 Origin 处理
-    // 同源请求（如 waule.com -> waule.com/api）浏览器不发送 Origin 头
+    // 同源请求（如 waule.ai -> waule.ai/api）浏览器不发送 Origin 头
     // nginx 反代场景下允许空 Origin
     if (!origin) {
       return callback(null, true);
@@ -562,14 +562,14 @@ const corsOptions: cors.CorsOptions = {
     // 开发环境：允许本地网络和允许的域名
     if (isDevelopment) {
       const isLocalNetwork = /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$/.test(origin);
-      const isAllowedDomain = /^https?:\/\/([a-zA-Z0-9-]+\.)?waule\.com(:\d+)?$/.test(origin);
+      const isAllowedDomain = /^https?:\/\/([a-zA-Z0-9-]+\.)?waule\.ai(:\d+)?$/.test(origin);
       if (isLocalNetwork || isAllowedDomain || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
     }
     
     // 生产环境：仅允许白名单和允许的域名
-    const isAllowedDomain = /^https?:\/\/([a-zA-Z0-9-]+\.)?waule\.com(:\d+)?$/.test(origin);
+    const isAllowedDomain = /^https?:\/\/([a-zA-Z0-9-]+\.)?waule\.ai(:\d+)?$/.test(origin);
     if (isAllowedDomain || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }

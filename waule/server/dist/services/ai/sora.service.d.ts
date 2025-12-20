@@ -39,6 +39,7 @@ interface SoraCharacterCreateOptions {
 interface SoraCharacterResult {
     characterName: string;
     avatarUrl: string;
+    videoUrl?: string;
 }
 /**
  * 创建角色（从视频中提取角色信息）

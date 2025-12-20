@@ -51,7 +51,7 @@ export default defineConfig({
     port: 8088, // 前端开发服务器端口
     strictPort: true,
     host: '0.0.0.0', // 监听所有网络接口，允许从Windows访问
-    allowedHosts: ['waule.com', 'www.waule.com'],
+    allowedHosts: ['waule.ai', 'www.waule.ai'],
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

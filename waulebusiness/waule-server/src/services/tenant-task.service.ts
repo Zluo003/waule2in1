@@ -126,6 +126,7 @@ class TenantTaskService {
         type: params.type,
         modelId: params.modelId,
         status: 'PENDING',
+        sourceNodeId: params.sourceNodeId, // ✅ 保存节点ID用于任务恢复
         input: {
           prompt: params.prompt,
           ratio: params.ratio,

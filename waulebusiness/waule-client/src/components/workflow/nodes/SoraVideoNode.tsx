@@ -561,10 +561,13 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
       // 备份机制：检查待恢复的预览节点（数据库中已完成但未创建预览节点的任务）
       try {
         const response = await apiClient.tasks.getPendingPreviewNodes(id);
-        if (response.tasks && response.tasks.length > 0) {
-          console.log('📦 [SoraVideoNode] 发现待恢复任务:', response.tasks.length);
-          for (const task of response.tasks) {
-            const { previewNodeData } = task;
+        // 后端返回 previewNodes 数组，每项包含 taskId 和 previewNodeData
+        const pendingNodes = response.previewNodes || response.tasks || [];
+        if (pendingNodes.length > 0) {
+          console.log('📦 [SoraVideoNode] 发现待恢复任务:', pendingNodes.length);
+          for (const item of pendingNodes) {
+            const { previewNodeData, taskId } = item;
+            const itemTaskId = taskId || item.id; // 兼容两种格式
             if (previewNodeData && previewNodeData.url) {
               // 检查预览节点是否已存在
               const allNodes = getNodes();
@@ -581,7 +584,9 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
                 createPreviewNode(previewNodeData.url, recoveryRatio);
                 toast.success('🎬 视频创作完成，快去欣赏吧！');
               }
-              await apiClient.tasks.markPreviewNodeCreated(task.id);
+              if (itemTaskId) {
+                await apiClient.tasks.markPreviewNodeCreated(itemTaskId);
+              }
             }
           }
         }
@@ -1375,6 +1380,12 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
         taskId: newTaskId,
         isGenerating: true, // 保存生成状态，刷新页面后可恢复
       });
+      
+      // 立即保存工作流，确保刷新页面后能恢复任务
+      // 延迟200ms确保React状态更新完成后再保存
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('workflow:save'));
+      }, 200);
       
       // 显示积分/免费信息
       if (respIsFreeUsage) {

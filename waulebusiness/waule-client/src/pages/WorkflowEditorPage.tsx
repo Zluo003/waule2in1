@@ -1690,6 +1690,18 @@ const WorkflowEditorInner = () => {
     }, 2000);
   }, []); // 依赖项为空，因为 saveWorkflow 内部使用 ref
 
+  // 监听 workflow:save 事件，用于节点主动触发保存（如任务创建后）
+  useEffect(() => {
+    const handleWorkflowSave = () => {
+      console.log('[WorkflowEditorPage] 收到 workflow:save 事件，执行保存');
+      saveWorkflow();
+    };
+    window.addEventListener('workflow:save', handleWorkflowSave);
+    return () => {
+      window.removeEventListener('workflow:save', handleWorkflowSave);
+    };
+  }, []);
+
   // 同步工作流上下文到全局变量
   useEffect(() => {
     if (project || episode) {

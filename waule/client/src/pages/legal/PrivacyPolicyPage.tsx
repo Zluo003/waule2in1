@@ -31,7 +31,7 @@ const PrivacyPolicyPage = () => {
             <h2 className="text-xl font-semibold text-white mb-4">概述</h2>
             <p>
               Waule（"我们"、"本平台"）非常重视您的隐私。本隐私政策说明了我们如何收集、使用、
-              存储和保护您在使用 waule.com 及相关服务时的个人信息。使用我们的服务即表示您同意
+              存储和保护您在使用 waule.ai 及相关服务时的个人信息。使用我们的服务即表示您同意
               本政策所述的数据处理方式。
             </p>
           </section>
@@ -199,7 +199,7 @@ const PrivacyPolicyPage = () => {
               如您对本隐私政策有任何疑问、意见或请求，请通过以下方式联系我们：
             </p>
             <div className="mt-4 space-y-2">
-              <p>邮箱：<span className="text-neutral-400">privacy@waule.com</span></p>
+              <p>邮箱：<span className="text-neutral-400">privacy@waule.ai</span></p>
               <p>地址：<span className="text-gray-400">请通过邮件联系获取</span></p>
             </div>
           </section>
