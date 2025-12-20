@@ -34,4 +34,44 @@ export declare const downloadAndUploadToOss: (url: string, prefix?: string, head
  * @returns OSS 公共 URL
  */
 export declare const streamDownloadAndUploadToOss: (url: string, ext: string, headers?: Record<string, string>, forceTransfer?: boolean) => Promise<string>;
+/**
+ * 从 OSS URL 中提取 objectKey
+ * @param url OSS 公共 URL
+ * @returns objectKey 或 null（如果不是有效的 OSS URL）
+ */
+export declare const extractObjectKeyFromUrl: (url: string) => string | null;
+/**
+ * 检查 URL 是否是我们的 OSS URL
+ * @param url 要检查的 URL
+ * @returns 是否是 OSS URL
+ */
+export declare const isOssUrl: (url: string) => boolean;
+/**
+ * 从 OSS 删除单个文件
+ * @param url OSS 公共 URL
+ * @returns 是否删除成功
+ */
+export declare const deleteFromOss: (url: string) => Promise<boolean>;
+/**
+ * 从 OSS 批量删除文件
+ * @param urls OSS 公共 URL 数组
+ * @returns 删除结果 { success: number, failed: number, errors: string[] }
+ */
+export declare const batchDeleteFromOss: (urls: string[]) => Promise<{
+    success: number;
+    failed: number;
+    errors: string[];
+}>;
+/**
+ * 列出 OSS 中指定前缀的所有文件
+ * @param prefix 文件前缀，默认 'aivider/'
+ * @param maxKeys 最大返回数量，默认 1000
+ * @returns 文件列表 { name, url, lastModified, size }[]
+ */
+export declare const listOssFiles: (prefix?: string, maxKeys?: number) => Promise<Array<{
+    name: string;
+    url: string;
+    lastModified: Date;
+    size: number;
+}>>;
 //# sourceMappingURL=oss.d.ts.map

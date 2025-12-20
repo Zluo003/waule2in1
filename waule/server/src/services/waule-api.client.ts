@@ -161,6 +161,45 @@ export class WauleApiClient {
     return resp.data;
   }
 
+  /**
+   * Future Sora API：创建角色
+   * POST /future-sora/v1/characters
+   */
+  async futureSoraCreateCharacter(params: {
+    url: string;
+    timestamps?: string;
+  }): Promise<any> {
+    const client = this.createClient(true);
+    const resp = await client.post('/future-sora/v1/characters', params);
+    return resp.data;
+  }
+
+  /**
+   * Future Sora API：创建视频
+   * POST /future-sora/v1/videos
+   */
+  async futureSoraCreateVideo(params: {
+    model: string;
+    prompt: string;
+    seconds?: number;
+    orientation?: string;
+    imageUrl?: string; // 参考图片URL
+  }): Promise<any> {
+    const client = this.createClient(true);
+    const resp = await client.post('/future-sora/v1/videos', params);
+    return resp.data;
+  }
+
+  /**
+   * Future Sora API：查询视频
+   * GET /future-sora/v1/videos/:taskId
+   */
+  async futureSoraGetVideo(taskId: string): Promise<any> {
+    const client = this.createClient(true);
+    const resp = await client.get(`/future-sora/v1/videos/${taskId}`);
+    return resp.data;
+  }
+
   // ============================================
   // Midjourney 接口
   // ============================================

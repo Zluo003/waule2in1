@@ -87,7 +87,7 @@ export const apiClient = {
       apiClient.post('/auth/send-code', data, { timeout: 15000 }),
 
     // 手机验证码登录
-    loginWithPhone: (data: { phone: string; code: string }) =>
+    loginWithPhone: (data: { phone: string; code: string; referralCode?: string }) =>
       apiClient.post('/auth/login-phone', data, { timeout: 15000 }),
 
     // 管理员登录 (支持双因素认证)

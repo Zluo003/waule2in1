@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -14,6 +47,7 @@ const aliyun_sms_service_1 = require("../services/aliyun-sms.service");
 const verification_code_service_1 = require("../services/verification-code.service");
 const user_level_service_1 = require("../services/user-level.service");
 const totp_service_1 = require("../services/totp.service");
+const referralService = __importStar(require("../services/referral.service"));
 // 生成JWT token
 const TOKEN_TTL_DAYS = parseInt(process.env.JWT_EXPIRES_IN_DAYS || '15', 10);
 const TOKEN_TTL_MS = TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000;
@@ -76,7 +110,7 @@ exports.loginWithPhone = (0, errorHandler_1.asyncHandler)(async (req, res) => {
             errors: errors.array(),
         });
     }
-    const { phone, code } = req.body;
+    const { phone, code, referralCode: inviteCode } = req.body;
     // 验证验证码
     const isValid = await verification_code_service_1.verificationCodeService.verifyCode(phone, code);
     if (!isValid) {
@@ -86,17 +120,39 @@ exports.loginWithPhone = (0, errorHandler_1.asyncHandler)(async (req, res) => {
     let user = await index_1.prisma.user.findUnique({
         where: { phone },
     });
+    const isNewUser = !user;
     if (!user) {
-        // 首次登录，创建新用户
+        // 首次登录，创建新用户（同时生成推荐码）
+        const userReferralCode = await referralService.generateReferralCode();
         user = await index_1.prisma.user.create({
             data: {
                 phone,
                 nickname: generateCreatorNickname(),
                 loginType: 'PHONE',
                 role: 'USER',
+                referralCode: userReferralCode,
             },
         });
-        logger_1.logger.info(`新用户注册: ${phone}`);
+        logger_1.logger.info(`新用户注册: ${phone}, 推荐码: ${userReferralCode}`);
+        // 如果有推荐码，绑定推荐关系并发放奖励
+        if (inviteCode) {
+            try {
+                const result = await referralService.bindReferralAndGrantBonus({
+                    refereeId: user.id,
+                    referralCode: inviteCode,
+                });
+                if (result.success) {
+                    logger_1.logger.info(`[Referral] 新用户 ${user.id} 绑定推荐码 ${inviteCode} 成功`);
+                }
+                else {
+                    logger_1.logger.warn(`[Referral] 新用户 ${user.id} 绑定推荐码失败: ${result.message}`);
+                }
+            }
+            catch (err) {
+                logger_1.logger.error(`[Referral] 绑定推荐码异常: ${err.message}`);
+                // 不影响注册流程
+            }
+        }
     }
     else {
         // 检查用户是否被禁用

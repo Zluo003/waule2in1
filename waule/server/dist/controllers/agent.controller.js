@@ -70,7 +70,7 @@ class AgentController {
     // 创建智能体
     async create(req, res) {
         try {
-            const { name, description, isActive } = req.body;
+            const { name, description, usageScene, isActive } = req.body;
             if (!name) {
                 return res.status(400).json({ error: 'Name is required' });
             }
@@ -78,6 +78,7 @@ class AgentController {
                 data: {
                     name,
                     description,
+                    usageScene: usageScene || 'workflow',
                     isActive: isActive ?? true,
                 },
                 include: {
@@ -89,6 +90,11 @@ class AgentController {
                     },
                 },
             });
+            // 清除缓存
+            try {
+                await index_1.redis.del('agents:list');
+            }
+            catch { }
             res.status(201).json(agent);
         }
         catch (error) {
@@ -100,7 +106,7 @@ class AgentController {
     async update(req, res) {
         try {
             const { id } = req.params;
-            const { name, description, isActive } = req.body;
+            const { name, description, usageScene, isActive } = req.body;
             // 验证智能体是否存在
             const existingAgent = await index_1.prisma.agent.findUnique({
                 where: { id },
@@ -113,6 +119,7 @@ class AgentController {
                 data: {
                     ...(name !== undefined && { name }),
                     ...(description !== undefined && { description }),
+                    ...(usageScene !== undefined && { usageScene }),
                     ...(isActive !== undefined && { isActive }),
                 },
                 include: {
@@ -124,6 +131,11 @@ class AgentController {
                     },
                 },
             });
+            // 清除缓存
+            try {
+                await index_1.redis.del('agents:list');
+            }
+            catch { }
             res.json(agent);
         }
         catch (error) {
@@ -145,6 +157,11 @@ class AgentController {
             await index_1.prisma.agent.delete({
                 where: { id },
             });
+            // 清除缓存
+            try {
+                await index_1.redis.del('agents:list');
+            }
+            catch { }
             res.json({ message: 'Agent deleted successfully' });
         }
         catch (error) {

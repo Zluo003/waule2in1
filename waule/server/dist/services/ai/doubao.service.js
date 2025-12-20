@@ -10,6 +10,7 @@ const axios_1 = __importDefault(require("axios"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const oss_1 = require("../../utils/oss");
+const waule_api_client_1 = require("../waule-api.client");
 /**
  * 将本地图片URL转换为base64或保持原URL（如果是公网URL）
  */
@@ -103,8 +104,33 @@ async function generateImage(options) {
     // API配置
     const API_KEY = apiKey || process.env.DOUBAO_API_KEY;
     const BASE_URL = apiUrl || 'https://ark.cn-beijing.volces.com/api/v3';
+    // 如果 apiKey 为空，使用 waule-api 网关
     if (!API_KEY) {
-        throw new Error('豆包 API 密钥未配置');
+        const wauleApiClient = (0, waule_api_client_1.getGlobalWauleApiClient)();
+        if (wauleApiClient) {
+            console.log('🌐 [Doubao] apiKey 为空，使用 waule-api 网关生成图片, maxImages:', maxImages);
+            const r = await wauleApiClient.generateImage({
+                model: modelId,
+                prompt,
+                size: aspectRatio,
+                reference_images: referenceImages || undefined,
+                max_images: maxImages,
+            });
+            // 组图模式：返回所有图片URL
+            if (maxImages > 1 && r?.data && r.data.length > 1) {
+                const imageUrls = r.data.map((item) => item?.url).filter(Boolean);
+                console.log(`🖼️ [Doubao] waule-api 组图生成完成，共 ${imageUrls.length} 张图片`);
+                if (imageUrls.length === 0)
+                    throw new Error('waule-api 未返回图片数据');
+                return imageUrls;
+            }
+            // 单图模式
+            const imageUrl = r?.data?.[0]?.url;
+            if (!imageUrl)
+                throw new Error('waule-api 未返回图片数据');
+            return imageUrl;
+        }
+        throw new Error('豆包 API 密钥未配置，且 waule-api 网关未配置');
     }
     // 是否为组图模式
     const isMultiImageMode = maxImages > 1;
@@ -242,8 +268,26 @@ async function generateVideo(options) {
     const { prompt, modelId, ratio = '16:9', resolution = '1080P', generationType = '文生视频', duration = 5, referenceImages = [], apiKey, apiUrl, } = options;
     const API_KEY = apiKey || process.env.DOUBAO_API_KEY;
     const BASE_URL = apiUrl || 'https://ark.cn-beijing.volces.com/api/v3';
+    // 如果 apiKey 为空，使用 waule-api 网关
     if (!API_KEY) {
-        throw new Error('豆包 API 密钥未配置');
+        const wauleApiClient = (0, waule_api_client_1.getGlobalWauleApiClient)();
+        if (wauleApiClient) {
+            console.log('🌐 [Doubao] apiKey 为空，使用 waule-api 网关生成视频');
+            const r = await wauleApiClient.generateVideo({
+                model: modelId,
+                prompt,
+                duration,
+                aspect_ratio: ratio,
+                resolution,
+                reference_images: referenceImages || undefined,
+                generation_type: generationType,
+            });
+            const videoUrl = r?.data?.[0]?.url;
+            if (!videoUrl)
+                throw new Error('waule-api 未返回视频数据');
+            return videoUrl;
+        }
+        throw new Error('豆包 API 密钥未配置，且 waule-api 网关未配置');
     }
     try {
         // 处理参考图片：将本地路径转换为Base64
@@ -480,8 +524,31 @@ async function generateText(options) {
     const { prompt, systemPrompt, modelId, temperature = 0.7, maxTokens = 4000, imageUrls, videoUrls, apiKey, apiUrl, } = options;
     const API_KEY = apiKey || process.env.DOUBAO_API_KEY;
     const BASE_URL = apiUrl || 'https://ark.cn-beijing.volces.com/api/v3';
+    // 如果 apiKey 为空，使用 waule-api 网关
     if (!API_KEY) {
-        throw new Error('豆包 API 密钥未配置');
+        const wauleApiClient = (0, waule_api_client_1.getGlobalWauleApiClient)();
+        if (wauleApiClient) {
+            console.log('🌐 [Doubao] apiKey 为空，使用 waule-api 网关生成文本');
+            const msgs = [];
+            if (systemPrompt)
+                msgs.push({ role: 'system', content: systemPrompt });
+            const userContent = [{ type: 'text', text: prompt }];
+            for (const url of (imageUrls || [])) {
+                userContent.push({ type: 'image_url', image_url: { url } });
+            }
+            msgs.push({ role: 'user', content: userContent });
+            const r = await wauleApiClient.chatCompletions({
+                model: modelId,
+                messages: msgs,
+                temperature,
+                max_tokens: maxTokens,
+            });
+            const text = r?.choices?.[0]?.message?.content;
+            if (!text)
+                throw new Error('waule-api 未返回文本内容');
+            return text;
+        }
+        throw new Error('豆包 API 密钥未配置，且 waule-api 网关未配置');
     }
     try {
         const messages = [];

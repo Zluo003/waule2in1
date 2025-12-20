@@ -45,6 +45,7 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const crypto_1 = __importDefault(require("crypto"));
 const oss_1 = require("../../utils/oss");
+const waule_api_client_1 = require("../waule-api.client");
 async function uploadBufferToFallbackHost(buffer, filename) {
     const FormData = require('form-data');
     const smmsApiToken = process.env.SMMS_API_TOKEN;
@@ -104,8 +105,27 @@ async function generateVideoFromFirstFrame(options) {
     const rawApi = (apiUrl || '').trim();
     const useIntl = rawApi.includes('dashscope-intl.aliyuncs.com');
     const base = useIntl ? DEFAULT_INTL_BASE : DEFAULT_BASE;
+    // 如果 apiKey 为空，使用 waule-api 网关
     if (!API_KEY) {
-        throw new Error('通义万相 API 密钥未配置');
+        const wauleApiClient = (0, waule_api_client_1.getGlobalWauleApiClient)();
+        if (wauleApiClient) {
+            console.log('🌐 [Wanx] apiKey 为空，使用 waule-api 网关生成视频');
+            const r = await wauleApiClient.generateVideo({
+                model: modelId,
+                prompt,
+                duration,
+                resolution,
+                reference_images: firstFrameImage ? [firstFrameImage] : undefined,
+                replace_image_url: safeReplaceImageUrl,
+                replace_video_url: safeReplaceVideoUrl,
+                mode,
+            });
+            const videoUrl = r?.data?.[0]?.url;
+            if (!videoUrl)
+                throw new Error('waule-api 未返回视频数据');
+            return videoUrl;
+        }
+        throw new Error('通义万相 API 密钥未配置，且 waule-api 网关未配置');
     }
     // 处理首帧图片
     let processedFirstFrame;
@@ -381,8 +401,23 @@ async function generateVideoRetalk(options) {
     const rawApi = (options.apiUrl || '').trim();
     const useIntl = rawApi.includes('dashscope-intl.aliyuncs.com');
     const base = useIntl ? DEFAULT_INTL_BASE : DEFAULT_BASE;
+    // 如果 apiKey 为空，使用 waule-api 网关
     if (!API_KEY) {
-        throw new Error('通义万相 API 密钥未配置');
+        const wauleApiClient = (0, waule_api_client_1.getGlobalWauleApiClient)();
+        if (wauleApiClient) {
+            console.log('🌐 [Wanx] apiKey 为空，使用 waule-api 网关进行对口型');
+            const r = await wauleApiClient.generateVideo({
+                model: 'videoretalk',
+                replace_video_url: options.videoUrl,
+                audio_url: options.audioUrl,
+                reference_images: options.refImageUrl ? [options.refImageUrl] : undefined,
+            });
+            const videoUrl = r?.data?.[0]?.url;
+            if (!videoUrl)
+                throw new Error('waule-api 未返回视频数据');
+            return videoUrl;
+        }
+        throw new Error('通义万相 API 密钥未配置，且 waule-api 网关未配置');
     }
     const requestBody = {
         model: 'videoretalk',
@@ -425,8 +460,23 @@ async function generateVideoStylize(options) {
     const rawApi = (options.apiUrl || '').trim();
     const useIntl = rawApi.includes('dashscope-intl.aliyuncs.com');
     const base = useIntl ? DEFAULT_INTL_BASE : DEFAULT_BASE;
+    // 如果 apiKey 为空，使用 waule-api 网关
     if (!API_KEY) {
-        throw new Error('通义万相 API 密钥未配置');
+        const wauleApiClient = (0, waule_api_client_1.getGlobalWauleApiClient)();
+        if (wauleApiClient) {
+            console.log('🌐 [Wanx] apiKey 为空，使用 waule-api 网关进行视频风格转换');
+            const r = await wauleApiClient.generateVideo({
+                model: 'video-style-transform',
+                replace_video_url: options.videoUrl,
+                style: options.style,
+                video_fps: options.videoFps,
+            });
+            const videoUrl = r?.data?.[0]?.url;
+            if (!videoUrl)
+                throw new Error('waule-api 未返回视频数据');
+            return videoUrl;
+        }
+        throw new Error('通义万相 API 密钥未配置，且 waule-api 网关未配置');
     }
     const requestBody = {
         model: 'video-style-transform',

@@ -3,7 +3,7 @@ import type { DragEvent as ReactDragEvent } from 'react';
 import { Position, NodeProps, useReactFlow, useEdges, useNodes } from 'reactflow';
 import { toast } from 'sonner';
 import { apiClient } from '../../../lib/api';
-import { processImageUrl } from '../../../utils/imageUtils';
+import { uploadLocalUrlToOss } from '../../../utils/imageUtils';
 import CustomHandle from '../CustomHandle';
 import CustomSelect from './CustomSelect';
 import { useBillingEstimate } from '../../../hooks/useBillingEstimate';
@@ -556,6 +556,37 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
           const savedRatio = data.config.ratio || '16:9';
           createPreviewNode(existingVideoUrl, savedRatio);
         }
+      }
+
+      // 备份机制：检查待恢复的预览节点（数据库中已完成但未创建预览节点的任务）
+      try {
+        const response = await apiClient.tasks.getPendingPreviewNodes(id);
+        if (response.tasks && response.tasks.length > 0) {
+          console.log('📦 [SoraVideoNode] 发现待恢复任务:', response.tasks.length);
+          for (const task of response.tasks) {
+            const { previewNodeData } = task;
+            if (previewNodeData && previewNodeData.url) {
+              // 检查预览节点是否已存在
+              const allNodes = getNodes();
+              const allEdges = getEdges();
+              const existingPreview = allNodes.find(node => {
+                return node.type === 'videoPreview' && 
+                  node.data.videoUrl === previewNodeData.url &&
+                  allEdges.some(edge => edge.source === id && edge.target === node.id);
+              });
+              
+              if (!existingPreview) {
+                const recoveryRatio = previewNodeData.ratio || data.config.ratio || '16:9';
+                console.log('✅ [SoraVideoNode] 创建待恢复的预览节点:', previewNodeData.url?.substring(0, 60));
+                createPreviewNode(previewNodeData.url, recoveryRatio);
+                toast.success('🎬 视频创作完成，快去欣赏吧！');
+              }
+              await apiClient.tasks.markPreviewNodeCreated(task.id);
+            }
+          }
+        }
+      } catch (error: any) {
+        console.warn('[SoraVideoNode] getPendingPreviewNodes 失败:', error);
       }
       
       // 重置生成中状态（如果节点数据标记为生成中但实际没有任务）
@@ -1176,7 +1207,8 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
               fullUrl = `${API_URL}${fullUrl}`;
             }
             fullUrl = fullUrl.replace(/^https?:\/\/localhost(?::\d+)?/i, API_URL);
-            const processedUrl = await processImageUrl(fullUrl);
+            // Sora 需要公网OSS URL，不能用base64
+            const processedUrl = await uploadLocalUrlToOss(fullUrl);
             processedReferenceImages.push(processedUrl);
           }
         } catch (error) {

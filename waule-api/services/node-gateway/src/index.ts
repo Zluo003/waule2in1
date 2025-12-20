@@ -16,6 +16,8 @@ import v1ChatRouter from './routes/v1-chat';
 import v1SoraRouter from './routes/v1-sora';
 import v1MidjourneyRouter from './routes/v1-midjourney';
 import internalOssRouter from './routes/internal-oss';
+import soraProxyConfigRouter from './routes/sora-proxy-config';
+import futureSoraApiRouter from './routes/future-sora-api';
 import { initDatabase, getConfig, setConfig } from './db';
 import { midjourneyService } from './services/midjourney';
 
@@ -83,7 +85,11 @@ async function start() {
   gatewayApp.use('/api/platform-oss', platformOssRouter);
   gatewayApp.use('/api/discord-accounts', discordAccountsRouter);
   gatewayApp.use('/api/proxy-api-config', proxyApiConfigRouter);
+  gatewayApp.use('/api/sora-proxy-config', soraProxyConfigRouter);
   gatewayApp.use('/api/gemini', authMiddleware, geminiRouter);
+  
+  // Future Sora API 中转路由
+  gatewayApp.use('/future-sora/v1', futureSoraApiRouter);
   
   // 内部 API（供 sora-api 调用）
   gatewayApp.use('/internal/oss', internalOssRouter);

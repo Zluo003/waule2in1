@@ -357,13 +357,17 @@ class TenantTaskService {
       throw new Error('角色创建需要视频输入');
     }
     
-    logger.info(`[TenantTaskService] Sora 角色创建, 视频: ${referenceVideo.substring(0, 50)}...`);
+    // 将本地/内网URL转换为OSS公网URL（future-sora-api需要公网可访问的URL）
+    const publicVideoUrl = await ensureAliyunOssUrl(referenceVideo);
+    if (!publicVideoUrl) {
+      throw new Error('无法将视频转换为公网URL');
+    }
+    
+    logger.info(`[TenantTaskService] Sora 角色创建, 视频: ${publicVideoUrl.substring(0, 80)}...`);
     
     const characterResult = await soraService.createCharacter({
-      videoUrl: referenceVideo,
+      videoUrl: publicVideoUrl,
       modelId: model.modelId,
-      apiKey: model.apiKey,
-      apiUrl: model.apiUrl,
     });
     
     logger.info(`[TenantTaskService] Sora 角色创建成功: ${characterResult.characterName}`);
@@ -409,16 +413,18 @@ class TenantTaskService {
         generationType: generationType === '文生视频' ? 'text2video' : generationType,
       });
     } else if (provider === 'sora') {
-      // Sora 图生视频
-      const referenceImage = referenceImages.length > 0 ? referenceImages[0] : undefined;
+      // Sora 图生视频 - 需要将本地URL转换为OSS公网URL
+      let referenceImage: string | undefined;
+      if (referenceImages.length > 0) {
+        referenceImage = await ensureAliyunOssUrl(referenceImages[0]);
+        logger.info(`[TenantTaskService] Sora 图生视频, 参考图: ${referenceImage?.substring(0, 80)}...`);
+      }
       return await soraService.generateVideo({
         prompt: params.prompt,
         modelId: model.modelId,
         aspectRatio: params.ratio || '16:9',
         referenceImage,
         duration,
-        apiKey: model.apiKey,
-        apiUrl: model.apiUrl,
       });
     } else if (provider === 'vidu') {
       // Vidu 视频生成

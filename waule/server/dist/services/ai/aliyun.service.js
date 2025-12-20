@@ -8,6 +8,7 @@ const axios_1 = __importDefault(require("axios"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const oss_1 = require("../../utils/oss");
+const waule_api_client_1 = require("../waule-api.client");
 function toPublicUrlOrBase64(inputUrl) {
     if (!inputUrl)
         return inputUrl;
@@ -64,8 +65,23 @@ async function generateImage(options) {
     const useIntl = raw.includes('dashscope-intl.aliyuncs.com');
     const base = useIntl ? DEFAULT_INTL_BASE : DEFAULT_BASE;
     const endpoint = /\/services\/aigc\//.test(raw) ? raw : `${base}/services/aigc/multimodal-generation/generation`;
+    // 如果 apiKey 为空，使用 waule-api 网关
     if (!API_KEY) {
-        throw new Error('阿里云百炼 API 密钥未配置');
+        const wauleApiClient = (0, waule_api_client_1.getGlobalWauleApiClient)();
+        if (wauleApiClient) {
+            console.log('🌐 [Aliyun] apiKey 为空，使用 waule-api 网关生成图片');
+            const r = await wauleApiClient.generateImage({
+                model: modelId,
+                prompt,
+                size: aspectRatio,
+                reference_images: referenceImages || undefined,
+            });
+            const imageUrl = r?.data?.[0]?.url;
+            if (!imageUrl)
+                throw new Error('waule-api 未返回图片数据');
+            return imageUrl;
+        }
+        throw new Error('阿里云百炼 API 密钥未配置，且 waule-api 网关未配置');
     }
     try {
         const contentParts = [];

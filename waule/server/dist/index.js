@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -78,6 +45,9 @@ const sora_character_routes_1 = __importDefault(require("./routes/sora-character
 const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
 const redeem_routes_1 = __importDefault(require("./routes/redeem.routes"));
 const user_level_routes_1 = __importDefault(require("./routes/user-level.routes"));
+const node_prompt_routes_1 = __importDefault(require("./routes/node-prompt.routes"));
+const referral_routes_1 = __importDefault(require("./routes/referral.routes"));
+const message_routes_1 = __importDefault(require("./routes/message.routes"));
 // 导入中间件
 const errorHandler_1 = require("./middleware/errorHandler");
 const logger_1 = require("./utils/logger");
@@ -672,6 +642,9 @@ app.use(`${API_PREFIX}/sora-characters`, sora_character_routes_1.default); // So
 app.use(`${API_PREFIX}/payment`, payment_routes_1.default); // 支付与充值
 app.use(`${API_PREFIX}/redeem`, redeem_routes_1.default); // 兑换码
 app.use(`${API_PREFIX}/admin/user-levels`, user_level_routes_1.default); // 用户等级权限管理
+app.use(API_PREFIX, node_prompt_routes_1.default); // 节点提示词管理
+app.use(`${API_PREFIX}/referral`, referral_routes_1.default); // 推荐返利系统
+app.use(`${API_PREFIX}/messages`, message_routes_1.default); // 站内消息系统
 // 404处理
 app.use((req, res) => {
     res.status(404).json({
@@ -753,6 +726,31 @@ const startScheduledTasks = () => {
     // 🧹 启动僵尸任务定时清理（每5分钟检查，超过30分钟未完成的任务自动取消并退款）
     const taskService = require('./services/task.service').default;
     taskService.startZombieCleanupScheduler(5, 30);
+    // 🗑️ OSS 存储清理任务（每天凌晨 3 点执行）
+    const scheduleStorageCleanup = () => {
+        const now = new Date();
+        const nextRun = new Date();
+        nextRun.setHours(3, 0, 0, 0); // 凌晨 3 点
+        if (nextRun <= now) {
+            nextRun.setDate(nextRun.getDate() + 1); // 如果今天已过 3 点，则明天执行
+        }
+        const delay = nextRun.getTime() - now.getTime();
+        logger_1.logger.info(`[StorageCleanup] 下次清理时间: ${nextRun.toLocaleString()}, ${Math.round(delay / 1000 / 60)} 分钟后`);
+        setTimeout(async () => {
+            try {
+                const { runStorageCleanup } = require('./services/storage-cleanup.service');
+                logger_1.logger.info('[StorageCleanup] 开始执行 OSS 存储清理...');
+                const result = await runStorageCleanup();
+                logger_1.logger.info(`[StorageCleanup] 清理完成: 删除=${result.totalDeleted}, 失败=${result.totalFailed}, 耗时=${result.durationMs}ms`);
+            }
+            catch (err) {
+                logger_1.logger.error(`[StorageCleanup] 执行失败: ${err.message}`);
+            }
+            // 递归调度下一次
+            scheduleStorageCleanup();
+        }, delay);
+    };
+    scheduleStorageCleanup();
 };
 // 启动服务器
 const startServer = async () => {
@@ -814,18 +812,6 @@ const gracefulShutdown = async () => {
         exports.io.close(() => {
             logger_1.logger.info('Socket.io 已关闭');
         });
-        // 关闭 Discord WebSocket 连接
-        try {
-            const { getDiscordService } = await Promise.resolve().then(() => __importStar(require('./services/discord-reverse.service')));
-            const discordService = getDiscordService();
-            if (discordService) {
-                discordService.disconnect();
-                logger_1.logger.info('Discord连接已关闭');
-            }
-        }
-        catch (e) {
-            // Discord 服务可能未初始化，忽略
-        }
         await exports.prisma.$disconnect();
         logger_1.logger.info('数据库连接已关闭');
         exports.redis.disconnect();

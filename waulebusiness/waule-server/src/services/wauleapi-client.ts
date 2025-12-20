@@ -276,6 +276,37 @@ class WauleApiClient {
     return response.data;
   }
 
+  // ==================== Sora 中转 API 方法 ====================
+
+  /**
+   * Sora Chat Completions - 调用 /v1/sora/chat/completions
+   * 用于视频生成、图生视频、角色创建等
+   */
+  async soraChatCompletions(params: {
+    model: string;
+    messages: Array<{ role: string; content: any }>;
+    stream?: boolean;
+  }): Promise<any> {
+    const client = this.createClient('sora');
+    console.log(`[WauleAPI] Sora ChatCompletions: model=${params.model}, url=${this.getUrl('sora')}`);
+    const response = await client.post('/v1/sora/chat/completions', params);
+    return response.data;
+  }
+
+  /**
+   * Future Sora API：创建角色
+   * POST /future-sora/v1/characters
+   */
+  async futureSoraCreateCharacter(params: {
+    url: string;
+    timestamps?: string;
+  }): Promise<any> {
+    const client = this.createClient('sora');
+    console.log(`[WauleAPI] Future Sora CreateCharacter: url=${params.url.substring(0, 50)}...`);
+    const response = await client.post('/future-sora/v1/characters', params);
+    return response.data;
+  }
+
   /**
    * Midjourney 等待任务完成（长轮询）
    */

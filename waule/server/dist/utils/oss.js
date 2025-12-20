@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.streamDownloadAndUploadToOss = exports.downloadAndUploadToOss = exports.generatePresignedUrl = exports.ensureAliyunOssUrl = exports.uploadBuffer = exports.uploadPath = exports.SKIP_SERVER_TRANSFER = void 0;
+exports.listOssFiles = exports.batchDeleteFromOss = exports.deleteFromOss = exports.isOssUrl = exports.extractObjectKeyFromUrl = exports.streamDownloadAndUploadToOss = exports.downloadAndUploadToOss = exports.generatePresignedUrl = exports.ensureAliyunOssUrl = exports.uploadBuffer = exports.uploadPath = exports.SKIP_SERVER_TRANSFER = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const axios_1 = __importDefault(require("axios"));
@@ -12,6 +12,8 @@ const crypto_1 = __importDefault(require("crypto"));
 const logger_1 = __importDefault(require("../utils/logger"));
 const promises_1 = require("stream/promises");
 const socks_proxy_agent_1 = require("socks-proxy-agent");
+// OSS URL 正则匹配，用于提取 objectKey
+const OSS_URL_PATTERN = /https:\/\/([^.]+)\.(oss-)?([^.]+)\.aliyuncs\.com\/(.+)/;
 // SOCKS5 代理配置（用于下载外部资源）
 let _proxyAgent;
 function getProxyAgent() {
@@ -502,4 +504,159 @@ const streamDownloadAndUploadToOss = async (url, ext, headers, forceTransfer = f
     }
 };
 exports.streamDownloadAndUploadToOss = streamDownloadAndUploadToOss;
+/**
+ * 从 OSS URL 中提取 objectKey
+ * @param url OSS 公共 URL
+ * @returns objectKey 或 null（如果不是有效的 OSS URL）
+ */
+const extractObjectKeyFromUrl = (url) => {
+    if (!url)
+        return null;
+    const match = url.match(OSS_URL_PATTERN);
+    if (match && match[4]) {
+        return match[4].split('?')[0];
+    }
+    return null;
+};
+exports.extractObjectKeyFromUrl = extractObjectKeyFromUrl;
+/**
+ * 检查 URL 是否是我们的 OSS URL
+ * @param url 要检查的 URL
+ * @returns 是否是 OSS URL
+ */
+const isOssUrl = (url) => {
+    if (!url)
+        return false;
+    const bucket = process.env.OSS_BUCKET;
+    if (!bucket)
+        return false;
+    return url.includes(`${bucket}.`) && url.includes('.aliyuncs.com/');
+};
+exports.isOssUrl = isOssUrl;
+/**
+ * 从 OSS 删除单个文件
+ * @param url OSS 公共 URL
+ * @returns 是否删除成功
+ */
+const deleteFromOss = async (url) => {
+    const objectKey = (0, exports.extractObjectKeyFromUrl)(url);
+    if (!objectKey) {
+        logger_1.default.warn(`[OSS] 无法从 URL 提取 objectKey: ${url}`);
+        return false;
+    }
+    try {
+        const client = ensureClient();
+        await client.delete(objectKey);
+        logger_1.default.info(`[OSS] 删除成功: ${objectKey}`);
+        return true;
+    }
+    catch (error) {
+        if (error.code === 'NoSuchKey' || error.status === 404) {
+            logger_1.default.info(`[OSS] 文件已不存在: ${objectKey}`);
+            return true;
+        }
+        logger_1.default.error(`[OSS] 删除失败: ${objectKey}`, error.message);
+        return false;
+    }
+};
+exports.deleteFromOss = deleteFromOss;
+/**
+ * 从 OSS 批量删除文件
+ * @param urls OSS 公共 URL 数组
+ * @returns 删除结果 { success: number, failed: number, errors: string[] }
+ */
+const batchDeleteFromOss = async (urls) => {
+    const result = { success: 0, failed: 0, errors: [] };
+    if (!urls || urls.length === 0) {
+        return result;
+    }
+    const objectKeys = [];
+    for (const url of urls) {
+        const key = (0, exports.extractObjectKeyFromUrl)(url);
+        if (key) {
+            objectKeys.push(key);
+        }
+        else {
+            result.failed++;
+            result.errors.push(`无效URL: ${url}`);
+        }
+    }
+    if (objectKeys.length === 0) {
+        return result;
+    }
+    try {
+        const client = ensureClient();
+        const batchSize = 1000;
+        for (let i = 0; i < objectKeys.length; i += batchSize) {
+            const batch = objectKeys.slice(i, i + batchSize);
+            try {
+                const deleteResult = await client.deleteMulti(batch, { quiet: true });
+                const failedCount = deleteResult.deleted?.length || 0;
+                result.success += batch.length - failedCount;
+                result.failed += failedCount;
+                if (deleteResult.deleted && deleteResult.deleted.length > 0) {
+                    for (const item of deleteResult.deleted) {
+                        result.errors.push(`删除失败: ${item.Key}`);
+                    }
+                }
+            }
+            catch (batchError) {
+                logger_1.default.error(`[OSS] 批量删除失败:`, batchError.message);
+                result.failed += batch.length;
+                result.errors.push(`批量删除失败: ${batchError.message}`);
+            }
+        }
+        logger_1.default.info(`[OSS] 批量删除完成: 成功=${result.success}, 失败=${result.failed}`);
+    }
+    catch (error) {
+        logger_1.default.error(`[OSS] 批量删除初始化失败:`, error.message);
+        result.failed = objectKeys.length;
+        result.errors.push(`初始化失败: ${error.message}`);
+    }
+    return result;
+};
+exports.batchDeleteFromOss = batchDeleteFromOss;
+/**
+ * 列出 OSS 中指定前缀的所有文件
+ * @param prefix 文件前缀，默认 'aivider/'
+ * @param maxKeys 最大返回数量，默认 1000
+ * @returns 文件列表 { name, url, lastModified, size }[]
+ */
+const listOssFiles = async (prefix = 'aivider/', maxKeys = 1000) => {
+    const files = [];
+    try {
+        const client = ensureClient();
+        const bucket = client.options?.bucket;
+        const region = client.options?.region;
+        let marker;
+        let isTruncated = true;
+        while (isTruncated && files.length < maxKeys) {
+            const result = await client.list({
+                prefix,
+                marker,
+                'max-keys': Math.min(1000, maxKeys - files.length),
+            }, {});
+            if (result.objects) {
+                for (const obj of result.objects) {
+                    let publicUrl = `https://${bucket}.${region}.aliyuncs.com/${obj.name}`;
+                    publicUrl = publicUrl.replace('.oss-oss-', '.oss-');
+                    files.push({
+                        name: obj.name,
+                        url: publicUrl,
+                        lastModified: new Date(obj.lastModified),
+                        size: obj.size,
+                    });
+                }
+            }
+            isTruncated = result.isTruncated || false;
+            marker = result.nextMarker;
+        }
+        logger_1.default.info(`[OSS] 列出文件完成: prefix=${prefix}, count=${files.length}`);
+    }
+    catch (error) {
+        logger_1.default.error(`[OSS] 列出文件失败:`, error.message);
+    }
+    return files;
+};
+exports.listOssFiles = listOssFiles;
 //# sourceMappingURL=oss.js.map

@@ -45,6 +45,7 @@ exports.createCommercialVideo = createCommercialVideo;
 const axios_1 = __importDefault(require("axios"));
 const oss_1 = require("../../utils/oss");
 const logger_1 = require("../../utils/logger");
+const waule_api_client_1 = require("../waule-api.client");
 /**
  * Vidu Q2 API 服务
  * 支持: 图生视频 (Image-to-Video)
@@ -114,8 +115,30 @@ async function processImageUrl(imageUrl) {
 async function imageToVideo(options) {
     const { images, subjects, prompt, model = 'viduq2-pro', audio, voice_id, bgm, is_rec, duration, seed, resolution, movement_amplitude, payload, off_peak, watermark, wm_position, wm_url, meta_data, callback_url, apiKey, apiUrl, } = options;
     // API配置 - 从管理后台配置获取
+    // 如果 apiKey 为空，使用 waule-api 网关
     if (!apiKey) {
-        throw new Error('Vidu API 密钥未配置，请在管理后台配置模型');
+        const wauleApiClient = (0, waule_api_client_1.getGlobalWauleApiClient)();
+        if (wauleApiClient) {
+            console.log('🌐 [Vidu] apiKey 为空，使用 waule-api 网关生成视频');
+            const r = await wauleApiClient.generateVideo({
+                model,
+                prompt,
+                duration,
+                resolution,
+                reference_images: images || undefined,
+                subjects,
+                audio,
+                voice_id,
+                bgm,
+                movement_amplitude,
+                generation_type: images?.length ? '图生视频' : '文生视频',
+            });
+            const videoUrl = r?.data?.[0]?.url;
+            if (!videoUrl)
+                throw new Error('waule-api 未返回视频数据');
+            return videoUrl;
+        }
+        throw new Error('Vidu API 密钥未配置，且 waule-api 网关未配置');
     }
     const API_KEY = apiKey;
     // 智能处理 API URL：去除末尾斜杠，如果已包含 /ent/v2 则直接使用，否则使用基础 URL

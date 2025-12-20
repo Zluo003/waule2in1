@@ -42,6 +42,7 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const socks_proxy_agent_1 = require("socks-proxy-agent");
 const oss_1 = require("../../utils/oss");
+const waule_api_client_1 = require("../waule-api.client");
 // 🌐 SOCKS5 代理配置（用于访问 Google API）
 // 延迟创建，确保 dotenv.config() 已执行
 let _proxyAgent;
@@ -227,8 +228,25 @@ const generateImage = async (options) => {
     }
     // ========== 以下为原有 Google 原生 API 调用逻辑 ==========
     const API_KEY = apiKey;
+    // 如果 apiKey 为空，使用 waule-api 网关
     if (!API_KEY) {
-        throw new Error('Google API Key is required');
+        const wauleApiClient = (0, waule_api_client_1.getGlobalWauleApiClient)();
+        if (wauleApiClient) {
+            console.log('🌐 [Gemini] apiKey 为空，使用 waule-api 网关生成图片');
+            console.log(`   - 模型: ${modelId}, 宽高比: ${aspectRatio}, 分辨率: ${imageSize || '默认'}`);
+            const r = await wauleApiClient.generateImage({
+                model: modelId,
+                prompt,
+                size: aspectRatio,
+                image_size: imageSize, // 传递分辨率参数（2K/4K）
+                reference_images: referenceImages || undefined,
+            });
+            const imageUrl = r?.data?.[0]?.url;
+            if (!imageUrl)
+                throw new Error('waule-api 未返回图片数据');
+            return imageUrl;
+        }
+        throw new Error('Google API Key is required，且 waule-api 网关未配置');
     }
     const endpoint = apiUrl || process.env.GOOGLE_API_URL || `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent`;
     try {

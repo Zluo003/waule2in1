@@ -170,5 +170,25 @@ router.get('/gift-credits/status', userLevelController.getGiftCreditsStatus);
  *       - bearerAuth: []
  */
 router.put('/users/:id/membership', userLevelController.updateUserMembership);
+/**
+ * @swagger
+ * /admin/user-levels/storage-cleanup/preview:
+ *   get:
+ *     summary: 预览存储清理（不实际删除）
+ *     tags: [Admin - User Levels]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/storage-cleanup/preview', userLevelController.previewStorageCleanup);
+/**
+ * @swagger
+ * /admin/user-levels/storage-cleanup/run:
+ *   post:
+ *     summary: 手动执行存储清理
+ *     tags: [Admin - User Levels]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post('/storage-cleanup/run', userLevelController.runStorageCleanup);
 exports.default = router;
 //# sourceMappingURL=user-level.routes.js.map

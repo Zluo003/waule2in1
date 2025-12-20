@@ -13,6 +13,7 @@ const PhoneLoginPage = () => {
   const [formData, setFormData] = useState({
     phone: '',
     code: '',
+    referralCode: '',
   });
   const [activeFeature, setActiveFeature] = useState(0);
 
@@ -78,7 +79,11 @@ const PhoneLoginPage = () => {
     setLoading(true);
 
     try {
-      const response = await apiClient.auth.loginWithPhone(formData);
+      const response = await apiClient.auth.loginWithPhone({
+        phone: formData.phone,
+        code: formData.code,
+        referralCode: formData.referralCode || undefined,
+      });
       setAuth(response.user, response.token);
       toast.success('登录成功！');
       navigate('/quick');
@@ -265,6 +270,26 @@ const PhoneLoginPage = () => {
                   >
                     {countdown > 0 ? `${countdown}s` : sendingCode ? '...' : '获取验证码'}
                   </button>
+                </div>
+              </div>
+
+              {/* 推荐码输入（可选） */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-3">
+                  推荐码 <span className="text-gray-500 font-normal">(选填)</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-500 text-xl">
+                    card_giftcard
+                  </span>
+                  <input
+                    type="text"
+                    maxLength={20}
+                    value={formData.referralCode}
+                    onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
+                    className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-neutral-500/50 focus:border-neutral-500/50 transition-all"
+                    placeholder="有推荐码？填写可获得额外积分"
+                  />
                 </div>
               </div>
 

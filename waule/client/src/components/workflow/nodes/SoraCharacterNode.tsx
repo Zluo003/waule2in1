@@ -243,14 +243,14 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
   const hasVideoInput = !!videoInputInfo;
 
   // 轮询任务状态
-  const pollTaskStatus = async (taskId: string) => {
+  const pollTaskStatus = async (taskIdParam: string) => {
     const maxAttempts = 600;
     let attempts = 0;
 
     const poll = async () => {
       try {
         attempts++;
-        const response = await apiClient.tasks.getTaskStatus(taskId);
+        const response = await apiClient.tasks.getTaskStatus(taskIdParam);
         const task = response.task;
 
         setGenerationProgress(task.progress || 0);

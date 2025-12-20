@@ -11,6 +11,7 @@ const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const crypto_1 = __importDefault(require("crypto"));
 const oss_1 = require("../utils/oss");
+const storage_expiration_1 = require("../utils/storage-expiration");
 // 获取所有资产库（包括自己的和共享给我的）
 const getAssetLibraries = async (req, res) => {
     try {
@@ -19,7 +20,7 @@ const getAssetLibraries = async (req, res) => {
             return res.status(401).json({ message: '未授权' });
         }
         const { category: categoryParam, q, limit: limitRaw, offset: offsetRaw, includeShared } = req.query;
-        const allowed = ['ROLE', 'SCENE', 'PROP', 'OTHER'];
+        const allowed = ['ROLE', 'SCENE', 'PROP', 'AUDIO', 'OTHER'];
         const categoryFilter = allowed.includes(String(categoryParam || '').toUpperCase())
             ? String(categoryParam).toUpperCase()
             : undefined;
@@ -175,7 +176,7 @@ const createAssetLibrary = async (req, res) => {
         if (!name || !name.trim()) {
             return res.status(400).json({ message: '资产库名称不能为空' });
         }
-        const allowedCategories = ['ROLE', 'SCENE', 'PROP', 'OTHER'];
+        const allowedCategories = ['ROLE', 'SCENE', 'PROP', 'AUDIO', 'OTHER'];
         const finalCategory = allowedCategories.includes((category || '').toUpperCase())
             ? category.toUpperCase()
             : 'OTHER';
@@ -245,7 +246,7 @@ const updateAssetLibrary = async (req, res) => {
         if (thumbnail !== undefined)
             updateData.thumbnail = thumbnail;
         if (category !== undefined) {
-            const allowedCategories = ['ROLE', 'SCENE', 'PROP', 'OTHER'];
+            const allowedCategories = ['ROLE', 'SCENE', 'PROP', 'AUDIO', 'OTHER'];
             const upper = category.toUpperCase();
             if (allowedCategories.includes(upper)) {
                 updateData.category = upper;
@@ -555,6 +556,8 @@ const addAssetFromUrl = async (req, res) => {
         }
         // 确定资产类型
         const assetType = getAssetTypeFromMimeType(mimeType);
+        // 计算存储过期时间
+        const storageExpiresAt = await (0, storage_expiration_1.calculateStorageExpiresAt)(userId);
         // 保存到数据库
         const asset = await index_1.prisma.asset.create({
             data: {
@@ -567,6 +570,7 @@ const addAssetFromUrl = async (req, res) => {
                 url: fileUrl,
                 type: assetType,
                 metadata: { source: 'GENERATED', originalUrl: url },
+                storageExpiresAt,
             },
         });
         logger_1.logger.info(`Asset added to library: ${asset.name} (${asset.id}) - libraryId: ${id}`);

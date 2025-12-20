@@ -1,51 +1,71 @@
+# WauleAPI Docker Compose
+# 统一API网关服务
 
 services:
   wauleapi:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: wauleapi:latest
     container_name: wauleapi
     restart: unless-stopped
+    
+    # 端口映射
     ports:
-      # Gateway (统一API入口)
-      - "9000:9000"
-      # Sora API (Python) - 管理页面
-      - "8000:8000"
-      # Sora Proxy (Node.js) - 视频代理
-      - "8001:8001"
-      # Gemini Service (Node.js) - 图片/文本生成
-      - "3100:3100"
+      - "9000:9000"   # 统一网关入口 (推荐使用)
+      - "8000:8000"   # Sora API (管理页面)
+      - "8001:8001"   # Sora Proxy (兼容旧接口)
+      - "3100:3100"   # Gemini Service
+    
+    # 数据卷
     volumes:
-      # 数据持久化
-      - ./data:/app/data
-      # 配置文件
-      - ./config/setting.toml:/app/sora-api/config/setting.toml
-      # 临时文件
-      - /tmp/sora-proxy:/tmp/sora-proxy
-      # 静态文件（方便更新）
-      - ./static:/app/static
+      - wauleapi-data:/app/data           # 数据持久化
+      - ./config/setting.toml:/app/sora-api/config/setting.toml:ro  # 配置文件
+      - ./static:/app/static:ro           # 静态文件
+    
+    # 环境变量
     environment:
-      # Python 环境
+      # 基础配置
       - PYTHONUNBUFFERED=1
-      
-      # Node.js 环境
       - NODE_ENV=production
-      
-      # 数据库路径
       - DB_PATH=/app/data/gateway.db
       
-      # Sora API 配置 (内部通信)
-      - SORA2API_URL=http://localhost:8000
-      - SORA_API_KEY=${SORA_API_KEY}
-      
-      # 服务配置
-      - API_SECRET=${API_SECRET}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      # 端口配置
       - GATEWAY_PORT=9000
-      - WAULE_API_URL=${WAULE_API_URL:-http://172.17.0.1:3000}
+      - SORA_PROXY_PORT=8001
+      - GEMINI_PORT=3100
+      
+      # 内部通信
+      - SORA2API_URL=http://localhost:8000
       - SORA_API_URL=http://localhost:8000
       - GEMINI_SERVICE_URL=http://localhost:3100
+      
+      # API 密钥 (从 .env 读取)
+      - SORA_API_KEY=${SORA_API_KEY:-}
+      - API_SECRET=${API_SECRET:-}
+      
+      # 跨域配置
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      
+      # Waule 主服务地址
+      - WAULE_API_URL=${WAULE_API_URL:-http://host.docker.internal:3000}
+    
+    # 日志配置
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: "20m"
+        max-file: "5"
+    
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+# 命名卷
+volumes:
+  wauleapi-data:
+    driver: local

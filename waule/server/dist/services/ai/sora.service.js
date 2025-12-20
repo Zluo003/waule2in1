@@ -11,6 +11,7 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const logger_1 = require("../../utils/logger");
 const socks_proxy_agent_1 = require("socks-proxy-agent");
+const waule_api_client_1 = require("../waule-api.client");
 // SOCKS5 代理配置
 let _proxyAgent;
 function getProxyAgent() {
@@ -107,43 +108,62 @@ function getOrientationFromRatio(ratio) {
  */
 async function generateImage(options) {
     const { prompt, modelId, aspectRatio = '1:1', referenceImages = [], apiKey, apiUrl, } = options;
-    // API配置
+    // 根据比例选择模型
+    const orientation = getOrientationFromRatio(aspectRatio);
+    let finalModelId = modelId;
+    // 如果用户选择了通用模型，根据比例自动选择
+    if (modelId === 'sora-image') {
+        finalModelId = orientation === 'portrait' ? 'sora-image-portrait' : 'sora-image-landscape';
+    }
+    logger_1.logger.info(`[Sora] 生成图片, 模型: ${finalModelId}, 比例: ${aspectRatio}`);
+    // 构建请求体（OpenAI 格式）
+    const requestBody = {
+        model: finalModelId,
+        messages: [
+            {
+                role: 'user',
+                content: prompt,
+            },
+        ],
+    };
+    // 如果有参考图，添加到请求中
+    if (referenceImages && referenceImages.length > 0) {
+        requestBody.image = referenceImages[0];
+        logger_1.logger.info(`[Sora] 使用参考图进行生成（图生图模式）`);
+    }
+    // 优先使用 waule-api 网关（不需要前端传 API key）
+    const wauleApiClient = (0, waule_api_client_1.getGlobalWauleApiClient)();
+    if (wauleApiClient) {
+        try {
+            logger_1.logger.info(`[Sora] 使用 waule-api 网关调用`);
+            const response = await wauleApiClient.soraChatCompletions(requestBody);
+            // 解析响应中的图片URL
+            const content = response.choices?.[0]?.message?.content || '';
+            const imgMatch = content.match(/<img[^>]+src=['"]([^'"]+)['"]/i);
+            if (!imgMatch || !imgMatch[1]) {
+                logger_1.logger.error('[Sora] 无法从 waule-api 响应中提取图片URL:', content);
+                throw new Error('Sora API响应中没有图片URL');
+            }
+            const imageUrl = imgMatch[1];
+            logger_1.logger.info(`[Sora] ✅ 图片生成成功 (waule-api)`, { imageUrl: imageUrl.substring(0, 80) });
+            return imageUrl;
+        }
+        catch (error) {
+            logger_1.logger.warn(`[Sora] waule-api 调用失败，回退到直连: ${error.message}`);
+        }
+    }
+    // 回退：直接调用 sora2api
     const API_KEY = apiKey || process.env.SORA_API_KEY || 'han1234';
     const BASE_URL = apiUrl || process.env.SORA_API_URL || 'http://localhost:8000';
     if (!API_KEY) {
         throw new Error('Sora API 密钥未配置');
     }
     try {
-        // 根据比例选择模型
-        const orientation = getOrientationFromRatio(aspectRatio);
-        let finalModelId = modelId;
-        // 如果用户选择了通用模型，根据比例自动选择
-        if (modelId === 'sora-image') {
-            finalModelId = orientation === 'portrait' ? 'sora-image-portrait' : 'sora-image-landscape';
-        }
-        logger_1.logger.info(`[Sora] 生成图片, 模型: ${finalModelId}, 比例: ${aspectRatio}`);
-        // 构建请求体（OpenAI 格式）
-        const requestBody = {
-            model: finalModelId,
-            messages: [
-                {
-                    role: 'user',
-                    content: prompt,
-                },
-            ],
-        };
-        // 如果有参考图，添加到请求中
-        if (referenceImages && referenceImages.length > 0) {
-            // sora2api 支持通过 image 字段传递 base64 图片
-            requestBody.image = referenceImages[0]; // 目前只支持一张参考图
-            logger_1.logger.info(`[Sora] 使用参考图进行生成（图生图模式）`);
-        }
         logger_1.logger.info(`[Sora] 请求详情:`, {
             url: `${BASE_URL}/v1/chat/completions`,
             model: finalModelId,
             promptLength: prompt.length,
             hasReferenceImage: referenceImages.length > 0,
-            apiKey: API_KEY.substring(0, 4) + '****', // 只显示前4位
         });
         // 使用 responseType: 'text' 来接收 SSE 流式响应
         const agent = getProxyAgent();
@@ -152,8 +172,8 @@ async function generateImage(options) {
                 'Authorization': `Bearer ${API_KEY}`,
                 'Content-Type': 'application/json',
             },
-            responseType: 'text', // 接收文本格式的 SSE 响应
-            timeout: 300000, // 300秒超时
+            responseType: 'text',
+            timeout: 300000,
             ...(agent ? { httpsAgent: agent, httpAgent: agent } : {}),
         });
         logger_1.logger.info(`[Sora] API 响应状态: ${response.status} ${response.statusText}`);
@@ -279,116 +299,96 @@ function parseSSEResponse(sseText) {
  */
 async function generateVideo(options) {
     const { prompt, modelId, aspectRatio = '16:9', referenceImage, referenceVideo, duration = 10, apiKey, apiUrl, } = options;
-    // API配置
+    // 根据比例选择模型
+    const orientation = getOrientationFromRatio(aspectRatio);
+    const durationSuffix = duration === 15 ? '15s' : '10s';
+    let finalModelId = modelId;
+    if (modelId === 'sora-video') {
+        finalModelId = `sora-video-${orientation}-${durationSuffix}`;
+    }
+    else if (modelId === 'sora-video-portrait' || modelId === 'sora-video-landscape') {
+        finalModelId = `${modelId}-${durationSuffix}`;
+    }
+    logger_1.logger.info(`[Sora] 生成视频, 模型: ${finalModelId}, 比例: ${aspectRatio}`);
+    // 构建消息内容
+    let messageContent;
+    if (referenceVideo) {
+        const videoDataUrl = await urlToBase64DataUrl(referenceVideo, 'video/mp4');
+        logger_1.logger.info(`[Sora] 视频已转换为base64`);
+        if (prompt && prompt.trim()) {
+            messageContent = [
+                { type: 'video_url', video_url: { url: videoDataUrl } },
+                { type: 'text', text: prompt },
+            ];
+            logger_1.logger.info(`[Sora] 使用视频+提示词进行生成（视频生视频模式）`);
+        }
+        else {
+            messageContent = [
+                { type: 'video_url', video_url: { url: videoDataUrl } },
+            ];
+            logger_1.logger.info(`[Sora] 使用视频进行角色创建`);
+        }
+    }
+    else if (referenceImage) {
+        const imageDataUrl = await urlToBase64DataUrl(referenceImage);
+        logger_1.logger.info(`[Sora] 图片已转换为base64`);
+        messageContent = [
+            { type: 'text', text: prompt || '' },
+            { type: 'image_url', image_url: { url: imageDataUrl } },
+        ];
+        logger_1.logger.info(`[Sora] 使用参考图进行生成（图生视频模式）`);
+    }
+    else {
+        messageContent = prompt;
+        logger_1.logger.info(`[Sora] 使用纯文本进行生成（文生视频模式）`);
+    }
+    const requestBody = {
+        model: finalModelId,
+        messages: [{ role: 'user', content: messageContent }],
+        stream: true,
+    };
+    // 优先使用 waule-api 网关（不需要前端传 API key）
+    const wauleApiClient = (0, waule_api_client_1.getGlobalWauleApiClient)();
+    if (wauleApiClient) {
+        try {
+            logger_1.logger.info(`[Sora] 使用 waule-api 网关调用`);
+            const response = await wauleApiClient.soraChatCompletions(requestBody);
+            const content = response.choices?.[0]?.message?.content || '';
+            const videoMatch = content.match(/<video[^>]+src=['"]([^'"]+)['"]/i);
+            if (!videoMatch || !videoMatch[1]) {
+                logger_1.logger.error('[Sora] 无法从 waule-api 响应中提取视频URL:', content);
+                throw new Error('Sora API响应中没有视频URL');
+            }
+            const videoUrl = videoMatch[1];
+            logger_1.logger.info(`[Sora] ✅ 视频生成成功 (waule-api)`, { videoUrl: videoUrl.substring(0, 80) });
+            return videoUrl;
+        }
+        catch (error) {
+            logger_1.logger.warn(`[Sora] waule-api 调用失败，回退到直连: ${error.message}`);
+        }
+    }
+    // 回退：直接调用 sora2api
     const API_KEY = apiKey || process.env.SORA_API_KEY || 'han1234';
     const BASE_URL = apiUrl || process.env.SORA_API_URL || 'http://localhost:8000';
     if (!API_KEY) {
         throw new Error('Sora API 密钥未配置');
     }
     try {
-        // 根据比例选择模型
-        const orientation = getOrientationFromRatio(aspectRatio);
-        // 确定时长后缀：支持 10s 和 15s
-        const durationSuffix = duration === 15 ? '15s' : '10s';
-        let finalModelId = modelId;
-        // 如果用户选择了通用模型，根据比例和时长自动选择
-        if (modelId === 'sora-video') {
-            finalModelId = `sora-video-${orientation}-${durationSuffix}`;
-        }
-        else if (modelId === 'sora-video-portrait' || modelId === 'sora-video-landscape') {
-            // 如果是旧的模型ID，追加时长后缀
-            finalModelId = `${modelId}-${durationSuffix}`;
-        }
-        logger_1.logger.info(`[Sora] 生成视频, 模型: ${finalModelId}, 比例: ${aspectRatio}`);
-        // 构建请求体（OpenAI 格式）
-        // sora2api 需要 base64 格式的媒体数据
-        let messageContent;
-        if (referenceVideo) {
-            // sora2api 需要 base64 格式
-            const videoDataUrl = await urlToBase64DataUrl(referenceVideo, 'video/mp4');
-            logger_1.logger.info(`[Sora] 视频已转换为base64`);
-            // 视频生视频或角色创建
-            if (prompt && prompt.trim()) {
-                // 有提示词: 视频生视频
-                messageContent = [
-                    {
-                        type: 'video_url',
-                        video_url: {
-                            url: videoDataUrl,
-                        },
-                    },
-                    {
-                        type: 'text',
-                        text: prompt,
-                    },
-                ];
-                logger_1.logger.info(`[Sora] 使用视频+提示词进行生成（视频生视频模式）`);
-            }
-            else {
-                // 无提示词: 角色创建
-                messageContent = [
-                    {
-                        type: 'video_url',
-                        video_url: {
-                            url: videoDataUrl,
-                        },
-                    },
-                ];
-                logger_1.logger.info(`[Sora] 使用视频进行角色创建`);
-            }
-        }
-        else if (referenceImage) {
-            // sora2api 需要 base64 格式
-            const imageDataUrl = await urlToBase64DataUrl(referenceImage);
-            logger_1.logger.info(`[Sora] 图片已转换为base64`);
-            // 图生视频
-            messageContent = [
-                {
-                    type: 'text',
-                    text: prompt || '',
-                },
-                {
-                    type: 'image_url',
-                    image_url: {
-                        url: imageDataUrl,
-                    },
-                },
-            ];
-            logger_1.logger.info(`[Sora] 使用参考图进行生成（图生视频模式）`);
-        }
-        else {
-            // 文生视频
-            messageContent = prompt;
-            logger_1.logger.info(`[Sora] 使用纯文本进行生成（文生视频模式）`);
-        }
-        const requestBody = {
-            model: finalModelId,
-            messages: [
-                {
-                    role: 'user',
-                    content: messageContent,
-                },
-            ],
-            stream: true, // sora2api 需要流式响应
-        };
-        logger_1.logger.info(`[Sora] 请求详情:`, {
+        logger_1.logger.info(`[Sora] 请求详情 (直连):`, {
             url: `${BASE_URL}/v1/chat/completions`,
             model: finalModelId,
             promptLength: prompt?.length || 0,
             hasReferenceImage: !!referenceImage,
             hasReferenceVideo: !!referenceVideo,
-            contentType: typeof messageContent === 'string' ? 'text' : 'array',
-            apiKey: API_KEY.substring(0, 4) + '****',
         });
-        // 使用 responseType: 'text' 来接收 SSE 流式响应
         const agent = getProxyAgent();
         const response = await axios_1.default.post(`${BASE_URL}/v1/chat/completions`, requestBody, {
             headers: {
                 'Authorization': `Bearer ${API_KEY}`,
                 'Content-Type': 'application/json',
             },
-            responseType: 'text', // 接收文本格式的 SSE 响应
-            timeout: 600000, // 600秒超时（视频生成时间很长）
+            responseType: 'text',
+            timeout: 600000,
             ...(agent ? { httpsAgent: agent, httpAgent: agent } : {}),
         });
         logger_1.logger.info(`[Sora] API 响应状态: ${response.status} ${response.statusText}`);
@@ -453,58 +453,167 @@ async function generateVideo(options) {
     }
 }
 /**
+ * 解析角色创建响应
+ */
+async function parseCharacterResponse(content) {
+    // 优先解析 @username 格式的系统角色名（如 "角色名@abc123"）
+    const atNameMatch = content.match(/角色名@(\w+)/);
+    let characterName = '';
+    if (atNameMatch) {
+        characterName = `@${atNameMatch[1]}`;
+        logger_1.logger.info(`[Sora] 解析出的系统角色名: "${characterName}"`);
+    }
+    else {
+        // 回退：解析中文字符作为角色名称
+        const nameMatch = content.match(/[\u4e00-\u9fa5]{2,}/);
+        characterName = nameMatch ? nameMatch[0] : '';
+        logger_1.logger.info(`[Sora] 解析出的角色名称: "${characterName}"`);
+    }
+    // 解析头像URL
+    let avatarUrl = '';
+    const avatarLabelMatch = content.match(/头像[:：]([^\s,，]+)/);
+    if (avatarLabelMatch) {
+        avatarUrl = avatarLabelMatch[1];
+        logger_1.logger.info(`[Sora] 从"头像:"标签解析出头像: ${avatarUrl}`);
+    }
+    else {
+        const imgMatch = content.match(/<img[^>]+src=['"]([^'"]+)['"]/i);
+        if (imgMatch) {
+            avatarUrl = imgMatch[1];
+            logger_1.logger.info(`[Sora] 从img标签解析出头像: ${avatarUrl}`);
+        }
+        else {
+            const urlMatch = content.match(/https?:\/\/[^\s"'<>，,]+/i);
+            if (urlMatch) {
+                avatarUrl = urlMatch[0];
+                logger_1.logger.info(`[Sora] 从URL匹配解析出头像: ${avatarUrl}`);
+            }
+            else {
+                logger_1.logger.warn(`[Sora] 响应中没有找到头像URL`);
+            }
+        }
+    }
+    if (avatarUrl) {
+        avatarUrl = await downloadFile(avatarUrl, 'image');
+    }
+    if (!characterName) {
+        logger_1.logger.warn('[Sora] 未能从响应中提取角色名称，完整内容:', content);
+        throw new Error('未能从响应中提取角色名称');
+    }
+    logger_1.logger.info(`[Sora] ✅ 角色创建成功！`, { characterName, avatarUrl: avatarUrl || '(无头像)' });
+    return { characterName, avatarUrl };
+}
+/**
  * 创建角色（从视频中提取角色信息）
  * 不传prompt，只传视频，API会返回角色名称和头像
  */
 async function createCharacter(options) {
     const { videoUrl, modelId = 'sora-video-landscape-10s', apiKey, apiUrl, } = options;
+    // 确保模型ID有正确的格式（需要duration后缀）
+    let finalModelId = modelId;
+    if (!modelId.match(/-(10|15|25)s$/)) {
+        if (modelId === 'sora-video' || modelId.includes('sora')) {
+            finalModelId = 'sora-video-landscape-10s';
+        }
+        else {
+            finalModelId = `${modelId}-10s`;
+        }
+    }
+    logger_1.logger.info(`[Sora] 创建角色, 模型: ${finalModelId}`);
+    logger_1.logger.info(`[Sora] 使用视频URL: ${videoUrl.substring(0, 100)}...`);
+    // 优先使用 waule-api 网关
+    const wauleApiClient = (0, waule_api_client_1.getGlobalWauleApiClient)();
+    if (wauleApiClient) {
+        // ===== 尝试使用 future-sora-api 创建角色（需要原始HTTP URL）=====
+        // future-sora-api 不接受 base64，需要直接传 HTTP URL
+        if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
+            try {
+                logger_1.logger.info(`[Sora] 尝试使用 future-sora-api 创建角色 (HTTP URL)`);
+                const response = await wauleApiClient.futureSoraCreateCharacter({
+                    url: videoUrl,
+                    timestamps: '1,3',
+                });
+                // 解析 future-sora-api 返回的角色信息
+                const characterName = response.id || response.username || '';
+                const avatarUrl = response.profile_picture_url || response.permalink || '';
+                if (characterName) {
+                    logger_1.logger.info(`[Sora] future-sora-api 角色创建成功: @${characterName}`);
+                    return {
+                        characterName: `@${characterName}`,
+                        avatarUrl,
+                    };
+                }
+            }
+            catch (error) {
+                logger_1.logger.warn(`[Sora] future-sora-api 创建角色失败: ${error.message}`);
+                // 继续尝试 sora2api
+            }
+        }
+        // ===== 使用 sora2api (需要 base64) =====
+        try {
+            logger_1.logger.info(`[Sora] 使用 waule-api 网关创建角色 (sora2api)`);
+            // sora2api 需要 base64 格式的视频数据
+            const videoDataUrl = await urlToBase64DataUrl(videoUrl, 'video/mp4');
+            logger_1.logger.info(`[Sora] 视频已转换为base64, 大小约: ${(videoDataUrl.length / 1024 / 1024).toFixed(2)} MB`);
+            const requestBody = {
+                model: finalModelId,
+                messages: [
+                    {
+                        role: 'user',
+                        content: [
+                            {
+                                type: 'video_url',
+                                video_url: {
+                                    url: videoDataUrl,
+                                },
+                            },
+                        ],
+                    },
+                ],
+                stream: true,
+            };
+            const response = await wauleApiClient.soraChatCompletions(requestBody);
+            const content = response.choices?.[0]?.message?.content || '';
+            logger_1.logger.info(`[Sora] 角色创建响应:`, { contentLength: content.length, preview: content.substring(0, 200) });
+            return parseCharacterResponse(content);
+        }
+        catch (error) {
+            logger_1.logger.warn(`[Sora] waule-api 创建角色失败，回退到直连: ${error.message}`);
+        }
+    }
+    // 回退：直接调用 sora2api
     const API_KEY = apiKey || process.env.SORA_API_KEY || 'han1234';
     const BASE_URL = apiUrl || process.env.SORA_API_URL || 'http://localhost:8000';
     if (!API_KEY) {
         throw new Error('Sora API 密钥未配置');
     }
-    try {
-        // 确保模型ID有正确的格式（需要duration后缀）
-        let finalModelId = modelId;
-        if (!modelId.match(/-(10|15|25)s$/)) {
-            // 如果没有duration后缀，默认使用 landscape-10s
-            if (modelId === 'sora-video' || modelId.includes('sora')) {
-                finalModelId = 'sora-video-landscape-10s';
-            }
-            else {
-                finalModelId = `${modelId}-10s`;
-            }
-        }
-        logger_1.logger.info(`[Sora] 创建角色, 模型: ${finalModelId}`);
-        logger_1.logger.info(`[Sora] 使用视频URL: ${videoUrl.substring(0, 100)}...`);
-        // sora2api 需要 base64 格式的视频数据
-        const videoDataUrl = await urlToBase64DataUrl(videoUrl, 'video/mp4');
-        logger_1.logger.info(`[Sora] 视频已转换为base64, 大小约: ${(videoDataUrl.length / 1024 / 1024).toFixed(2)} MB`);
-        // 构建请求体 - 角色创建只需要视频，不需要prompt
-        const requestBody = {
-            model: finalModelId,
-            messages: [
-                {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'video_url',
-                            video_url: {
-                                url: videoDataUrl,
-                            },
+    // sora2api 需要 base64 格式的视频数据
+    const videoDataUrl = await urlToBase64DataUrl(videoUrl, 'video/mp4');
+    logger_1.logger.info(`[Sora] 视频已转换为base64 (直连), 大小约: ${(videoDataUrl.length / 1024 / 1024).toFixed(2)} MB`);
+    const directRequestBody = {
+        model: finalModelId,
+        messages: [
+            {
+                role: 'user',
+                content: [
+                    {
+                        type: 'video_url',
+                        video_url: {
+                            url: videoDataUrl,
                         },
-                    ],
-                },
-            ],
-            stream: true,
-        };
-        logger_1.logger.info(`[Sora] 角色创建请求:`, {
+                    },
+                ],
+            },
+        ],
+        stream: true,
+    };
+    try {
+        logger_1.logger.info(`[Sora] 角色创建请求 (直连):`, {
             url: `${BASE_URL}/v1/chat/completions`,
-            model: modelId,
-            apiKey: API_KEY.substring(0, 4) + '****',
+            model: finalModelId,
         });
         const agent = getProxyAgent();
-        const response = await axios_1.default.post(`${BASE_URL}/v1/chat/completions`, requestBody, {
+        const response = await axios_1.default.post(`${BASE_URL}/v1/chat/completions`, directRequestBody, {
             headers: {
                 'Authorization': `Bearer ${API_KEY}`,
                 'Content-Type': 'application/json',
@@ -531,55 +640,8 @@ async function createCharacter(options) {
             throw new Error('Sora API未返回有效的角色数据');
         }
         const content = parsedData.choices[0].message?.content || parsedData.choices[0].delta?.content || '';
-        console.log(`[Sora] 角色创建完整内容: "${content}"`);
-        logger_1.logger.info(`[Sora] 🔍 角色创建原始内容 (用于调试): ${JSON.stringify(content)}`);
-        // 解析角色名称（格式: @xxxx）
-        const nameMatch = content.match(/@[\w\u4e00-\u9fa5-]+/);
-        const characterName = nameMatch ? nameMatch[0] : '';
-        logger_1.logger.info(`[Sora] 解析出的角色名称: "${characterName}"`);
-        // 解析头像URL（格式: 头像:URL 或 <img src="..."> 或 直接的URL）
-        let avatarUrl = '';
-        // 首先尝试匹配 "头像:URL" 格式
-        const avatarLabelMatch = content.match(/头像[:：]([^\s,，]+)/);
-        if (avatarLabelMatch) {
-            avatarUrl = avatarLabelMatch[1];
-            logger_1.logger.info(`[Sora] 从"头像:"标签解析出头像: ${avatarUrl}`);
-        }
-        else {
-            // 尝试匹配 <img src="..."> 格式
-            const imgMatch = content.match(/<img[^>]+src=['"]([^'"]+)['"]/i);
-            if (imgMatch) {
-                avatarUrl = imgMatch[1];
-                logger_1.logger.info(`[Sora] 从img标签解析出头像: ${avatarUrl}`);
-            }
-            else {
-                // 尝试匹配直接的URL
-                const urlMatch = content.match(/https?:\/\/[^\s"'<>，,]+/i);
-                if (urlMatch) {
-                    avatarUrl = urlMatch[0];
-                    logger_1.logger.info(`[Sora] 从URL匹配解析出头像: ${avatarUrl}`);
-                }
-                else {
-                    logger_1.logger.warn(`[Sora] 响应中没有找到头像URL`);
-                }
-            }
-        }
-        // 如果有头像URL，下载并上传到OSS
-        if (avatarUrl) {
-            avatarUrl = await downloadFile(avatarUrl, 'image');
-        }
-        if (!characterName) {
-            logger_1.logger.warn('[Sora] 未能从响应中提取角色名称，完整内容:', content);
-            throw new Error('未能从响应中提取角色名称');
-        }
-        logger_1.logger.info(`[Sora] ✅ 角色创建成功！`, {
-            characterName,
-            avatarUrl: avatarUrl || '(无头像)',
-        });
-        return {
-            characterName,
-            avatarUrl,
-        };
+        logger_1.logger.info(`[Sora] 角色创建响应 (直连):`, { contentLength: content.length, preview: content.substring(0, 200) });
+        return parseCharacterResponse(content);
     }
     catch (error) {
         logger_1.logger.error('[Sora] 角色创建失败:', {

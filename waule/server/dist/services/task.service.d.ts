@@ -38,6 +38,7 @@ declare class TaskService {
         status: import(".prisma/client").$Enums.TaskStatus;
         metadata: import("@prisma/client/runtime/library").JsonValue | null;
         modelId: string;
+        storageExpiresAt: Date | null;
         prompt: string;
         referenceImages: import("@prisma/client/runtime/library").JsonValue | null;
         ratio: string | null;
@@ -63,6 +64,7 @@ declare class TaskService {
         status: import(".prisma/client").$Enums.TaskStatus;
         metadata: import("@prisma/client/runtime/library").JsonValue | null;
         modelId: string;
+        storageExpiresAt: Date | null;
         prompt: string;
         referenceImages: import("@prisma/client/runtime/library").JsonValue | null;
         ratio: string | null;

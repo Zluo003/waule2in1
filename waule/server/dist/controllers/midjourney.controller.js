@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.uploadReferenceImage = exports.describe = exports.blend = exports.action = exports.pollTask = exports.fetchTask = exports.imagine = void 0;
-const midjourney_service_1 = __importDefault(require("../services/midjourney.service"));
+const midjourney_service_1 = require("../services/midjourney.service");
 const axios_1 = __importDefault(require("axios"));
 const user_level_service_1 = require("../services/user-level.service");
 const billing_service_1 = require("../services/billing.service");
@@ -63,8 +63,8 @@ const imagine = async (req, res) => {
         }
         console.log('📤 [Midjourney Controller] 提交 Imagine 任务:', { prompt, nodeId, userId, isFree: permissionResult.isFree });
         // 提交任务到 Midjourney Proxy
-        console.log('🔄 [Midjourney Controller] 调用 midjourneyService.imagine...');
-        const response = await midjourney_service_1.default.imagine({
+        console.log('🔄 [Midjourney Controller] 调用 getMidjourneyService().imagine...');
+        const response = await (0, midjourney_service_1.getMidjourneyService)().imagine({
             prompt,
             userId, // 🔑 传递用户ID
             base64Array,
@@ -123,7 +123,7 @@ const fetchTask = async (req, res) => {
     try {
         const { taskId } = req.params;
         console.log('🔍 [Midjourney Controller] 查询任务:', taskId);
-        const result = await midjourney_service_1.default.fetch(taskId);
+        const result = await (0, midjourney_service_1.getMidjourneyService)().fetch(taskId);
         res.json({
             success: true,
             task: result,
@@ -142,7 +142,7 @@ const pollTask = async (req, res) => {
     try {
         const { taskId } = req.params;
         console.log('⏳ [Midjourney Controller] 开始轮询任务:', taskId);
-        const result = await midjourney_service_1.default.pollTask(taskId);
+        const result = await (0, midjourney_service_1.getMidjourneyService)().pollTask(taskId);
         console.log('✅ [Midjourney Controller] 任务完成:', taskId);
         res.json({
             success: true,
@@ -201,7 +201,7 @@ const action = async (req, res) => {
         // 获取原任务信息，判断是四宫格还是单张图
         let sourceAction = 'IMAGINE';
         try {
-            const sourceTask = await midjourney_service_1.default.fetch(taskId);
+            const sourceTask = await (0, midjourney_service_1.getMidjourneyService)().fetch(taskId);
             sourceAction = sourceTask?.action || 'IMAGINE';
             console.log(`[Midjourney] 源任务信息:`, {
                 taskId,
@@ -259,7 +259,7 @@ const action = async (req, res) => {
         }
         console.log('🎬 [Midjourney Controller] 执行动作:', { taskId, customId, operationType, messageId, messageHash, nodeId, userId });
         console.log('   原始taskId:', taskId);
-        const response = await midjourney_service_1.default.action({ taskId, customId, userId, messageId, messageHash, nodeId });
+        const response = await (0, midjourney_service_1.getMidjourneyService)().action({ taskId, customId, userId, messageId, messageHash, nodeId });
         console.log('📥 [Midjourney Controller] 收到响应:');
         console.log('   code:', response.code);
         console.log('   description:', response.description);
@@ -321,7 +321,7 @@ const blend = async (req, res) => {
             });
         }
         console.log('🎨 [Midjourney Controller] 提交 Blend 任务');
-        const response = await midjourney_service_1.default.blend(base64Array);
+        const response = await (0, midjourney_service_1.getMidjourneyService)().blend(base64Array);
         if (response.code !== 1) {
             return res.status(500).json({
                 error: 'Failed to submit blend task',
@@ -350,7 +350,7 @@ const describe = async (req, res) => {
             return res.status(400).json({ error: 'Base64 image is required' });
         }
         console.log('📝 [Midjourney Controller] 提交 Describe 任务');
-        const response = await midjourney_service_1.default.describe(base64);
+        const response = await (0, midjourney_service_1.getMidjourneyService)().describe(base64);
         if (response.code !== 1) {
             return res.status(500).json({
                 error: 'Failed to submit describe task',
@@ -407,7 +407,7 @@ const uploadReferenceImage = async (req, res) => {
             return res.status(400).json({ error: 'Invalid image data' });
         }
         // 调用 Discord 服务上传图片
-        const discordUrl = await midjourney_service_1.default.uploadReferenceImage(imageBuffer, imageName);
+        const discordUrl = await (0, midjourney_service_1.getMidjourneyService)().uploadReferenceImage(imageBuffer, imageName);
         console.log('✅ [Midjourney Controller] 参考图上传成功:', discordUrl);
         res.json({
             success: true,

@@ -46,7 +46,7 @@ const soraService = __importStar(require("../services/ai/sora.service"));
 const viduService = __importStar(require("../services/ai/vidu.service"));
 const minimaxiService = __importStar(require("../services/ai/minimaxi.service"));
 const minimaxiImageService = __importStar(require("../services/ai/minimaxi.image.service"));
-const midjourney_service_1 = __importDefault(require("../services/midjourney.service"));
+const midjourney_service_1 = require("../services/midjourney.service");
 const aliyunService = __importStar(require("../services/ai/aliyun.service"));
 const cosyvoice_service_1 = __importDefault(require("../services/ai/cosyvoice.service"));
 const minimaxi_audio_service_1 = __importDefault(require("../services/ai/minimaxi.audio.service"));
@@ -63,9 +63,15 @@ async function getAIModel(modelId) {
             return JSON.parse(cached);
     }
     catch { }
-    const model = await index_1.prisma.aIModel.findUnique({
+    // 兼容：部分调用方会传 AIModel.id（数据库主键），也有调用方会直接传 AIModel.modelId（供应商模型名）
+    let model = await index_1.prisma.aIModel.findUnique({
         where: { id: modelId },
     });
+    if (!model) {
+        model = await index_1.prisma.aIModel.findFirst({
+            where: { modelId },
+        });
+    }
     if (model) {
         try {
             await index_1.redis.set(cacheKey, JSON.stringify(model), 'EX', 600);
@@ -96,61 +102,37 @@ exports.generateImage = (0, errorHandler_1.asyncHandler)(async (req, res) => {
     let imageUrl;
     try {
         const wauleApiClient = (0, waule_api_client_1.getWauleApiClient)(model);
+        // 如果配置了 waule-api 地址，优先使用网关
         if (wauleApiClient) {
             const modelLower = String(model.modelId || '').toLowerCase();
             const providerLower = String(model.provider || '').toLowerCase();
-            const canUseGateway = providerLower === 'google' ||
-                providerLower === 'bytedance' ||
-                providerLower === 'doubao' ||
-                providerLower === 'aliyun' ||
-                providerLower === 'wanx' ||
-                providerLower === 'minimaxi' ||
-                providerLower === 'hailuo' ||
-                providerLower === '海螺' ||
-                providerLower === 'sora' ||
-                providerLower === 'vidu' ||
-                modelLower.includes('gemini') ||
-                modelLower.includes('doubao') ||
-                modelLower.includes('seedream') ||
-                modelLower.includes('wanx') ||
-                modelLower.includes('tongyi') ||
-                modelLower.includes('alibaba') ||
-                modelLower.includes('minimax') ||
-                modelLower.includes('hailuo') ||
-                modelLower.includes('vidu') ||
-                modelLower.includes('sora');
-            if (canUseGateway) {
-                if (providerLower === 'sora' || modelLower.includes('sora')) {
-                    const soraKey = model.apiKey || process.env.SORA_API_KEY;
-                    if (!soraKey) {
-                        throw new errorHandler_1.AppError('Sora API 密钥未配置', 400);
-                    }
-                    const result = await wauleApiClient.soraChatCompletions({
-                        model: model.modelId,
-                        messages: [{ role: 'user', content: prompt }],
-                        image: referenceImages && referenceImages.length > 0 ? referenceImages[0] : undefined,
-                    }, soraKey);
-                    const content = result?.choices?.[0]?.message?.content || '';
-                    const imgMatch = String(content).match(/<img[^>]+src=['"]([^'"]+)['"]/i);
-                    if (imgMatch && imgMatch[1]) {
-                        imageUrl = imgMatch[1];
-                    }
-                    else {
-                        throw new Error('WauleAPI Sora 响应中没有图片URL');
-                    }
+            if (providerLower === 'sora' || modelLower.includes('sora')) {
+                // waule-api 服务端已配置 SORA_API_KEY，无需客户端传递
+                const result = await wauleApiClient.soraChatCompletions({
+                    model: model.modelId,
+                    messages: [{ role: 'user', content: prompt }],
+                    image: referenceImages && referenceImages.length > 0 ? referenceImages[0] : undefined,
+                });
+                const content = result?.choices?.[0]?.message?.content || '';
+                const imgMatch = String(content).match(/<img[^>]+src=['"]([^'"]+)['"]/i);
+                if (imgMatch && imgMatch[1]) {
+                    imageUrl = imgMatch[1];
                 }
                 else {
-                    const r = await wauleApiClient.generateImage({
-                        model: model.modelId,
-                        prompt,
-                        size: ratio,
-                        reference_images: referenceImages || undefined,
-                    });
-                    const first = r?.data?.[0]?.url;
-                    if (!first)
-                        throw new Error('WauleAPI 未返回图片数据');
-                    imageUrl = first;
+                    throw new Error('WauleAPI Sora 响应中没有图片URL');
                 }
+            }
+            else {
+                const r = await wauleApiClient.generateImage({
+                    model: model.modelId,
+                    prompt,
+                    size: ratio,
+                    reference_images: referenceImages || undefined,
+                });
+                const first = r?.data?.[0]?.url;
+                if (!first)
+                    throw new Error('WauleAPI 未返回图片数据');
+                imageUrl = first;
             }
         }
         if (!imageUrl) {
@@ -217,7 +199,7 @@ exports.generateImage = (0, errorHandler_1.asyncHandler)(async (req, res) => {
                     }
                     console.log('📝 完整提示词:', fullPrompt);
                     // 提交 imagine 任务
-                    const imagineResponse = await midjourney_service_1.default.imagine({
+                    const imagineResponse = await (0, midjourney_service_1.getMidjourneyService)().imagine({
                         prompt: fullPrompt,
                         base64Array: referenceImages || undefined,
                     });
@@ -228,7 +210,7 @@ exports.generateImage = (0, errorHandler_1.asyncHandler)(async (req, res) => {
                     console.log('✅ Midjourney 任务已提交:', taskId);
                     // 轮询等待任务完成
                     console.log('⏳ 等待 Midjourney 生成...');
-                    const taskResult = await midjourney_service_1.default.pollTask(taskId);
+                    const taskResult = await (0, midjourney_service_1.getMidjourneyService)().pollTask(taskId);
                     console.log('📊 [Midjourney] Task Result:', JSON.stringify(taskResult, null, 2));
                     if (!taskResult.imageUrl) {
                         console.error('❌ [Midjourney] 未获取到图片URL');
@@ -341,33 +323,29 @@ exports.generateText = (0, errorHandler_1.asyncHandler)(async (req, res) => {
     let text;
     try {
         const wauleApiClient = (0, waule_api_client_1.getWauleApiClient)(model);
+        // 如果配置了 waule-api 地址，优先使用网关
         if (wauleApiClient) {
-            const providerLower = String(model.provider || '').toLowerCase();
-            const modelLower = String(model.modelId || '').toLowerCase();
-            const canUseGateway = providerLower === 'google' || modelLower.includes('gemini');
-            if (canUseGateway) {
-                const messages = [];
-                if (systemPrompt)
-                    messages.push({ role: 'system', content: systemPrompt });
-                const userContent = [{ type: 'text', text: prompt }];
-                for (const url of (imageUrls || [])) {
-                    userContent.push({ type: 'image_url', image_url: { url } });
-                }
-                for (const url of (videoUrls || [])) {
-                    userContent.push({ type: 'video_url', video_url: { url } });
-                }
-                messages.push({ role: 'user', content: userContent });
-                const r = await wauleApiClient.chatCompletions({
-                    model: model.modelId,
-                    messages,
-                    temperature,
-                    max_tokens: maxTokens,
-                });
-                const content = r?.choices?.[0]?.message?.content;
-                if (!content)
-                    throw new Error('WauleAPI 未返回文本内容');
-                text = content;
+            const messages = [];
+            if (systemPrompt)
+                messages.push({ role: 'system', content: systemPrompt });
+            const userContent = [{ type: 'text', text: prompt }];
+            for (const url of (imageUrls || [])) {
+                userContent.push({ type: 'image_url', image_url: { url } });
             }
+            for (const url of (videoUrls || [])) {
+                userContent.push({ type: 'video_url', video_url: { url } });
+            }
+            messages.push({ role: 'user', content: userContent });
+            const r = await wauleApiClient.chatCompletions({
+                model: model.modelId,
+                messages,
+                temperature,
+                max_tokens: maxTokens,
+            });
+            const content = r?.choices?.[0]?.message?.content;
+            if (!content)
+                throw new Error('WauleAPI 未返回文本内容');
+            text = content;
         }
         if (!text) {
             // 根据提供商调用不同的服务
@@ -472,72 +450,49 @@ exports.generateVideo = (0, errorHandler_1.asyncHandler)(async (req, res) => {
     let videoUrl;
     try {
         const wauleApiClient = (0, waule_api_client_1.getWauleApiClient)(model);
+        // 如果配置了 waule-api 地址，优先使用网关（不再检查 canUseGateway 列表）
         if (wauleApiClient) {
             const providerLower = String(model.provider || '').toLowerCase();
             const modelLower = String(model.modelId || '').toLowerCase();
-            const canUseGateway = providerLower === 'doubao' ||
-                providerLower === 'bytedance' ||
-                providerLower === 'minimaxi' ||
-                providerLower === 'hailuo' ||
-                providerLower === '海螺' ||
-                providerLower === 'aliyun' ||
-                providerLower === 'tongyi' ||
-                providerLower === 'wanx' ||
-                providerLower === 'vidu' ||
-                providerLower === 'sora' ||
-                modelLower.includes('doubao') ||
-                modelLower.includes('seedance') ||
-                modelLower.includes('minimax') ||
-                modelLower.includes('hailuo') ||
-                modelLower.includes('wanx') ||
-                modelLower.includes('tongyi') ||
-                modelLower.includes('wan2') ||
-                modelLower.includes('vidu') ||
-                modelLower.includes('sora');
-            if (canUseGateway) {
-                if (providerLower === 'sora' || modelLower.includes('sora')) {
-                    const soraKey = model.apiKey || process.env.SORA_API_KEY;
-                    if (!soraKey) {
-                        throw new errorHandler_1.AppError('Sora API 密钥未配置', 400);
-                    }
-                    const referenceImage = referenceImages && referenceImages.length > 0 ? referenceImages[0] : undefined;
-                    const payload = {
-                        model: model.modelId,
-                        messages: [
-                            {
-                                role: 'user',
-                                content: referenceImage
-                                    ? [
-                                        { type: 'text', text: prompt || '' },
-                                        { type: 'image_url', image_url: { url: referenceImage } },
-                                    ]
-                                    : prompt,
-                            },
-                        ],
-                        stream: true,
-                    };
-                    const r = await wauleApiClient.soraChatCompletions(payload, soraKey);
-                    const content = r?.choices?.[0]?.message?.content || '';
-                    const videoMatch = String(content).match(/<video[^>]+src=['"]([^'"]+)['"]/i);
-                    if (!videoMatch || !videoMatch[1])
-                        throw new Error('WauleAPI Sora 响应中没有视频URL');
-                    videoUrl = videoMatch[1];
-                }
-                else {
-                    const r = await wauleApiClient.generateVideo({
-                        model: model.modelId,
-                        prompt,
-                        duration,
-                        aspect_ratio: ratio,
-                        resolution,
-                        reference_images: referenceImages || undefined,
-                        generation_type: generationType,
-                    });
-                    const first = r?.data?.[0]?.url;
-                    if (!first)
-                        throw new Error('WauleAPI 未返回视频数据');
-                    videoUrl = first;
-                }
+            if (providerLower === 'sora' || modelLower.includes('sora')) {
+                // waule-api 服务端已配置 SORA_API_KEY，无需客户端传递
+                const referenceImage = referenceImages && referenceImages.length > 0 ? referenceImages[0] : undefined;
+                const payload = {
+                    model: model.modelId,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: referenceImage
+                                ? [
+                                    { type: 'text', text: prompt || '' },
+                                    { type: 'image_url', image_url: { url: referenceImage } },
+                                ]
+                                : prompt,
+                        },
+                    ],
+                    stream: true,
+                };
+                const r = await wauleApiClient.soraChatCompletions(payload);
+                const content = r?.choices?.[0]?.message?.content || '';
+                const videoMatch = String(content).match(/<video[^>]+src=['"]([^'"]+)['"]/i);
+                if (!videoMatch || !videoMatch[1])
+                    throw new Error('WauleAPI Sora 响应中没有视频URL');
+                videoUrl = videoMatch[1];
+            }
+            else {
+                const r = await wauleApiClient.generateVideo({
+                    model: model.modelId,
+                    prompt,
+                    duration,
+                    aspect_ratio: ratio,
+                    resolution,
+                    reference_images: referenceImages || undefined,
+                    generation_type: generationType,
+                });
+                const first = r?.data?.[0]?.url;
+                if (!first)
+                    throw new Error('WauleAPI 未返回视频数据');
+                videoUrl = first;
             }
         }
         if (!videoUrl) {

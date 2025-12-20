@@ -376,10 +376,23 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
       return;
     }
 
-    const videoUrl = videoInputInfo.url;
+    let videoUrl = videoInputInfo.url;
     if (!videoUrl) {
       toast.error('未找到视频输入');
       return;
+    }
+
+    // 将本地/内网URL上传到OSS（AI模型需要公网可访问的URL）
+    try {
+      const { uploadLocalUrlToOss } = await import('../../../utils/imageUtils');
+      const ossUrl = await uploadLocalUrlToOss(videoUrl);
+      if (ossUrl !== videoUrl) {
+        console.log('[SoraCharacterNode] 视频已上传到OSS:', ossUrl.substring(0, 60));
+        videoUrl = ossUrl;
+      }
+    } catch (error) {
+      console.error('[SoraCharacterNode] 上传视频到OSS失败:', error);
+      // 继续使用原URL，让服务端尝试处理
     }
 
     // 检查自定义名称是否已存在（静默检查，不显示网络错误）

@@ -2,6 +2,13 @@ type WauleApiConfig = {
     baseUrl: string;
     apiSecret?: string;
 };
+/**
+ * 判断是否是 waule-api 地址
+ * 规则：apiUrl 非空且不包含已知的直连服务商地址
+ * 如果是直连地址（如 Google、Doubao、Aliyun 等），返回 false
+ * 否则认为是 waule-api 网关地址
+ */
+export declare function isWauleApiUrl(url: string): boolean;
 export declare function resolveWauleApiConfig(model?: any): WauleApiConfig | null;
 export declare class WauleApiClient {
     private cfg;
@@ -11,6 +18,7 @@ export declare class WauleApiClient {
         model: string;
         prompt: string;
         size?: string;
+        image_size?: string;
         n?: number;
         reference_images?: string[];
         use_intl?: boolean;
@@ -66,10 +74,95 @@ export declare class WauleApiClient {
         max_tokens?: number;
     }): Promise<any>;
     /**
-     * Sora 专用：waule-api 的 /v1/sora/chat/completions 不使用网关 API_SECRET，而是透传 Authorization 给 sora2api
+     * Sora 专用：waule-api 的 /v1/sora/chat/completions
+     * waule-api 服务端已配置 SORA_API_KEY，无需客户端传递
      */
-    soraChatCompletions(params: any, soraApiKey: string): Promise<any>;
+    soraChatCompletions(params: any): Promise<any>;
+    /**
+     * Future Sora API：创建角色
+     * POST /future-sora/v1/characters
+     */
+    futureSoraCreateCharacter(params: {
+        url: string;
+        timestamps?: string;
+    }): Promise<any>;
+    /**
+     * Future Sora API：创建视频
+     * POST /future-sora/v1/videos
+     */
+    futureSoraCreateVideo(params: {
+        model: string;
+        prompt: string;
+        seconds?: number;
+        orientation?: string;
+    }): Promise<any>;
+    /**
+     * Future Sora API：查询视频
+     * GET /future-sora/v1/videos/:taskId
+     */
+    futureSoraGetVideo(taskId: string): Promise<any>;
+    /**
+     * Midjourney Imagine（文生图）
+     */
+    midjourneyImagine(params: {
+        prompt: string;
+        userId?: string;
+    }): Promise<{
+        success: boolean;
+        taskId: string;
+        message?: string;
+    }>;
+    /**
+     * Midjourney Action（按钮操作：Upscale/Variation 等）
+     */
+    midjourneyAction(params: {
+        messageId: string;
+        customId: string;
+        userId?: string;
+    }): Promise<{
+        success: boolean;
+        taskId: string;
+        message?: string;
+    }>;
+    /**
+     * Midjourney 查询任务状态
+     */
+    midjourneyGetTask(taskId: string): Promise<{
+        taskId: string;
+        status: string;
+        progress?: number;
+        imageUrl?: string;
+        messageId?: string;
+        messageHash?: string;
+        buttons?: Array<{
+            customId: string;
+            emoji?: string;
+            label?: string;
+        }>;
+        failReason?: string;
+    }>;
+    /**
+     * Midjourney 等待任务完成（长轮询）
+     */
+    midjourneyWaitTask(taskId: string, timeout?: number): Promise<{
+        taskId: string;
+        status: string;
+        progress?: number;
+        imageUrl?: string;
+        messageId?: string;
+        messageHash?: string;
+        buttons?: Array<{
+            customId: string;
+            emoji?: string;
+            label?: string;
+        }>;
+        failReason?: string;
+    }>;
 }
 export declare function getWauleApiClient(model?: any): WauleApiClient | null;
+/**
+ * 获取 waule-api 客户端（不依赖 model，仅读取环境变量）
+ */
+export declare function getGlobalWauleApiClient(): WauleApiClient | null;
 export {};
 //# sourceMappingURL=waule-api.client.d.ts.map

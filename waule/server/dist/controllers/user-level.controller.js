@@ -1,6 +1,39 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUserMembership = exports.getGiftCreditsStatus = exports.grantGiftCredits = exports.getUserUsageStats = exports.setModelPermissionsForAllLevels = exports.getModelPermissionsSummary = exports.deleteModelPermission = exports.batchUpdateModelPermissions = exports.updateModelPermission = exports.getAllModelPermissions = exports.batchUpdateLevelConfigs = exports.updateLevelConfig = exports.getAllLevelConfigs = void 0;
+exports.runStorageCleanup = exports.previewStorageCleanup = exports.updateUserMembership = exports.getGiftCreditsStatus = exports.grantGiftCredits = exports.getUserUsageStats = exports.setModelPermissionsForAllLevels = exports.getModelPermissionsSummary = exports.deleteModelPermission = exports.batchUpdateModelPermissions = exports.updateModelPermission = exports.getAllModelPermissions = exports.batchUpdateLevelConfigs = exports.updateLevelConfig = exports.getAllLevelConfigs = void 0;
 const index_1 = require("../index");
 const errorHandler_1 = require("../middleware/errorHandler");
 const user_level_service_1 = require("../services/user-level.service");
@@ -38,7 +71,7 @@ exports.getAllLevelConfigs = (0, errorHandler_1.asyncHandler)(async (req, res) =
  * 更新用户等级配置
  */
 exports.updateLevelConfig = (0, errorHandler_1.asyncHandler)(async (req, res) => {
-    const { userRole, dailyGiftCredits, giftDays, giftDescription, maxConcurrency, isActive } = req.body;
+    const { userRole, dailyGiftCredits, giftDays, giftDescription, maxConcurrency, storageRetentionDays, isActive } = req.body;
     if (!userRole || !['USER', 'VIP', 'SVIP'].includes(userRole)) {
         throw new errorHandler_1.AppError('无效的用户等级', 400);
     }
@@ -48,6 +81,7 @@ exports.updateLevelConfig = (0, errorHandler_1.asyncHandler)(async (req, res) =>
         giftDays,
         giftDescription,
         maxConcurrency,
+        storageRetentionDays,
         isActive,
     });
     res.json({
@@ -75,6 +109,7 @@ exports.batchUpdateLevelConfigs = (0, errorHandler_1.asyncHandler)(async (req, r
             giftDays: config.giftDays,
             giftDescription: config.giftDescription,
             maxConcurrency: config.maxConcurrency,
+            storageRetentionDays: config.storageRetentionDays,
             isActive: config.isActive,
         });
         results.push(result);
@@ -359,6 +394,29 @@ exports.updateUserMembership = (0, errorHandler_1.asyncHandler)(async (req, res)
         success: true,
         message: '用户会员信息更新成功',
         data: user,
+    });
+});
+/**
+ * 预览存储清理（不实际删除）
+ */
+exports.previewStorageCleanup = (0, errorHandler_1.asyncHandler)(async (req, res) => {
+    const { previewStorageCleanup: preview } = await Promise.resolve().then(() => __importStar(require('../services/storage-cleanup.service')));
+    const result = await preview();
+    res.json({
+        success: true,
+        data: result,
+    });
+});
+/**
+ * 手动执行存储清理
+ */
+exports.runStorageCleanup = (0, errorHandler_1.asyncHandler)(async (req, res) => {
+    const { runStorageCleanup: cleanup } = await Promise.resolve().then(() => __importStar(require('../services/storage-cleanup.service')));
+    const result = await cleanup();
+    res.json({
+        success: true,
+        message: `清理完成: 删除 ${result.totalDeleted} 个文件, 失败 ${result.totalFailed} 个`,
+        data: result,
     });
 });
 //# sourceMappingURL=user-level.controller.js.map

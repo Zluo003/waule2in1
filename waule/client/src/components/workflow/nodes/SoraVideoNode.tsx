@@ -357,143 +357,132 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
   };
   const inputImages = useMemo(() => computeInputImages(), [edges, allNodes, generationType, id, isSoraModel]);
 
-  // 页面加载时恢复进行中的任务 + 恢复缺失的预览节点
+  // 页面加载时恢复进行中的任务（参考AIVideoNode简化逻辑）
   useEffect(() => {
     const initialTaskId = data.config.taskId;
 
     const recoverTask = async () => {
-      let taskHandledByFirstPart = false; // 标记第一部分是否已处理任务
+      console.log('🔄 [SoraVideoNode] 开始任务恢复, nodeId:', id, 'taskId:', initialTaskId);
 
-      // 🔧 如果节点数据中标记了正在生成，通过后端查询恢复任务
-      if (data.config.isGenerating || !initialTaskId) {
-        try {
-          const activeResponse = await apiClient.tasks.getActiveTask(id);
-          if (activeResponse.task) {
-            const activeTask = activeResponse.task;
-            console.log(`[SoraVideoNode] 发现进行中的任务: ${activeTask.id}, 状态: ${activeTask.status}`);
-            setTaskId(activeTask.id);
-            setIsGenerating(true);
-            setGenerationProgress(activeTask.progress || 0);
-            pollTaskStatus(activeTask.id);
-            return; // 已恢复任务，不需要继续
-          } else if (data.config.isGenerating) {
-            // 节点数据标记为生成中，但后端没有进行中的任务，说明任务已完成或失败
-            console.log('[SoraVideoNode] 节点标记生成中但后端无任务，重置状态');
-            setIsGenerating(false);
-            updateNodeData({ isGenerating: false });
-          }
-        } catch (error) {
-          console.warn('[SoraVideoNode] 查询进行中任务失败:', error);
-        }
-      }
-
-      // 第一部分：如果有 taskId，检查任务状态
+      // 如果有taskId，说明有任务需要检查状态
       if (initialTaskId) {
-        
-
-        // ✅ 优先检查：预览节点是否已存在
-        const allNodes = getNodes();
-        const allEdges = getEdges();
-        const existingPreviewNode = allNodes.find(node => {
-          return node.type === 'videoPreview' && allEdges.some(edge =>
-            edge.source === id && edge.target === node.id
-          );
-        });
-
-        if (existingPreviewNode && existingPreviewNode.data.videoUrl) {
-          // 已存在预览节点，跳过创建，仅重置状态
-          taskHandledByFirstPart = true;
-          // 预览节点已存在，清空 taskId 避免重复查询
-          if (initialTaskId) {
-            updateNodeData({ taskId: '' });
-            setTaskId('');
-          }
-          return;
-        }
-
         try {
           const response = await apiClient.tasks.getTaskStatus(initialTaskId);
           const task = response.task;
 
-          
+          console.log('📋 [SoraVideoNode] 任务当前状态:', {
+            status: task.status,
+            progress: task.progress,
+            hasResultUrl: !!task.resultUrl,
+          });
 
           if (task.status === 'SUCCESS') {
-            // 任务已完成（页面加载时发现的）
-            // 注意：后端已经做了 OSS 转存，task.resultUrl 已经是 OSS 链接
+            // 任务已完成，直接处理结果
+            console.log('✅ [SoraVideoNode] 任务已完成，显示结果');
+            setIsGenerating(false);
+            setGenerationProgress(100);
 
             const videoUrl = task.resultUrl;
-            
-            // 恢复进度条显示
-            setGenerationProgress(100);
-            setTimeout(() => setGenerationProgress(0), 1000);
+            if (!videoUrl) {
+              console.error('❌ [SoraVideoNode] 任务完成但没有结果URL');
+              setIsGenerating(false);
+              setGenerationProgress(0);
+              updateNodeData({ taskId: '', isGenerating: false });
+              setTaskId('');
+              toast.error('任务完成但未找到结果');
+              return;
+            }
+
+            // 使用保存在node data中的ratio
+            const savedRatio = data.config.ratio || '16:9';
+
+            updateNodeData({
+              taskId: '', // 清除taskId，任务已完成
+              isGenerating: false,
+            });
+            setTaskId('');
+
+            // 检查是否已存在该任务的预览节点（防止重复创建）
+            const allNodes = getNodes();
+            const allEdges = getEdges();
+            const connectedPreviewNodes = allNodes.filter(node => {
+              return node.type === 'videoPreview' && allEdges.some(edge =>
+                edge.source === id && edge.target === node.id
+              );
+            });
+
+            const existingNode = connectedPreviewNodes.find(node => node.data.videoUrl === videoUrl);
+            if (existingNode) {
+              console.log('⚠️ [SoraVideoNode] 该任务的预览节点已存在，跳过创建');
+              setTimeout(() => setGenerationProgress(0), 1000);
+              return;
+            }
+
+            toast.success('🎬 视频创作完成，快去欣赏吧！');
 
             try {
               const suppressedRaw = localStorage.getItem('suppressedPreviewTasks') || '[]';
               const suppressed: Array<{ sourceNodeId?: string; taskId?: string; messageId?: string }> = JSON.parse(suppressedRaw);
               const isSuppressed = suppressed.some(s => (s.taskId && s.taskId === initialTaskId) || (s.sourceNodeId && s.sourceNodeId === id));
               if (!isSuppressed) {
-                createPreviewNode(videoUrl, data.config.ratio || '16:9');
+                createPreviewNode(videoUrl, savedRatio);
               }
             } catch {
-              createPreviewNode(videoUrl, data.config.ratio || '16:9');
+              createPreviewNode(videoUrl, savedRatio);
             }
 
-            taskHandledByFirstPart = true; // 标记已处理，跳过第二部分
-
-            // ✅ 创建预览节点后清空 taskId，下次进入时检测到预览节点就不再查询
-            
-            updateNodeData({ taskId: '' });
-            setTaskId('');
-
-            toast.success('🎬 视频创作完成，快去欣赏吧！');
+            setTimeout(() => setGenerationProgress(0), 1000);
           } else if (task.status === 'PROCESSING' || task.status === 'PENDING') {
             // 任务仍在进行中，恢复轮询
-            
-            setIsGenerating(true); // ✅ 恢复生成中状态
+            console.log('⏳ [SoraVideoNode] 任务仍在进行中，恢复轮询');
+            setIsGenerating(true);
             setGenerationProgress(task.progress || 0);
             pollTaskStatus(initialTaskId);
-            return; // 任务还在进行中，不需要检查待恢复的预览节点
+            return;
           } else if (task.status === 'FAILURE') {
             // 任务失败
-            
+            console.log('❌ [SoraVideoNode] 任务失败');
+            setIsGenerating(false);
             setGenerationProgress(0);
-            updateNodeData({ taskId: '' });
-            toast.error(task.errorMessage ? `视频生成遇到问题：${task.errorMessage}` : '视频生成未能完成，请稍后重试');
+            updateNodeData({ taskId: '', isGenerating: false });
+            setTaskId('');
+            toast.error(`生成失败: ${task.errorMessage || '未知错误'}`);
           }
         } catch (error: any) {
+          console.error('❌ [SoraVideoNode] 恢复任务失败:', error);
+          setIsGenerating(false);
           setGenerationProgress(0);
-          updateNodeData({ taskId: '' });
+          updateNodeData({ taskId: '', isGenerating: false });
+          setTaskId('');
         }
+        return; // 如果有taskId，处理完就返回
       }
 
-      // 第二部分：检查并恢复缺失的预览节点（只在第一部分未处理任务时执行）
-      if (!taskHandledByFirstPart) {
-        try {
-          
-          const response = await apiClient.tasks.getPendingPreviewNodes(id);
-
-          if (response.tasks && response.tasks.length > 0) {
-            for (const task of response.tasks) {
-              const { previewNodeData } = task;
-              if (previewNodeData && previewNodeData.url) {
-                const recoveryRatio = previewNodeData.ratio || data.config.ratio || '16:9';
-                let suppressed = false;
-                try {
-                  const suppressedRaw = localStorage.getItem('suppressedPreviewTasks') || '[]';
-                  const list: Array<{ sourceNodeId?: string; taskId?: string; messageId?: string }> = JSON.parse(suppressedRaw);
-                  suppressed = list.some(s => (s.taskId && s.taskId === task.id) || (s.sourceNodeId && s.sourceNodeId === id));
-                } catch { }
-                if (!suppressed) {
-                  createPreviewNode(previewNodeData.url, recoveryRatio);
-                }
-                await apiClient.tasks.markPreviewNodeCreated(task.id);
+      // 备份机制：检查待恢复的预览节点（无taskId时）
+      try {
+        const response = await apiClient.tasks.getPendingPreviewNodes(id);
+        if (response.tasks && response.tasks.length > 0) {
+          console.log('📦 [SoraVideoNode] 发现待恢复任务:', response.tasks.length);
+          for (const task of response.tasks) {
+            const { previewNodeData } = task;
+            if (previewNodeData && previewNodeData.url) {
+              const recoveryRatio = previewNodeData.ratio || data.config.ratio || '16:9';
+              let suppressed = false;
+              try {
+                const suppressedRaw = localStorage.getItem('suppressedPreviewTasks') || '[]';
+                const list: Array<{ sourceNodeId?: string; taskId?: string; messageId?: string }> = JSON.parse(suppressedRaw);
+                suppressed = list.some(s => (s.taskId && s.taskId === task.id) || (s.sourceNodeId && s.sourceNodeId === id));
+              } catch { }
+              if (!suppressed) {
+                createPreviewNode(previewNodeData.url, recoveryRatio);
+                toast.success('🎬 视频创作完成，快去欣赏吧！');
               }
+              await apiClient.tasks.markPreviewNodeCreated(task.id);
             }
           }
-        } catch (error: any) {
         }
-      } else {
-        
+      } catch (error: any) {
+        console.warn('[SoraVideoNode] getPendingPreviewNodes 失败:', error);
       }
     };
 
@@ -1244,6 +1233,12 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
         taskId: newTaskId,
         isGenerating: true, // 保存生成状态，刷新页面后可恢复
       });
+      
+      // 立即保存工作流，确保刷新页面后能恢复任务
+      // 延迟200ms确保React状态更新完成后再保存
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('workflow:save'));
+      }, 200);
       
       // 显示积分/免费信息（视频生成需要较长时间，给用户友好提示）
       if (respIsFreeUsage) {

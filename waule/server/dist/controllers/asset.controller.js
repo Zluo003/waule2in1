@@ -12,6 +12,7 @@ const oss_1 = require("../utils/oss");
 const logger_1 = require("../utils/logger");
 const fileValidator_1 = require("../utils/fileValidator");
 const content_moderation_service_1 = require("../services/content-moderation.service");
+const storage_expiration_1 = require("../utils/storage-expiration");
 // 创建上传目录
 const uploadDir = path_1.default.join(process.cwd(), 'uploads');
 if (!fs_1.default.existsSync(uploadDir)) {
@@ -22,12 +23,17 @@ const storage = multer_1.default.memoryStorage();
 // 文件过滤器
 const fileFilter = (req, file, cb) => {
     const allowedTypes = [
-        // 图片
-        'image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif',
+        // 图片（包括各种变体 MIME 类型）
+        'image/png', 'image/x-png',
+        'image/jpeg', 'image/jpg', 'image/pjpeg',
+        'image/webp', 'image/gif', 'image/bmp', 'image/tiff',
+        'image/svg+xml', 'image/heic', 'image/heif', 'image/avif',
         // 视频
-        'video/mp4', 'video/quicktime', 'video/webm',
+        'video/mp4', 'video/quicktime', 'video/webm', 'video/avi', 'video/x-msvideo',
+        'video/mpeg', 'video/x-matroska', 'video/3gpp',
         // 音频
-        'audio/mpeg', 'audio/wav',
+        'audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/ogg', 'audio/webm',
+        'audio/aac', 'audio/flac', 'audio/x-m4a', 'audio/mp4',
         // 文档
         'application/pdf',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -38,6 +44,8 @@ const fileFilter = (req, file, cb) => {
         cb(null, true);
     }
     else {
+        // 记录被拒绝的 MIME 类型，方便后续排查
+        console.warn(`[Asset] 文件类型被拒绝: ${file.mimetype}, 文件名: ${file.originalname}`);
         cb(new Error(`不支持的文件类型: ${file.mimetype}`));
     }
 };
@@ -125,6 +133,8 @@ const uploadAsset = async (req, res) => {
         const displayName = customName?.trim()
             ? (0, fileValidator_1.sanitizeFilename)(customName.trim())
             : decodedOriginalName;
+        // 计算存储过期时间
+        const storageExpiresAt = await (0, storage_expiration_1.calculateStorageExpiresAt)(userId);
         // 保存到数据库
         const asset = await index_1.prisma.asset.create({
             data: {
@@ -137,6 +147,7 @@ const uploadAsset = async (req, res) => {
                 url: fileUrl,
                 type: getAssetType(file.mimetype),
                 metadata: { source: 'UPLOAD' },
+                storageExpiresAt,
             }
         });
         logger_1.logger.info(`File uploaded: ${file.originalname} (${displayName}) by user ${userId} to library ${assetLibraryId || 'none'}`);
@@ -590,6 +601,8 @@ const confirmDirectUpload = async (req, res) => {
         const decodedOriginalName = fileName;
         const displayName = customName?.trim() || decodedOriginalName;
         const assetType = getAssetType(contentType);
+        // 计算存储过期时间
+        const storageExpiresAt = await (0, storage_expiration_1.calculateStorageExpiresAt)(userId);
         // 保存到数据库
         const asset = await index_1.prisma.asset.create({
             data: {
@@ -601,9 +614,23 @@ const confirmDirectUpload = async (req, res) => {
                 mimeType: contentType,
                 size: size || 0,
                 url: publicUrl,
+                storageExpiresAt,
             },
         });
         logger_1.logger.info(`Direct upload confirmed: ${asset.name} (${asset.id}) by user ${userId}`);
+        // 清除资产库缓存（如果上传到了资产库）
+        if (assetLibraryId) {
+            try {
+                const keys = await index_1.redis.keys(`lib:assets:${assetLibraryId}:*`);
+                if (keys.length > 0) {
+                    await index_1.redis.del(...keys);
+                    logger_1.logger.info(`[Cache] Cleared ${keys.length} cache keys for library ${assetLibraryId}`);
+                }
+            }
+            catch (cacheError) {
+                logger_1.logger.warn(`[Cache] Failed to clear cache: ${cacheError.message}`);
+            }
+        }
         res.status(201).json({
             success: true,
             data: asset,

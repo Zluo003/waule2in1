@@ -48,6 +48,7 @@
                 <button onclick="switchTab('discord')" id="tabDiscord" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">Discord(MJ)</button>
                 <button onclick="switchTab('oss')" id="tabOss" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">平台OSS</button>
                 <button onclick="switchTab('proxyapi')" id="tabProxyapi" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">中转API</button>
+                <button onclick="switchTab('soraproxy')" id="tabSoraproxy" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">Sora中转</button>
                 <button onclick="switchTab('settings')" id="tabSettings" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">系统配置</button>
                 <button onclick="switchTab('logs')" id="tabLogs" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">请求日志</button>
             </nav>
@@ -490,6 +491,77 @@
             </div>
 
             </div>
+
+        <!-- Sora中转API配置面板 -->
+        <div id="panelSoraproxy" class="hidden">
+            <!-- 说明卡片 -->
+            <div class="rounded-lg border border-purple-200 bg-purple-50 p-4 mb-6">
+                <h3 class="font-semibold text-purple-800 mb-2">🎬 Sora中转API配置</h3>
+                <p class="text-sm text-purple-700 mb-2">配置第三方Sora视频生成中转API服务（future-api.vodeshop.com）</p>
+                <ul class="text-sm text-purple-700 list-disc list-inside space-y-1">
+                    <li><code class="bg-purple-100 px-1 rounded">/v1/video/create</code> - 创建视频（支持图片、角色）</li>
+                    <li><code class="bg-purple-100 px-1 rounded">/v1/video/query</code> - 查询任务状态</li>
+                    <li><code class="bg-purple-100 px-1 rounded">/sora/v1/characters</code> - 创建角色</li>
+                </ul>
+            </div>
+
+            <div class="rounded-lg border border-border bg-background p-6">
+                <h3 class="text-lg font-semibold mb-6">Sora中转配置</h3>
+                <div class="space-y-6">
+                    <!-- 通道选择 -->
+                    <div>
+                        <h4 class="text-sm font-semibold mb-3">视频生成通道</h4>
+                        <div class="flex items-center gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="soraChannel" value="sora2api" class="w-4 h-4 text-primary" onchange="updateSoraChannelBadge()">
+                                <span class="text-sm">直连 sora2api</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="soraChannel" value="future-sora-api" class="w-4 h-4 text-primary" onchange="updateSoraChannelBadge()">
+                                <span class="text-sm">中转API (future-api)</span>
+                            </label>
+                            <span id="soraChannelBadge" class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-green-100 text-green-700">直连 sora2api</span>
+                        </div>
+                    </div>
+
+                    <hr class="border-border">
+
+                    <!-- 中转API配置 -->
+                    <div>
+                        <h4 class="text-sm font-semibold mb-4">中转API服务配置</h4>
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div class="md:col-span-2">
+                                <label class="text-sm font-medium mb-2 block">API 地址</label>
+                                <input id="soraProxyBaseUrl" type="text" value="https://future-api.vodeshop.com" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="https://future-api.vodeshop.com">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-sm font-medium mb-2 block">API Key</label>
+                                <input id="soraProxyApiKey" type="password" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="输入Sora中转API的密钥（留空则不修改）">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 启用状态 -->
+                    <div class="flex items-center justify-between p-4 rounded-lg border border-border">
+                        <div>
+                            <span class="text-sm font-medium">启用Sora中转API</span>
+                            <p class="text-xs text-muted-foreground mt-1">关闭后，即使选择"中转API"通道也会使用sora2api</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="soraProxyIsActive" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+
+                    <!-- 保存按钮 -->
+                    <div class="flex gap-3">
+                        <button onclick="saveSoraProxyConfig()" class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4">保存配置</button>
+                        <button onclick="loadSoraProxyConfig()" class="inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent h-9 px-4">刷新</button>
+                        <button onclick="testSoraProxyConnection()" class="inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent h-9 px-4">测试连接</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- 添加API Key弹窗 -->
         <div id="addKeyModal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
@@ -1046,7 +1118,7 @@
         refreshLogs=async()=>{await loadLogs()},
         showToast=(m,t='info')=>{const d=document.createElement('div'),bc={success:'bg-green-600',error:'bg-destructive',info:'bg-primary'};d.className=`fixed bottom-4 right-4 ${bc[t]||bc.info} text-white px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium z-50 animate-slide-up`;d.textContent=m;document.body.appendChild(d);setTimeout(()=>{d.style.opacity='0';d.style.transition='opacity .3s';setTimeout(()=>d.parentNode&&document.body.removeChild(d),300)},2000)},
         logout=()=>{if(!confirm('确定要退出登录吗?'))return;localStorage.removeItem('adminToken');location.href='/login'},
-        switchTab=t=>{const cap=n=>n.charAt(0).toUpperCase()+n.slice(1);['tokens','apikeys','discord','oss','proxyapi','settings','logs'].forEach(n=>{const active=n===t;$(`panel${cap(n)}`).classList.toggle('hidden',!active);$(`tab${cap(n)}`).classList.toggle('border-primary',active);$(`tab${cap(n)}`).classList.toggle('text-primary',active);$(`tab${cap(n)}`).classList.toggle('border-transparent',!active);$(`tab${cap(n)}`).classList.toggle('text-muted-foreground',!active)});if(t==='settings'){loadAdminConfig();loadProxyConfig();loadWatermarkFreeConfig();loadCacheConfig();loadGenerationTimeout();loadATAutoRefreshConfig()}else if(t==='logs'){loadLogs()}else if(t==='apikeys'){loadProviderKeys()}else if(t==='discord'){loadDiscordAccounts();loadMjConfig()}else if(t==='oss'){loadOssConfig()}else if(t==='proxyapi'){loadProxyApiConfig()}},
+        switchTab=t=>{const cap=n=>n.charAt(0).toUpperCase()+n.slice(1);['tokens','apikeys','discord','oss','proxyapi','soraproxy','settings','logs'].forEach(n=>{const active=n===t;$(`panel${cap(n)}`).classList.toggle('hidden',!active);$(`tab${cap(n)}`).classList.toggle('border-primary',active);$(`tab${cap(n)}`).classList.toggle('text-primary',active);$(`tab${cap(n)}`).classList.toggle('border-transparent',!active);$(`tab${cap(n)}`).classList.toggle('text-muted-foreground',!active)});if(t==='settings'){loadAdminConfig();loadProxyConfig();loadWatermarkFreeConfig();loadCacheConfig();loadGenerationTimeout();loadATAutoRefreshConfig()}else if(t==='logs'){loadLogs()}else if(t==='apikeys'){loadProviderKeys()}else if(t==='discord'){loadDiscordAccounts();loadMjConfig()}else if(t==='oss'){loadOssConfig()}else if(t==='proxyapi'){loadProxyApiConfig()}else if(t==='soraproxy'){loadSoraProxyConfig()}},
         // ========== Gemini API Keys 管理 ==========
         geminiApiRequest=async(url,opts={})=>{try{const r=await fetch(`${GEMINI_API_BASE}${url}`,{...opts,headers:{...opts.headers,'Content-Type':'application/json'}});return r}catch(e){console.error('Gemini API请求失败:',e);return null}},
         loadGeminiStats=async()=>{try{const r=await geminiApiRequest('/api/gemini-keys/stats');if(!r)return;const d=await r.json();if(d.success&&d.stats){$('geminiStatTotal').textContent=d.stats.total||0;$('geminiStatActive').textContent=d.stats.active||0;$('geminiStatRequests').textContent=d.stats.total_requests||0;$('geminiStatErrors').textContent=d.stats.total_errors||0}}catch(e){console.error('加载Gemini统计失败:',e)}},
@@ -1076,6 +1148,11 @@
         updateProxyChannelBadge=(channel,isActive)=>{const badge=$('proxyChannelBadge');if(channel==='proxy'&&isActive){badge.className='inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-blue-100 text-blue-700';badge.textContent='中转API'}else{badge.className='inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-green-100 text-green-700';badge.textContent='原生Google API'}},
         loadProxyApiConfig=async()=>{try{const r=await gatewayApiRequest('/api/proxy-api-config');if(!r)return;const d=await r.json();if(d.success&&d.config){const c=d.config;$('proxyBaseUrl').value=c.base_url||'https://future-api.vodeshop.com';$('proxyModel2k').value=c.model_2k||'gemini-2.5-flash-image';$('proxyModel4k').value=c.model_4k||'gemini-2.5-flash-image';$('proxyIsActive').checked=!!c.is_active;$('proxyApiKey').placeholder=c.api_key_masked?`已保存: ${c.api_key_masked}`:'输入中转API的密钥（留空则不修改）';if(c.channel==='proxy'){$('proxyChannelProxy').checked=true}else{$('proxyChannelNative').checked=true}updateProxyChannelBadge(c.channel,!!c.is_active);loadSora2Config(c)}}catch(e){console.error('加载中转API配置失败:',e)}},
         saveProxyApiConfig=async()=>{const baseUrl=$('proxyBaseUrl').value.trim(),apiKey=$('proxyApiKey').value.trim(),model2k=$('proxyModel2k').value.trim(),model4k=$('proxyModel4k').value.trim(),isActive=$('proxyIsActive').checked,channel=$('proxyChannelProxy').checked?'proxy':'native';const body={base_url:baseUrl||'https://future-api.vodeshop.com',model_2k:model2k||'gemini-2.5-flash-image',model_4k:model4k||'gemini-2.5-flash-image',is_active:isActive?1:0,channel:channel};if(apiKey)body.api_key=apiKey;try{const r=await gatewayApiRequest('/api/proxy-api-config',{method:'PUT',body:JSON.stringify(body)});if(!r)return showToast('保存失败：网络错误','error');const d=await r.json();if(d.success){showToast('中转API配置保存成功','success');$('proxyApiKey').value='';updateProxyChannelBadge(channel,isActive)}else{showToast('保存失败: '+(d.error||'未知错误'),'error')}}catch(e){showToast('保存失败: '+e.message,'error')}},
+        // ========== Sora中转API配置 ==========
+        updateSoraChannelBadge=()=>{const channel=document.querySelector('input[name="soraChannel"]:checked')?.value||'sora2api';const badge=$('soraChannelBadge');if(channel==='future-sora-api'){badge.className='inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-purple-100 text-purple-700';badge.textContent='中转API (future-api)'}else{badge.className='inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-green-100 text-green-700';badge.textContent='直连 sora2api'}},
+        loadSoraProxyConfig=async()=>{try{const r=await gatewayApiRequest('/api/sora-proxy-config');if(!r)return;const d=await r.json();if(d.success&&d.data){const config=d.data;$('soraProxyBaseUrl').value=config.base_url||'https://future-api.vodeshop.com';$('soraProxyIsActive').checked=!!config.is_active;const channel=config.channel||'sora2api';document.querySelectorAll('input[name="soraChannel"]').forEach(r=>{r.checked=r.value===channel});updateSoraChannelBadge()}}catch(e){console.error('加载Sora中转配置失败:',e)}},
+        saveSoraProxyConfig=async()=>{try{const channel=document.querySelector('input[name="soraChannel"]:checked')?.value||'sora2api';const baseUrl=$('soraProxyBaseUrl').value.trim();const apiKey=$('soraProxyApiKey').value.trim();const isActive=$('soraProxyIsActive').checked?1:0;const body={channel,base_url:baseUrl,is_active:isActive};if(apiKey)body.api_key=apiKey;const r=await gatewayApiRequest('/api/sora-proxy-config',{method:'PUT',body:JSON.stringify(body)});if(!r)return showToast('保存失败：网络错误','error');const d=await r.json();if(d.success){showToast('Sora中转配置保存成功','success');$('soraProxyApiKey').value='';await loadSoraProxyConfig()}else{showToast('保存失败: '+(d.error||'未知错误'),'error')}}catch(e){showToast('保存失败: '+e.message,'error')}},
+        testSoraProxyConnection=async()=>{try{showToast('正在测试连接...','info');const r=await gatewayApiRequest('/api/sora-proxy-config/test',{method:'POST'});if(!r)return showToast('测试失败：网络错误','error');const d=await r.json();if(d.success){showToast('连接成功','success')}else{showToast('连接失败: '+(d.error||'未知错误'),'error')}}catch(e){showToast('测试失败: '+e.message,'error')}},
         // ========== 平台OSS配置 ==========
         loadOssConfig=async()=>{try{const r=await gatewayApiRequest('/api/platform-oss');const d=await r.json();if(d.success&&d.config){$('ossRegion').value=d.config.region||'';$('ossBucket').value=d.config.bucket||'';$('ossAccessKeyId').value=d.config.access_key_id||'';$('ossCustomDomain').value=d.config.custom_domain||'';$('ossIsActive').checked=!!d.config.is_active}}catch(e){console.error('加载OSS配置失败:',e)}},
         testOss=async()=>{const cfg={region:$('ossRegion').value,bucket:$('ossBucket').value,access_key_id:$('ossAccessKeyId').value,access_key_secret:$('ossAccessKeySecret').value};if(!cfg.region||!cfg.bucket||!cfg.access_key_id||!cfg.access_key_secret){showToast('请填写完整配置','error');return}try{const r=await gatewayApiRequest('/api/platform-oss/test',{method:'POST',body:JSON.stringify(cfg)});const d=await r.json();showToast(d.success?'连接成功':'连接失败: '+d.error,d.success?'success':'error')}catch(e){showToast('测试失败','error')}},

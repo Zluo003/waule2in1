@@ -215,7 +215,26 @@ export const ensureAliyunOssUrl = async (u?: string, tenantInfo?: TenantUploadIn
     const parsed = new URL(trimmed);
     let publicHost = '';
     try { if (/^https?:\/\//.test(base)) publicHost = new URL(base).hostname; } catch { }
-    const isInternal = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || (publicHost && parsed.hostname === publicHost);
+    // 检查是否为内网地址（包括私有IP范围）
+    const isPrivateIP = /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(parsed.hostname);
+    const isInternal = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || isPrivateIP || (publicHost && parsed.hostname === publicHost);
+    
+    // 内网地址需要通过本地路径上传
+    if (isInternal && isPrivateIP) {
+      logger.info(`[Rehost] 检测到内网地址 ${parsed.hostname}，尝试本地路径上传`);
+      // 尝试从URL中提取本地文件路径
+      const localPath = parsed.pathname;
+      const fullLocalPath = path.join(process.cwd(), localPath.replace(/^\/files\//, ''));
+      if (fs.existsSync(fullLocalPath)) {
+        logger.info(`[Rehost] 找到本地文件: ${fullLocalPath}`);
+        const ossUrl = await uploadPath(fullLocalPath, tenantInfo);
+        logger.info(`[Rehost] 内网文件上传成功: ${ossUrl}`);
+        return ossUrl;
+      } else {
+        logger.warn(`[Rehost] 本地文件不存在: ${fullLocalPath}，尝试下载`);
+      }
+    }
+    
     if (!isInternal) {
       // 外部公网链接：下载到本地并上传到阿里云OSS，返回签名公网URL
       const rehostDir = path.join(process.cwd(), 'uploads', 'rehost');

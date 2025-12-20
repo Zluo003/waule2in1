@@ -51,6 +51,7 @@ declare class UserLevelService {
         giftDays: number;
         giftDescription: string | null;
         maxConcurrency: number;
+        storageRetentionDays: number;
     }[]>;
     /**
      * 更新或创建用户等级配置
@@ -61,6 +62,7 @@ declare class UserLevelService {
         giftDays?: number;
         giftDescription?: string;
         maxConcurrency?: number;
+        storageRetentionDays?: number;
         isActive?: boolean;
     }): Promise<{
         id: string;
@@ -72,6 +74,7 @@ declare class UserLevelService {
         giftDays: number;
         giftDescription: string | null;
         maxConcurrency: number;
+        storageRetentionDays: number;
     }>;
     /**
      * 🚀 获取模型权限配置（带缓存）

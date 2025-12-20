@@ -51,4 +51,12 @@ export declare const getGiftCreditsStatus: (req: Request, res: Response, next: i
  * 更新用户会员信息
  */
 export declare const updateUserMembership: (req: Request, res: Response, next: import("express").NextFunction) => void;
+/**
+ * 预览存储清理（不实际删除）
+ */
+export declare const previewStorageCleanup: (req: Request, res: Response, next: import("express").NextFunction) => void;
+/**
+ * 手动执行存储清理
+ */
+export declare const runStorageCleanup: (req: Request, res: Response, next: import("express").NextFunction) => void;
 //# sourceMappingURL=user-level.controller.d.ts.map

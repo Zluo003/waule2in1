@@ -32,9 +32,51 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AgentRoleController = void 0;
 const index_1 = require("../index");
+const waule_api_client_1 = require("../services/waule-api.client");
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
+const axios_1 = __importDefault(require("axios"));
+// 提取文档文本内容（走远程服务时需要先提取）
+async function extractDocumentText(doc) {
+    try {
+        let fileBuffer = null;
+        const fullPath = path.join(process.cwd(), doc.filePath);
+        if (fs.existsSync(fullPath)) {
+            fileBuffer = fs.readFileSync(fullPath);
+        }
+        else if (doc.filePath.startsWith('http://') || doc.filePath.startsWith('https://')) {
+            const resp = await axios_1.default.get(doc.filePath, { responseType: 'arraybuffer' });
+            fileBuffer = Buffer.from(resp.data);
+        }
+        if (!fileBuffer)
+            return '';
+        const mime = (doc.mimeType || '').toLowerCase();
+        if (mime === 'application/pdf') {
+            const pdfParse = (await Promise.resolve().then(() => __importStar(require('pdf-parse')))).default;
+            const pdfData = await pdfParse(fileBuffer);
+            return String(pdfData?.text || '');
+        }
+        else if (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+            const mammoth = await Promise.resolve().then(() => __importStar(require('mammoth')));
+            const result = await mammoth.extractRawText({ buffer: fileBuffer });
+            return String(result?.value || '');
+        }
+        else if (mime.startsWith('text/')) {
+            return fileBuffer.toString('utf8');
+        }
+        return '';
+    }
+    catch (e) {
+        console.error('[extractDocumentText] 提取文档失败:', e);
+        return '';
+    }
+}
 class AgentRoleController {
     async list(req, res) {
         try {
@@ -176,6 +218,7 @@ class AgentRoleController {
     async executeRole(req, res) {
         try {
             const { id } = req.params;
+            console.log('[AgentRole.executeRole] 开始执行, roleId:', id);
             const { prompt, systemPrompt, temperature, maxTokens, documentFiles, imageUrls, videoUrls } = req.body || {};
             if (!prompt)
                 return res.status(400).json({ error: 'prompt 是必需的' });
@@ -189,6 +232,7 @@ class AgentRoleController {
             if (!role)
                 return res.status(404).json({ error: 'Role not found' });
             const model = role.aiModel;
+            console.log('[AgentRole.executeRole] 模型信息:', { name: model?.name, provider: model?.provider, modelId: model?.modelId, type: model?.type, isActive: model?.isActive });
             if (!model)
                 return res.status(404).json({ error: 'AI model not found' });
             if (!model.isActive)
@@ -199,58 +243,63 @@ class AgentRoleController {
             const trim = (s, max) => (s || '').length > max ? (s || '').slice(0, max) : (s || '');
             // 控制输入长度，避免模型拒绝或超限
             const mergedSystemPrompt = trim(mergedSystemPromptRaw, 8000);
-            const promptTrimmed = trim(String(prompt), 12000);
+            let promptTrimmed = trim(String(prompt), 12000);
+            // 提取文档内容并追加到 prompt（走远程服务时，远程无法访问本地文件）
+            if (documentFiles && documentFiles.length > 0) {
+                console.log('[AgentRole.executeRole] 提取文档内容:', documentFiles.length, '个文件');
+                const docTexts = [];
+                for (const doc of documentFiles) {
+                    const docText = await extractDocumentText(doc);
+                    if (docText && docText.trim()) {
+                        console.log('[AgentRole.executeRole] 文档提取成功, 长度:', docText.length);
+                        docTexts.push(docText);
+                    }
+                }
+                if (docTexts.length > 0) {
+                    promptTrimmed = `${promptTrimmed}\n\n【文档内容】\n${docTexts.join('\n\n')}`;
+                }
+            }
             let text;
             try {
-                switch ((model.provider || '').toLowerCase()) {
-                    case 'google': {
-                        const { generateText } = await Promise.resolve().then(() => __importStar(require('../services/ai/gemini.service')));
-                        text = await generateText({
-                            prompt: promptTrimmed,
-                            systemPrompt: mergedSystemPrompt,
-                            modelId: model.modelId,
-                            temperature: temperature ?? role.temperature ?? 0,
-                            maxTokens: maxTokens ?? role.maxTokens ?? 2000,
-                            documentFiles,
-                            imageUrls,
-                            videoUrls,
-                            apiKey: model.apiKey || undefined,
-                            apiUrl: model.apiUrl || undefined,
-                        });
-                        break;
+                // 优先使用 waule-api 网关（与 ai.controller 保持一致）
+                const wauleApiClient = (0, waule_api_client_1.getWauleApiClient)(model);
+                if (wauleApiClient) {
+                    console.log('[AgentRole.executeRole] 使用 waule-api 网关');
+                    const messages = [];
+                    if (mergedSystemPrompt)
+                        messages.push({ role: 'system', content: mergedSystemPrompt });
+                    const userContent = [{ type: 'text', text: promptTrimmed }];
+                    for (const url of (imageUrls || [])) {
+                        userContent.push({ type: 'image_url', image_url: { url } });
                     }
-                    case 'bytedance':
-                    case 'doubao': {
-                        const { generateText } = await Promise.resolve().then(() => __importStar(require('../services/ai/doubao.service')));
-                        text = await generateText({
-                            prompt: promptTrimmed,
-                            systemPrompt: mergedSystemPrompt,
-                            modelId: model.modelId,
-                            temperature: temperature ?? role.temperature ?? 0,
-                            maxTokens: maxTokens ?? role.maxTokens ?? 2000,
-                            imageUrls,
-                            videoUrls,
-                            apiKey: model.apiKey || undefined,
-                            apiUrl: model.apiUrl || undefined,
-                        });
-                        break;
+                    for (const url of (videoUrls || [])) {
+                        userContent.push({ type: 'video_url', video_url: { url } });
                     }
-                    default:
-                        return res.status(400).json({ error: `不支持的提供商: ${model.provider}` });
+                    messages.push({ role: 'user', content: userContent });
+                    const r = await wauleApiClient.chatCompletions({
+                        model: model.modelId,
+                        messages,
+                        temperature: temperature ?? role.temperature ?? 0,
+                        max_tokens: maxTokens ?? role.maxTokens ?? 2000,
+                    });
+                    const content = r?.choices?.[0]?.message?.content;
+                    if (!content)
+                        throw new Error('WauleAPI 未返回文本内容');
+                    text = content;
                 }
-                // 若返回空文本，尝试仅用JSON约束再次请求
-                if (!text || !String(text).trim()) {
-                    const jsonConstraint = '请严格输出符合以下结构的JSON，不要包含多余文字：{"locale":"zh-CN","acts":[{"actIndex":1,"shots":[{"shotIndex":1,"画面":"...","景别/镜头":"...","内容/动作":"...","声音/对话":"...","时长":"6s","提示词":"...","media":{"type":"video","aspectRatio":"16:9","orientation":"horizontal"}}]}]}]}';
-                    const fallbackSystem = jsonConstraint;
+                // 如果 waule-api 未配置，使用直接调用
+                if (!text) {
                     switch ((model.provider || '').toLowerCase()) {
                         case 'google': {
-                            const { generateText } = await Promise.resolve().then(() => __importStar(require('../services/ai/gemini.service')));
-                            text = await generateText({
+                            const geminiService = (await Promise.resolve().then(() => __importStar(require('../services/ai/gemini-proxy.service')))).default;
+                            text = await geminiService.generateText({
                                 prompt: promptTrimmed,
-                                systemPrompt: fallbackSystem,
+                                systemPrompt: mergedSystemPrompt,
                                 modelId: model.modelId,
-                                temperature: 0,
+                                temperature: temperature ?? role.temperature ?? 0,
                                 maxTokens: maxTokens ?? role.maxTokens ?? 2000,
+                                imageUrls,
+                                videoUrls,
                                 apiKey: model.apiKey || undefined,
                                 apiUrl: model.apiUrl || undefined,
                             });
@@ -261,15 +310,19 @@ class AgentRoleController {
                             const { generateText } = await Promise.resolve().then(() => __importStar(require('../services/ai/doubao.service')));
                             text = await generateText({
                                 prompt: promptTrimmed,
-                                systemPrompt: fallbackSystem,
+                                systemPrompt: mergedSystemPrompt,
                                 modelId: model.modelId,
-                                temperature: 0,
+                                temperature: temperature ?? role.temperature ?? 0,
                                 maxTokens: maxTokens ?? role.maxTokens ?? 2000,
+                                imageUrls,
+                                videoUrls,
                                 apiKey: model.apiKey || undefined,
                                 apiUrl: model.apiUrl || undefined,
                             });
                             break;
                         }
+                        default:
+                            return res.status(400).json({ error: `不支持的提供商: ${model.provider}` });
                     }
                 }
             }
@@ -288,7 +341,8 @@ class AgentRoleController {
             res.json({ success: true, data: { text, model: model.name } });
         }
         catch (e) {
-            res.status(500).json({ error: '执行智能体角色失败' });
+            console.error('[AgentRole.executeRole] 执行失败:', e);
+            res.status(500).json({ error: `执行智能体角色失败: ${e?.message || '未知错误'}` });
         }
     }
 }

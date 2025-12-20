@@ -37,6 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const oss_1 = require("../utils/oss");
+const storage_expiration_1 = require("../utils/storage-expiration");
 const role_helpers_1 = require("../utils/role-helpers");
 const doubaoService = __importStar(require("./ai/doubao.service"));
 const minimaxiService = __importStar(require("./ai/minimaxi.service"));
@@ -48,7 +49,6 @@ const wanxService = __importStar(require("./ai/wanx.service"));
 const logger_1 = __importDefault(require("../utils/logger"));
 const index_1 = require("../index");
 const user_level_service_1 = require("./user-level.service");
-const waule_api_client_1 = require("./waule-api.client");
 /**
  * 任务处理服务
  * 负责创建、查询和处理异步生成任务
@@ -120,6 +120,8 @@ class TaskService {
             }
         }
         // 4. 创建任务
+        // 计算存储过期时间（基于当前用户等级）
+        const storageExpiresAt = await (0, storage_expiration_1.calculateStorageExpiresAt)(params.userId);
         const task = await index_1.prisma.generationTask.create({
             data: {
                 userId: params.userId,
@@ -133,6 +135,7 @@ class TaskService {
                 progress: 0,
                 sourceNodeId: params.sourceNodeId,
                 previewNodeCreated: false,
+                storageExpiresAt, // OSS存储过期时间
                 metadata: {
                     modelName: params.model.name,
                     provider: params.model.provider,
@@ -413,76 +416,7 @@ class TaskService {
         });
         // 图片编辑任务（使用 Gemini 两阶段处理）
         if (provider === 'gemini-editing' || task.metadata?.isImageEditing) {
-            return await this.processImageEditingTask(task, model);
-        }
-        // 优先走 waule-api 网关（如已配置）
-        try {
-            const wauleApiClient = (0, waule_api_client_1.getWauleApiClient)(model);
-            if (wauleApiClient) {
-                const modelLower = String(model.modelId || '').toLowerCase();
-                const providerLower = String(model.provider || '').toLowerCase();
-                const canUseGateway = providerLower === 'google' ||
-                    providerLower === 'bytedance' ||
-                    providerLower === 'doubao' ||
-                    providerLower === 'aliyun' ||
-                    providerLower === 'wanx' ||
-                    providerLower === 'minimaxi' ||
-                    providerLower === 'hailuo' ||
-                    providerLower === '海螺' ||
-                    providerLower === 'sora' ||
-                    providerLower === 'vidu' ||
-                    modelLower.includes('gemini') ||
-                    modelLower.includes('doubao') ||
-                    modelLower.includes('seedream') ||
-                    modelLower.includes('wanx') ||
-                    modelLower.includes('tongyi') ||
-                    modelLower.includes('alibaba') ||
-                    modelLower.includes('minimax') ||
-                    modelLower.includes('hailuo') ||
-                    modelLower.includes('vidu') ||
-                    modelLower.includes('sora');
-                if (canUseGateway) {
-                    if (providerLower === 'sora' || modelLower.includes('sora')) {
-                        const soraKey = model.apiKey || process.env.SORA_API_KEY;
-                        if (!soraKey) {
-                            throw new Error('Sora API 密钥未配置');
-                        }
-                        const r = await wauleApiClient.soraChatCompletions({
-                            model: model.modelId,
-                            messages: [{ role: 'user', content: task.prompt }],
-                            image: referenceImages && referenceImages.length > 0 ? referenceImages[0] : undefined,
-                        }, soraKey);
-                        const content = r?.choices?.[0]?.message?.content || '';
-                        const imgMatch = String(content).match(/<img[^>]+src=['"]([^'\"]+)['\"]/i);
-                        if (!imgMatch || !imgMatch[1]) {
-                            throw new Error('WauleAPI Sora 响应中没有图片URL');
-                        }
-                        return imgMatch[1];
-                    }
-                    // Gemini 3 Pro Image 的 2K/4K：沿用现有映射规则
-                    let actualModelId = model.modelId;
-                    if (model.modelId === 'gemini-3-pro-image-preview' && imageSize) {
-                        actualModelId = String(imageSize).toLowerCase() === '4k'
-                            ? 'gemini-3-pro-image-preview-4k'
-                            : 'gemini-3-pro-image-preview-2k';
-                    }
-                    const r = await wauleApiClient.generateImage({
-                        model: actualModelId,
-                        prompt: task.prompt,
-                        size: task.ratio || '1:1',
-                        reference_images: referenceImages.length > 0 ? referenceImages : undefined,
-                        max_images: typeof maxImages === 'number' ? maxImages : undefined,
-                    });
-                    const urls = (r?.data || []).map((d) => d?.url).filter(Boolean);
-                    if (urls.length === 0) {
-                        throw new Error('WauleAPI 未返回图片数据');
-                    }
-                    return urls.length > 1 ? urls : urls[0];
-                }
-            }
-        }
-        catch (e) {
-            logger_1.default.warn(`[TaskService] waule-api 图片生成失败，回退直连: ${e.message}`);
+            return await this.processImageEditingTask(task);
         }
         if (provider === 'google') {
             const imageUrl = await gemini_proxy_service_1.default.generateImage({
@@ -549,7 +483,7 @@ class TaskService {
     /**
      * 处理图片编辑任务（使用 Gemini 两阶段处理）
      */
-    async processImageEditingTask(task, model) {
+    async processImageEditingTask(task) {
         const referenceImages = task.referenceImages || [];
         const metadata = task.metadata || {};
         const points = metadata.points || [];
@@ -560,94 +494,6 @@ class TaskService {
             where: { id: task.id },
             data: { progress: 20 },
         });
-        // 优先走 waule-api 网关（如已配置）
-        try {
-            const wauleApiClient = (0, waule_api_client_1.getWauleApiClient)(model);
-            if (wauleApiClient) {
-                const modelLower = String(model.modelId || '').toLowerCase();
-                const providerLower = String(model.provider || '').toLowerCase();
-                const canUseGateway = providerLower === 'doubao' ||
-                    providerLower === 'bytedance' ||
-                    providerLower === 'minimaxi' ||
-                    providerLower === 'hailuo' ||
-                    providerLower === '海螺' ||
-                    providerLower === 'aliyun' ||
-                    providerLower === 'tongyi' ||
-                    providerLower === 'wanx' ||
-                    providerLower === 'vidu' ||
-                    providerLower === 'sora' ||
-                    modelLower.includes('doubao') ||
-                    modelLower.includes('seedance') ||
-                    modelLower.includes('minimax') ||
-                    modelLower.includes('hailuo') ||
-                    modelLower.includes('wanx') ||
-                    modelLower.includes('tongyi') ||
-                    modelLower.includes('wan2') ||
-                    modelLower.includes('vidu') ||
-                    modelLower.includes('sora') ||
-                    modelLower.includes('video-style') ||
-                    modelLower.includes('videoretalk');
-                if (canUseGateway) {
-                    // Sora 走专用 /v1/sora/chat/completions
-                    if (providerLower === 'sora' || modelLower.includes('sora')) {
-                        const meta = task.metadata || {};
-                        const duration = typeof meta.duration === 'number' ? meta.duration : 10;
-                        const referenceImage = referenceImages && referenceImages.length > 0 ? referenceImages[0] : undefined;
-                        const soraKey = model.apiKey || process.env.SORA_API_KEY;
-                        if (!soraKey)
-                            throw new Error('Sora API 密钥未配置');
-                        const payload = {
-                            model: model.modelId,
-                            messages: [
-                                {
-                                    role: 'user',
-                                    content: referenceImage
-                                        ? [
-                                            { type: 'text', text: task.prompt || '' },
-                                            { type: 'image_url', image_url: { url: referenceImage } },
-                                        ]
-                                        : (task.prompt || ''),
-                                },
-                            ],
-                            stream: true,
-                            duration,
-                        };
-                        const r = await wauleApiClient.soraChatCompletions(payload, soraKey);
-                        const content = r?.choices?.[0]?.message?.content || '';
-                        const videoMatch = String(content).match(/<video[^>]+src=['"]([^'\"]+)['\"]/i);
-                        if (!videoMatch || !videoMatch[1])
-                            throw new Error('WauleAPI Sora 响应中没有视频URL');
-                        return videoMatch[1];
-                    }
-                    const meta = task.metadata || {};
-                    const duration = typeof meta.duration === 'number' ? meta.duration : undefined;
-                    const resolution = typeof meta.resolution === 'string' ? meta.resolution : undefined;
-                    const r = await wauleApiClient.generateVideo({
-                        model: model.modelId,
-                        prompt: task.prompt,
-                        duration,
-                        aspect_ratio: task.ratio || '16:9',
-                        resolution,
-                        reference_images: referenceImages.length > 0 ? referenceImages : undefined,
-                        generation_type: task.generationType,
-                        // 通义万相特殊能力：换人/对口型/风格
-                        replace_video_url: meta.videoUrl,
-                        audio_url: meta.audioUrl,
-                        video_extension: meta.videoExtension === true,
-                        style: typeof meta.styleId === 'number' ? meta.styleId : undefined,
-                        video_fps: typeof meta.videoFps === 'number' ? meta.videoFps : undefined,
-                        mode: meta.wanMode === 'wan-pro' ? 'wan-pro' : (meta.wanMode ? String(meta.wanMode) : undefined),
-                    });
-                    const first = r?.data?.[0]?.url;
-                    if (!first)
-                        throw new Error('WauleAPI 未返回视频数据');
-                    return first;
-                }
-            }
-        }
-        catch (e) {
-            logger_1.default.warn(`[TaskService] waule-api 视频生成失败，回退直连: ${e.message}`);
-        }
         // 主图是第一张参考图
         const mainImage = referenceImages[0];
         const additionalRefs = referenceImages.slice(1);
@@ -800,10 +646,15 @@ Requirements:
             return videoUrl;
         }
         else if (provider === 'bytedance') {
+            const meta = task.metadata || {};
+            const duration = typeof meta.duration === 'number' ? meta.duration : 5;
+            const resolution = typeof meta.resolution === 'string' ? meta.resolution : '1080P';
             const videoUrl = await doubaoService.generateVideo({
                 prompt: task.prompt,
                 modelId: model.modelId,
                 ratio: task.ratio || '16:9',
+                duration,
+                resolution,
                 referenceImages,
                 generationType: task.generationType || 'text2video',
                 apiKey: model.apiKey,

@@ -9,6 +9,7 @@ exports.queryVideoTaskStatus = queryVideoTaskStatus;
 exports.generateVideo = generateVideo;
 const axios_1 = __importDefault(require("axios"));
 const oss_1 = require("../../utils/oss");
+const waule_api_client_1 = require("../waule-api.client");
 // 下载视频并直接上传到 OSS
 async function downloadToLocal(url, filenamePrefix, headers) {
     return (0, oss_1.downloadAndUploadToOss)(url, filenamePrefix, headers);
@@ -140,8 +141,27 @@ async function generateVideo(options) {
     const { prompt, modelId, aspectRatio = '16:9', resolution = '1080P', duration = 5, referenceImages = [], apiKey, apiUrl, generationType, callbackUrl, } = options;
     const API_KEY = apiKey || process.env.MINIMAX_API_KEY || process.env.MINIMAXI_API_KEY || process.env.MINIMAX_API_TOKEN;
     const BASE_URL = apiUrl || 'https://api.minimaxi.com/v1';
-    if (!API_KEY)
-        throw new Error('MiniMax API 密钥未配置');
+    // 如果 apiKey 为空，使用 waule-api 网关
+    if (!API_KEY) {
+        const wauleApiClient = (0, waule_api_client_1.getGlobalWauleApiClient)();
+        if (wauleApiClient) {
+            console.log('🌐 [MiniMax] apiKey 为空，使用 waule-api 网关生成视频');
+            const r = await wauleApiClient.generateVideo({
+                model: modelId,
+                prompt,
+                duration,
+                aspect_ratio: aspectRatio,
+                resolution,
+                reference_images: referenceImages || undefined,
+                generation_type: generationType,
+            });
+            const videoUrl = r?.data?.[0]?.url;
+            if (!videoUrl)
+                throw new Error('waule-api 未返回视频数据');
+            return videoUrl;
+        }
+        throw new Error('MiniMax API 密钥未配置，且 waule-api 网关未配置');
+    }
     const hasImages = Array.isArray(referenceImages) && referenceImages.length > 0;
     const images = [];
     if (hasImages) {

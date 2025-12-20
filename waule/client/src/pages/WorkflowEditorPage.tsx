@@ -1516,6 +1516,27 @@ const WorkflowEditorInner = () => {
     }, 2000);
   }, []); // 依赖项为空，因为 saveWorkflow 内部使用 ref
 
+  // 监听节点发出的立即保存事件（用于任务创建后立即保存）
+  useEffect(() => {
+    const handleImmediateSave = () => {
+      if (isReadOnlyRef.current) return;
+      console.log('[WorkflowEditorPage] 收到立即保存事件');
+      // 清除防抖定时器
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      // 延迟100ms确保节点状态已更新到ref
+      setTimeout(() => {
+        saveWorkflow();
+      }, 100);
+    };
+    
+    window.addEventListener('workflow:save', handleImmediateSave);
+    return () => {
+      window.removeEventListener('workflow:save', handleImmediateSave);
+    };
+  }, []);
+
   // 同步工作流上下文到全局变量
   useEffect(() => {
     if (project || episode) {

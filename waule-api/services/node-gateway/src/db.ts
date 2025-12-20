@@ -97,6 +97,23 @@ export function initDatabase() {
   // 初始化中转API配置行
   database.exec(`INSERT OR IGNORE INTO proxy_api_config (id) VALUES (1)`);
 
+  // Sora中转API配置表（future-sora-api）
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS sora_proxy_config (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      provider TEXT DEFAULT 'future-sora-api',
+      base_url TEXT DEFAULT 'https://future-api.vodeshop.com',
+      api_key TEXT,
+      is_active INTEGER DEFAULT 0,
+      channel TEXT DEFAULT 'sora2api',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  
+  // 初始化Sora中转API配置行
+  database.exec(`INSERT OR IGNORE INTO sora_proxy_config (id) VALUES (1)`);
+
   // Midjourney 任务表
   database.exec(`
     CREATE TABLE IF NOT EXISTS mj_tasks (
@@ -631,6 +648,44 @@ export function updateProxyApiConfig(config: Partial<ProxyApiConfig>): boolean {
   fields.push('updated_at = CURRENT_TIMESTAMP');
   
   const stmt = db.prepare(`UPDATE proxy_api_config SET ${fields.join(', ')} WHERE id = 1`);
+  const result = stmt.run(...values);
+  return result.changes > 0;
+}
+
+// ========== Sora中转API配置管理 ==========
+
+export interface SoraProxyConfig {
+  id: number;
+  provider: string;
+  base_url: string;
+  api_key: string | null;
+  is_active: number;
+  channel: 'sora2api' | 'future-sora-api';  // sora2api=直连sora2api, future-sora-api=中转API
+  created_at: string;
+  updated_at: string;
+}
+
+export function getSoraProxyConfig(): SoraProxyConfig | null {
+  const db = getDatabase();
+  return db.prepare('SELECT * FROM sora_proxy_config WHERE id = 1').get() as SoraProxyConfig | null;
+}
+
+export function updateSoraProxyConfig(config: Partial<SoraProxyConfig>): boolean {
+  const db = getDatabase();
+  const fields: string[] = [];
+  const values: any[] = [];
+  
+  if (config.provider !== undefined) { fields.push('provider = ?'); values.push(config.provider); }
+  if (config.base_url !== undefined) { fields.push('base_url = ?'); values.push(config.base_url); }
+  if (config.api_key !== undefined) { fields.push('api_key = ?'); values.push(config.api_key); }
+  if (config.is_active !== undefined) { fields.push('is_active = ?'); values.push(config.is_active); }
+  if (config.channel !== undefined) { fields.push('channel = ?'); values.push(config.channel); }
+  
+  if (fields.length === 0) return false;
+  
+  fields.push('updated_at = CURRENT_TIMESTAMP');
+  
+  const stmt = db.prepare(`UPDATE sora_proxy_config SET ${fields.join(', ')} WHERE id = 1`);
   const result = stmt.run(...values);
   return result.changes > 0;
 }

@@ -113,7 +113,17 @@ export const loginWithPhone = asyncHandler(async (req: Request, res: Response) =
     });
     logger.info(`新用户注册: ${phone}, 推荐码: ${userReferralCode}`);
 
-    // 如果有推荐码，绑定推荐关系并发放奖励
+    // 🔧 先处理每日赠送积分（新用户首次登录，当前积分为0，会获得完整的每日赠送）
+    try {
+      const giftResult = await userLevelService.processGiftCredits(user.id);
+      if (giftResult.gifted) {
+        logger.info(`[Auth] 新用户 ${phone} 首日赠送积分: ${giftResult.amount}`);
+      }
+    } catch (err: any) {
+      logger.warn(`[Auth] 新用户赠送积分失败: ${err.message}`);
+    }
+
+    // 🔧 再处理推荐码绑定和奖励（在每日赠送之后，奖励是额外的）
     if (inviteCode) {
       try {
         const result = await referralService.bindReferralAndGrantBonus({
@@ -121,7 +131,7 @@ export const loginWithPhone = asyncHandler(async (req: Request, res: Response) =
           referralCode: inviteCode,
         });
         if (result.success) {
-          logger.info(`[Referral] 新用户 ${user.id} 绑定推荐码 ${inviteCode} 成功`);
+          logger.info(`[Referral] 新用户 ${user.id} 绑定推荐码 ${inviteCode} 成功，奖励已发放`);
         } else {
           logger.warn(`[Referral] 新用户 ${user.id} 绑定推荐码失败: ${result.message}`);
         }
@@ -171,13 +181,16 @@ export const loginWithPhone = asyncHandler(async (req: Request, res: Response) =
   });
 
   // 处理每日赠送积分（异步执行，不阻塞登录）
-  userLevelService.processGiftCredits(user.id).then(result => {
-    if (result.gifted) {
-      logger.info(`用户 ${phone} 获得每日赠送积分: ${result.amount}`);
-    }
-  }).catch(err => {
-    logger.warn(`用户 ${phone} 赠送积分处理失败:`, err.message);
-  });
+  // 注意：新用户已在注册流程中同步处理过，这里只处理老用户
+  if (!isNewUser) {
+    userLevelService.processGiftCredits(user.id).then(result => {
+      if (result.gifted) {
+        logger.info(`用户 ${phone} 获得每日赠送积分: ${result.amount}`);
+      }
+    }).catch(err => {
+      logger.warn(`用户 ${phone} 赠送积分处理失败:`, err.message);
+    });
+  }
 
   logger.info(`用户登录: ${phone}`);
 
