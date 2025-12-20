@@ -47,8 +47,12 @@ services:
       # 跨域配置
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       
-      # Waule 主服务地址
+      # Waule 主服务地址 (PM2 部署在宿主机)
       - WAULE_API_URL=${WAULE_API_URL:-http://host.docker.internal:3000}
+    
+    # 允许访问宿主机网络
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     
     # 日志配置
     logging:
