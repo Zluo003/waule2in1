@@ -29,6 +29,14 @@ model User {
   // 双因素认证 (TOTP)
   totpSecret                  String?              // TOTP 密钥 (加密存储)
   totpEnabled                 Boolean              @default(false) // 是否启用 2FA
+  // 推荐系统
+  referralCode                String?              @unique // 用户的推荐码
+  referredById                String?              // 推荐人ID
+  referredBy                  User?                @relation("Referrals", fields: [referredById], references: [id])
+  referrals                   User[]               @relation("Referrals") // 我推荐的用户
+  referralBalance             Int                  @default(0) // 返利余额（分）
+  referralTotalEarned         Int                  @default(0) // 累计返利（分）
+  // 关联
   assetLibraries              AssetLibrary[]
   sharesOwned                 AssetLibraryShare[]  @relation("AssetLibraryShareOwner")
   sharesReceived              AssetLibraryShare[]  @relation("AssetLibraryShareTarget")
@@ -44,10 +52,17 @@ model User {
   workflows                   Workflow[]
   soraCharacterSharesOwned    SoraCharacterShare[] @relation("SoraCharacterShareOwner")
   soraCharacterSharesReceived SoraCharacterShare[] @relation("SoraCharacterShareTarget")
+  commissionsAsReferrer       ReferralCommission[] @relation("CommissionReferrer")
+  commissionsAsReferee        ReferralCommission[] @relation("CommissionReferee")
+  withdrawalRequests          WithdrawalRequest[]
+  sentMessages                SystemMessage[]      @relation("SentMessages") // 发送的消息
+  receivedMessages            UserMessage[]        // 收到的消息
 
   @@index([isActive])
   @@index([role])
   @@index([createdAt])
+  @@index([referralCode])
+  @@index([referredById])
   @@map("users")
 }
 
@@ -822,4 +837,148 @@ model NodePromptTemplate {
   @@index([nodeType])
   @@index([isActive])
   @@map("node_prompt_templates")
+}
+
+// ============== 推荐返利系统 ==============
+
+// 推荐返利配置
+model ReferralConfig {
+  id                    String   @id @default(uuid())
+  isActive              Boolean  @default(true)      // 是否启用推荐系统
+  // 注册奖励
+  referrerBonus         Int      @default(100)       // 推荐人获得积分
+  refereeBonus          Int      @default(50)        // 被推荐人获得积分
+  // 充值返利
+  commissionRate        Float    @default(0.1)       // 返利比例 (0.1 = 10%)
+  // 提现设置
+  minWithdrawAmount     Int      @default(20000)     // 最低提现金额（分）= 200元
+  withdrawToCreditsRate Float    @default(100)       // 1元兑换积分数
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("referral_configs")
+}
+
+// 返利记录
+model ReferralCommission {
+  id          String           @id @default(uuid())
+  referrerId  String           // 推荐人
+  refereeId   String           // 被推荐人
+  orderId     String?          // 关联订单（充值返利时）
+  type        CommissionType   // 返利类型
+  amount      Int              // 金额（分）或积分
+  rate        Float?           // 当时的返利比例（充值返利时）
+  status      CommissionStatus @default(SETTLED)
+  description String?          // 描述
+  createdAt   DateTime         @default(now())
+  referrer    User             @relation("CommissionReferrer", fields: [referrerId], references: [id])
+  referee     User             @relation("CommissionReferee", fields: [refereeId], references: [id])
+
+  @@index([referrerId])
+  @@index([refereeId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("referral_commissions")
+}
+
+// 提现申请
+model WithdrawalRequest {
+  id              String           @id @default(uuid())
+  userId          String
+  amount          Int              // 提现金额（分）
+  type            WithdrawalType   // 提现类型
+  // 支付宝信息
+  alipayAccount   String?          // 支付宝账号
+  alipayName      String?          // 支付宝真实姓名
+  // 处理信息
+  status          WithdrawalStatus @default(PENDING)
+  processedAt     DateTime?
+  processedBy     String?          // 管理员ID
+  rejectReason    String?
+  creditsGranted  Int?             // 兑换的积分数（兑换积分时）
+  remark          String?          // 备注
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("withdrawal_requests")
+}
+
+enum CommissionType {
+  REGISTER_BONUS      // 注册奖励（积分）
+  RECHARGE_COMMISSION // 充值返利（现金）
+}
+
+enum CommissionStatus {
+  PENDING   // 待结算
+  SETTLED   // 已结算
+  CANCELLED // 已取消（退款等）
+}
+
+enum WithdrawalType {
+  ALIPAY    // 提现到支付宝
+  CREDITS   // 兑换积分
+}
+
+enum WithdrawalStatus {
+  PENDING   // 待处理
+  APPROVED  // 已通过（待打款）
+  COMPLETED // 已完成
+  REJECTED  // 已拒绝
+}
+
+// ==================== 站内消息系统 ====================
+
+// 系统消息模板（管理员创建的消息）
+model SystemMessage {
+  id          String   @id @default(uuid())
+  title       String   // 消息标题
+  content     String   @db.Text // 消息内容
+  type        MessageType @default(NOTIFICATION) // 消息类型
+  targetType  MessageTargetType @default(ALL) // 发送目标类型
+  targetRoles String[] // 目标角色列表（当targetType为ROLE时）
+  targetUsers String[] // 目标用户ID列表（当targetType为USER时）
+  senderId    String   // 发送者（管理员）ID
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  isActive    Boolean  @default(true) // 是否有效
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userMessages UserMessage[] // 用户消息记录
+
+  @@map("system_messages")
+}
+
+// 用户消息记录（每个用户收到的消息副本）
+model UserMessage {
+  id              String   @id @default(uuid())
+  userId          String   // 接收用户ID
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  systemMessageId String   // 系统消息ID
+  systemMessage   SystemMessage @relation(fields: [systemMessageId], references: [id], onDelete: Cascade)
+  isRead          Boolean  @default(false) // 是否已读
+  readAt          DateTime? // 阅读时间
+  isDeleted       Boolean  @default(false) // 是否已删除（软删除）
+  deletedAt       DateTime? // 删除时间
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, systemMessageId])
+  @@index([userId, isDeleted, isRead])
+  @@map("user_messages")
+}
+
+enum MessageType {
+  NOTIFICATION  // 通知
+  ANNOUNCEMENT  // 公告
+  PROMOTION     // 促销
+  SYSTEM        // 系统消息
+}
+
+enum MessageTargetType {
+  ALL    // 所有用户
+  ROLE   // 指定角色
+  USER   // 指定用户
 }

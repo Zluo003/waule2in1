@@ -41,6 +41,8 @@ import paymentRoutes from './routes/payment.routes';
 import redeemRoutes from './routes/redeem.routes';
 import userLevelRoutes from './routes/user-level.routes';
 import nodePromptRoutes from './routes/node-prompt.routes';
+import referralRoutes from './routes/referral.routes';
+import messageRoutes from './routes/message.routes';
 
 
 // 导入中间件
@@ -712,6 +714,8 @@ app.use(`${API_PREFIX}/payment`, paymentRoutes); // 支付与充值
 app.use(`${API_PREFIX}/redeem`, redeemRoutes); // 兑换码
 app.use(`${API_PREFIX}/admin/user-levels`, userLevelRoutes); // 用户等级权限管理
 app.use(API_PREFIX, nodePromptRoutes); // 节点提示词管理
+app.use(`${API_PREFIX}/referral`, referralRoutes); // 推荐返利系统
+app.use(`${API_PREFIX}/messages`, messageRoutes); // 站内消息系统
 
 
 // 404处理

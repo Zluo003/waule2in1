@@ -9,6 +9,7 @@ import { aliyunSMSService } from '../services/aliyun-sms.service';
 import { verificationCodeService } from '../services/verification-code.service';
 import { userLevelService } from '../services/user-level.service';
 import { totpService } from '../services/totp.service';
+import * as referralService from '../services/referral.service';
 
 // 生成JWT token
 const TOKEN_TTL_DAYS = parseInt(process.env.JWT_EXPIRES_IN_DAYS || '15', 10);
@@ -84,7 +85,7 @@ export const loginWithPhone = asyncHandler(async (req: Request, res: Response) =
     });
   }
 
-  const { phone, code } = req.body;
+  const { phone, code, referralCode: inviteCode } = req.body;
 
   // 验证验证码
   const isValid = await verificationCodeService.verifyCode(phone, code);
@@ -97,17 +98,38 @@ export const loginWithPhone = asyncHandler(async (req: Request, res: Response) =
     where: { phone },
   });
 
+  const isNewUser = !user;
   if (!user) {
-    // 首次登录，创建新用户
+    // 首次登录，创建新用户（同时生成推荐码）
+    const userReferralCode = await referralService.generateReferralCode();
     user = await prisma.user.create({
       data: {
         phone,
         nickname: generateCreatorNickname(),
         loginType: 'PHONE',
         role: 'USER',
+        referralCode: userReferralCode,
       },
     });
-    logger.info(`新用户注册: ${phone}`);
+    logger.info(`新用户注册: ${phone}, 推荐码: ${userReferralCode}`);
+
+    // 如果有推荐码，绑定推荐关系并发放奖励
+    if (inviteCode) {
+      try {
+        const result = await referralService.bindReferralAndGrantBonus({
+          refereeId: user.id,
+          referralCode: inviteCode,
+        });
+        if (result.success) {
+          logger.info(`[Referral] 新用户 ${user.id} 绑定推荐码 ${inviteCode} 成功`);
+        } else {
+          logger.warn(`[Referral] 新用户 ${user.id} 绑定推荐码失败: ${result.message}`);
+        }
+      } catch (err: any) {
+        logger.error(`[Referral] 绑定推荐码异常: ${err.message}`);
+        // 不影响注册流程
+      }
+    }
   } else {
     // 检查用户是否被禁用
     if (!user.isActive) {

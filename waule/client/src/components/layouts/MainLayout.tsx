@@ -1,11 +1,33 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useState, useEffect } from 'react';
+import { apiClient } from '../../lib/api';
 
 const MainLayout = () => {
   const location = useLocation();
   const { user } = useAuthStore();
   const { theme } = useTheme();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // 获取未读消息数量
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const res = await apiClient.get('/messages/unread-count');
+        if (res.success) {
+          setUnreadCount(res.data.count || 0);
+        }
+      } catch (error) {
+        // 静默处理错误
+      }
+    };
+
+    fetchUnreadCount();
+    // 每60秒刷新一次
+    const interval = setInterval(fetchUnreadCount, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // 检查是否在工作流页面
   const isWorkflowPage = location.pathname.includes('/workflow');
@@ -70,22 +92,22 @@ const MainLayout = () => {
           <span className="text-[9px]">{Math.floor(user?.credits || 0)}</span>
         </Link>
 
-        {/* 分隔线 */}
-        <div className="h-px bg-neutral-200 dark:bg-neutral-700 my-1" />
-
         {/* Theme Toggle */}
         <ThemeToggleButton />
 
         {/* User Avatar */}
         <Link
           to="/settings"
-          className="flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
           title={user?.nickname || user?.username || '设置'}
         >
           {user?.avatar ? (
             <img src={user.avatar} alt={user.nickname || user.username} className="w-6 h-6 rounded-full object-cover" />
           ) : (
             <span className="material-symbols-outlined" style={{ fontSize: '20px', fontVariationSettings: '"FILL" 0, "wght" 300' }}>account_circle</span>
+          )}
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#deeaef] dark:border-[#18181b]"></span>
           )}
         </Link>
       </nav>

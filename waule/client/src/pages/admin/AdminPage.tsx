@@ -12,6 +12,8 @@ import RedeemCodePage from './RedeemCodePage';
 import UserLevelConfigPage from './UserLevelConfigPage';
 import ServerMonitorPage from './ServerMonitorPage';
 import NodePromptsPage from './NodePromptsPage';
+import ReferralManagementPage from './ReferralManagementPage';
+import MessageManagementPage from './MessageManagementPage';
 
 // 简易柱状图组件
 const MiniBarChart = ({ data, height = 60, unit = '' }: { data: { label: string; value: number }[]; height?: number; unit?: string }) => {
@@ -396,6 +398,8 @@ const AdminPage = () => {
     { name: '套餐管理', path: '/frame25/packages', icon: 'redeem' },
     { name: '兑换码管理', path: '/frame25/redeem-codes', icon: 'confirmation_number' },
     { name: '节点提示词', path: '/frame25/node-prompts', icon: 'edit_note' },
+    { name: '推荐返利', path: '/frame25/referral', icon: 'share' },
+    { name: '站内消息', path: '/frame25/messages', icon: 'mail' },
   ];
 
   const isActive = (path: string, exact: boolean = false) => {
@@ -447,6 +451,8 @@ const AdminPage = () => {
           <Route path="packages" element={<PackageManagementPage />} />
           <Route path="redeem-codes" element={<RedeemCodePage />} />
           <Route path="node-prompts" element={<NodePromptsPage />} />
+          <Route path="referral" element={<ReferralManagementPage />} />
+          <Route path="messages" element={<MessageManagementPage />} />
         </Routes>
       </div>
     </div>

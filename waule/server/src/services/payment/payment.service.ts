@@ -429,6 +429,22 @@ export async function handlePaymentSuccess(
 
     logger.info(`[PaymentService] 支付成功处理完成: ${order.orderNo}, 用户: ${order.userId}, 积分: +${order.credits}`);
   });
+
+  // 处理推荐返利（在事务外异步处理，不影响主流程）
+  try {
+    const order = await prisma.paymentOrder.findUnique({ where: { id: orderId } });
+    if (order) {
+      const { processRechargeCommission } = await import('../referral.service');
+      await processRechargeCommission({
+        userId: order.userId,
+        orderId: order.id,
+        amount: order.amount,
+      });
+    }
+  } catch (err: any) {
+    logger.error(`[PaymentService] 处理推荐返利失败: ${err.message}`);
+    // 返利失败不影响支付成功
+  }
 }
 
 /**
