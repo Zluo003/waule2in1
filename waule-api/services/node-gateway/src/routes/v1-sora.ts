@@ -277,7 +277,7 @@ async function createVideoViaFutureSoraApi(
   }
   
   // 轮询查询任务状态 - GET /v1/videos/{task_id}
-  const maxAttempts = 120; // 最多等待10分钟
+  const maxAttempts = 180; // 最多等待15分钟
   const pollInterval = 5000; // 5秒查询一次
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {

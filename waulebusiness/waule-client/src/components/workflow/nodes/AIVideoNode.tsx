@@ -1068,7 +1068,7 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
 
   // 轮询任务状态
   const pollTaskStatus = async (taskId: string) => {
-    const maxAttempts = 600; // 最多10分钟 (600 * 1秒)
+    const maxAttempts = 900; // 最多15分钟 (900 * 1秒)
     let attempts = 0;
 
     const poll = async () => {

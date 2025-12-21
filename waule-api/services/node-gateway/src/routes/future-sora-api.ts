@@ -270,8 +270,8 @@ router.post('/characters', async (req: Request, res: Response) => {
     const taskId = response.data.id || response.data.task_id;
     log('角色创建任务已提交', { taskId });
     
-    // 轮询等待任务完成 (最多10分钟)
-    const maxPolls = 120;
+    // 轮询等待任务完成 (最多15分钟)
+    const maxPolls = 180;
     const pollInterval = 5000;
     
     for (let i = 0; i < maxPolls; i++) {
