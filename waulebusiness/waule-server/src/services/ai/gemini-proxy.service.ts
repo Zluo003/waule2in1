@@ -118,6 +118,7 @@ export const generateImage = async (options: GeminiImageGenerateOptions): Promis
       model: actualModelId,
       prompt,
       size: aspectRatio,
+      image_size: imageSize, // 传递分辨率参数（2K/4K）
       reference_images: processedImages.length > 0 ? processedImages : undefined,
     }, finalServerConfig);
 

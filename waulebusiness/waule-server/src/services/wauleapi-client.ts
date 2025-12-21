@@ -103,6 +103,7 @@ class WauleApiClient {
     model: string;
     prompt: string;
     size?: string;
+    image_size?: string; // 图片分辨率（2K/4K，仅用于 Gemini 3 Pro Image）
     n?: number;
     reference_images?: string[];
     use_intl?: boolean;
