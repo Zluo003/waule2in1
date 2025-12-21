@@ -5,8 +5,8 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  // 代理目标：优先使用 VITE_PROXY_TARGET，其次 VITE_API_URL，默认公网地址
-  const apiUrl = env.VITE_PROXY_TARGET || env.VITE_API_URL || 'https://qiye.waule.com';
+  // 代理目标：使用 VITE_PROXY_TARGET，默认指向本地 tenant-server (网关)
+  const apiUrl = env.VITE_PROXY_TARGET || 'http://localhost:3002';
   
   return {
   plugins: [react()],

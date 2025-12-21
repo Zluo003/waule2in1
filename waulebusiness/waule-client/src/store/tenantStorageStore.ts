@@ -270,6 +270,14 @@ export const useTenantStorageStore = create<TenantStorageState>()(
     {
       name: 'tenant-storage-config',
       storage: createJSONStorage(() => safeStorage),
+      // 从存储恢复时，重置 isConnected 状态（避免使用过期的连接状态）
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // 重置连接状态，需要重新验证
+          state.config.isConnected = false;
+          console.log('[TenantStorage] 已重置连接状态，需重新验证');
+        }
+      },
     }
   )
 );

@@ -25,6 +25,7 @@ import downloadRoutes from './routes/download.routes';
 import filesRoutes from './routes/files.routes';
 import adminRoutes from './routes/admin.routes';
 import clientConfigRoutes from './routes/client-config.routes';
+import proxyRoutes from './routes/proxy.routes';
 
 // 获取本机 IP
 function getLocalIP(): string {
@@ -108,11 +109,15 @@ function startServer() {
   // 管理页面
   app.use('/admin', adminRoutes);
 
-  // API 路由
+  // API 路由（本地处理）
   app.use('/api/upload', uploadRoutes);
   app.use('/api/download', downloadRoutes);
   app.use('/api/files', filesRoutes);
   app.use('/api/client-config', clientConfigRoutes);
+
+  // 代理路由（转发到平台服务器）
+  // 所有其他 /api/* 请求都转发到 waule-server
+  app.use('/api', proxyRoutes);
 
   // 健康检查
   app.get('/health', (req, res) => {

@@ -1,22 +1,59 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/authStore';
 import { useTenantAuthStore } from '../store/tenantAuthStore';
+import { useTenantStorageStore } from '../store/tenantStorageStore';
 import { toast } from 'sonner';
 
-// 优先使用环境变量，其次使用相对路径（通过Vite proxy）
-// 如果设置了VITE_API_URL，直接使用该地址
-// 否则使用相对路径 '/api'，由Vite开发服务器代理到后端
-const API_URL = import.meta.env.VITE_API_URL || '';
+// 获取 API 基础地址
+// 商业版架构：所有请求通过 tenant-server 网关
+function getApiBaseUrl(): string {
+  // 1. 使用租户服务端作为网关（已连接）
+  const tenantStorage = useTenantStorageStore.getState().config;
+  if (tenantStorage.localServerUrl && tenantStorage.isConnected) {
+    return `${tenantStorage.localServerUrl}/api`;
+  }
+  
+  // 2. 有配置但未连接，仍尝试使用（会触发连接检查）
+  if (tenantStorage.localServerUrl) {
+    return `${tenantStorage.localServerUrl}/api`;
+  }
+  
+  // 3. 开发环境：使用 Vite 代理
+  if (import.meta.env.DEV) {
+    return '/api';
+  }
+  
+  // 4. 生产环境未配置：返回空（会在请求时报错）
+  console.warn('[API] 未配置租户服务端地址');
+  return '';
+}
 
 // 创建axios实例
 export const api = axios.create({
-  baseURL: API_URL ? `${API_URL}/api` : '/api',
+  baseURL: getApiBaseUrl(),
   timeout: 300000,
+});
+
+// 监听租户存储配置变化，动态更新 baseURL
+useTenantStorageStore.subscribe(() => {
+  const newBaseUrl = getApiBaseUrl();
+  if (api.defaults.baseURL !== newBaseUrl) {
+    api.defaults.baseURL = newBaseUrl;
+    console.log('[API] baseURL 已更新为:', newBaseUrl);
+  }
 });
 
 // 请求拦截器 - 添加token和租户ID
 api.interceptors.request.use(
   (config) => {
+    // 如果请求走网关，使用较短超时（避免网关不可用时等待太久）
+    const tenantStorage = useTenantStorageStore.getState().config;
+    const isUsingGateway = tenantStorage.localServerUrl && 
+                           config.baseURL?.includes(tenantStorage.localServerUrl);
+    if (isUsingGateway && !config.timeout) {
+      config.timeout = 15000; // 网关请求 15 秒超时
+    }
+    
     // 获取租户状态
     const tenantState = useTenantAuthStore.getState();
     const tenantToken = tenantState.token;
@@ -47,19 +84,19 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError<{ message: string }>) => {
-    // 网络错误时进行一次回退：若配置了 API_URL 但网络不可达，则改用相对路径 '/api' 并重试一次
-    if (
-      error.code === 'ERR_NETWORK' &&
-      API_URL &&
-      error.config &&
-      !(error.config as any).__retriedWithFallback
-    ) {
-      const newConfig: AxiosRequestConfig & { __retriedWithFallback?: boolean } = {
-        ...(error.config as AxiosRequestConfig),
-        baseURL: '/api',
-        __retriedWithFallback: true,
-      };
-      return api.request(newConfig);
+    // 网络错误或超时时，标记网关断开
+    const isNetworkError = error.code === 'ERR_NETWORK' || 
+                           error.code === 'ECONNABORTED' || 
+                           error.code === 'ETIMEDOUT' ||
+                           error.message?.includes('timeout');
+    
+    if (isNetworkError) {
+      // 标记网关断开
+      const tenantStorage = useTenantStorageStore.getState();
+      if (tenantStorage.config.localServerUrl) {
+        tenantStorage.setConnected(false);
+        console.error('[API] 网关连接失败，请检查租户服务端是否运行');
+      }
     }
 
     // 401 - 未授权，清除auth状态
