@@ -4,6 +4,40 @@
  */
 
 import { wauleApiClient, getServerConfigByModelId, ServerConfig } from '../wauleapi-client';
+import { uploadBuffer } from '../../utils/oss';
+
+// ==================== 工具函数 ====================
+
+/**
+ * 处理参考图片URL
+ * - Base64 → 上传 OSS → 返回 OSS URL
+ * - 公网 URL → 直接返回
+ */
+async function processImageUrl(imageUrl: string): Promise<string> {
+  if (imageUrl.startsWith('data:image/')) {
+    console.log('🔄 [Gemini] 检测到 Base64，上传到 OSS 转为 URL...', imageUrl.length, '字符');
+    try {
+      const matches = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (matches) {
+        const ext = matches[1] === 'jpeg' ? '.jpg' : `.${matches[1]}`;
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+        const ossUrl = await uploadBuffer(buffer, ext);
+        console.log('✅ [Gemini] 已上传到 OSS:', ossUrl);
+        return ossUrl;
+      }
+    } catch (e: any) {
+      console.error('❌ [Gemini] 上传到 OSS 失败:', e.message);
+      throw new Error('图片上传失败，请重试');
+    }
+  }
+  
+  if (imageUrl.startsWith('https://') || imageUrl.startsWith('http://')) {
+    return imageUrl;
+  }
+  
+  throw new Error('不支持的图片格式');
+}
 
 // 不重试，失败直接返回错误
 
@@ -61,13 +95,22 @@ export const generateImage = async (options: GeminiImageGenerateOptions): Promis
     console.log(`[Gemini] 分辨率映射: ${modelId} + ${imageSize} -> ${actualModelId}`);
   }
 
+  // 处理参考图片（base64 → OSS URL）
+  const processedImages: string[] = [];
+  for (const img of referenceImages) {
+    if (img) {
+      const processed = await processImageUrl(img);
+      processedImages.push(processed);
+    }
+  }
+
   console.log('[Gemini] 图片生成请求:', {
     model: actualModelId,
     originalModel: modelId,
     imageSize,
     aspectRatio,
     prompt: prompt.substring(0, 100),
-    referenceImagesCount: referenceImages.length,
+    referenceImagesCount: processedImages.length,
   });
 
   try {
@@ -75,7 +118,7 @@ export const generateImage = async (options: GeminiImageGenerateOptions): Promis
       model: actualModelId,
       prompt,
       size: aspectRatio,
-      reference_images: referenceImages.length > 0 ? referenceImages : undefined,
+      reference_images: processedImages.length > 0 ? processedImages : undefined,
     }, finalServerConfig);
 
     if (!result.data || result.data.length === 0) {
