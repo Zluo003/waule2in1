@@ -82,7 +82,7 @@ export async function generateImage(options: FutureApiImageOptions): Promise<{
   urls?: string[];
   revisedPrompt?: string;
 }> {
-  const { model, prompt, size, referenceImages } = options;
+  const { model, prompt, size, imageSize, referenceImages } = options;
   
   // 获取中转API配置
   const config = getProxyApiConfig();
@@ -93,13 +93,14 @@ export async function generateImage(options: FutureApiImageOptions): Promise<{
   const baseUrl = config.base_url || 'https://future-api.vodeshop.com';
   const apiKey = config.api_key;
   
-  // 根据模型选择实际调用的模型名
-  let actualModel = config.model_2k || 'gemini-2.5-flash-image';
-  if (model.includes('4k')) {
-    actualModel = config.model_4k || 'gemini-2.5-flash-image';
-  }
+  // 根据 imageSize 参数或模型名选择实际调用的模型
+  // 优先使用传入的 imageSize 参数（2K/4K），其次检查模型名后缀
+  const use4K = imageSize === '4K' || imageSize === '4k' || model.includes('4k') || model.includes('4K');
+  let actualModel = use4K 
+    ? (config.model_4k || 'gemini-2.5-flash-image')
+    : (config.model_2k || 'gemini-2.5-flash-image');
   
-  log('FutureAPI', `图片生成: model=${model} -> ${actualModel}, baseUrl=${baseUrl}`);
+  log('FutureAPI', `图片生成: model=${model} -> ${actualModel}, baseUrl=${baseUrl}, imageSize=${imageSize || '默认2K'}`);
   log('FutureAPI', `API Key (masked): ${apiKey ? apiKey.slice(0, 10) + '...' + apiKey.slice(-4) : 'NOT SET'}`);
   
   // 构建消息内容 - 根据是否有参考图片选择不同格式
