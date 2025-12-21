@@ -8,7 +8,7 @@
  */
 
 import { uploadBuffer } from '../../utils/oss';
-import { wauleApiClient } from '../wauleapi-client';
+import { wauleApiClient, getServerConfigByModelId, ServerConfig } from '../wauleapi-client';
 
 // ==================== 工具函数 ====================
 
@@ -51,8 +51,9 @@ interface QwenImageEditOptions {
   aspectRatio?: string;
   referenceImages?: string[];
   useIntl?: boolean;
-  apiKey?: string;
-  apiUrl?: string;
+  serverConfig?: ServerConfig; // 服务器配置（来自数据库）
+  apiKey?: string; // 已废弃，保留向后兼容
+  apiUrl?: string; // 已废弃，保留向后兼容
 }
 
 // ==================== AI 服务函数 ====================
@@ -68,7 +69,11 @@ export async function generateImage(options: QwenImageEditOptions): Promise<stri
     aspectRatio = '1:1',
     referenceImages = [],
     useIntl = false,
+    serverConfig,
   } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId(modelId);
 
   // 处理参考图片（base64 → OSS URL）
   const processedImages: string[] = [];
@@ -91,7 +96,7 @@ export async function generateImage(options: QwenImageEditOptions): Promise<stri
       size: aspectRatio,
       reference_images: processedImages.length > 0 ? processedImages : undefined,
       use_intl: useIntl,
-    });
+    }, finalServerConfig);
 
     if (!result.data || result.data.length === 0) {
       throw new Error('WauleAPI 未返回图片数据');

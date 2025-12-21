@@ -25,6 +25,12 @@ import axios, { AxiosInstance } from 'axios';
 // 供应商列表
 type Provider = 'doubao' | 'wanx' | 'gemini' | 'sora' | 'vidu' | 'minimax' | 'cosyvoice' | 'midjourney';
 
+// 服务器配置（来自数据库 WauleApiServer）
+export interface ServerConfig {
+  url: string;
+  authToken?: string | null;
+}
+
 class WauleApiClient {
   private defaultUrl: string;
   private apiSecret: string;
@@ -57,14 +63,18 @@ class WauleApiClient {
 
   /**
    * 创建请求客户端
+   * @param provider 供应商（用于从环境变量获取默认地址）
+   * @param serverConfig 可选的服务器配置（优先级最高，来自数据库）
    */
-  private createClient(provider: Provider): AxiosInstance {
-    const baseURL = this.getUrl(provider);
+  private createClient(provider: Provider, serverConfig?: ServerConfig): AxiosInstance {
+    // 优先级：serverConfig > 环境变量按供应商配置 > 默认地址
+    const baseURL = serverConfig?.url || this.getUrl(provider);
+    const authToken = serverConfig?.authToken ?? this.apiSecret;
     return axios.create({
       baseURL,
       headers: {
         'Content-Type': 'application/json',
-        ...(this.apiSecret && { 'Authorization': `Bearer ${this.apiSecret}` }),
+        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
       },
       timeout: 1200000, // 20分钟超时
     });
@@ -97,13 +107,14 @@ class WauleApiClient {
     reference_images?: string[];
     use_intl?: boolean;
     max_images?: number; // SeeDream 4.5 组图数量 (1-15)
-  }): Promise<{
+  }, serverConfig?: ServerConfig): Promise<{
     created: number;
     data: Array<{ url: string; revised_prompt?: string }>;
   }> {
     const provider = this.inferProvider(params.model);
-    const client = this.createClient(provider);
-    console.log(`[WauleAPI] 图片生成: model=${params.model}, provider=${provider}, url=${this.getUrl(provider)}`);
+    const client = this.createClient(provider, serverConfig);
+    const actualUrl = serverConfig?.url || this.getUrl(provider);
+    console.log(`[WauleAPI] 图片生成: model=${params.model}, provider=${provider}, url=${actualUrl}`);
     const response = await client.post('/v1/images/generations', params);
     return response.data;
   }
@@ -138,12 +149,13 @@ class WauleApiClient {
     bgm?: boolean;
     movement_amplitude?: string;
     generation_type?: string;
-  }): Promise<{
+  }, serverConfig?: ServerConfig): Promise<{
     data: Array<{ url: string; duration?: number }>;
   }> {
     const provider = this.inferProvider(params.model);
-    const client = this.createClient(provider);
-    console.log(`[WauleAPI] 视频生成: model=${params.model}, provider=${provider}, url=${this.getUrl(provider)}`);
+    const client = this.createClient(provider, serverConfig);
+    const actualUrl = serverConfig?.url || this.getUrl(provider);
+    console.log(`[WauleAPI] 视频生成: model=${params.model}, provider=${provider}, url=${actualUrl}`);
     const response = await client.post('/v1/videos/generations', params);
     return response.data;
   }
@@ -156,12 +168,13 @@ class WauleApiClient {
     messages: Array<{ role: string; content: any }>;
     temperature?: number;
     max_tokens?: number;
-  }): Promise<{
+  }, serverConfig?: ServerConfig): Promise<{
     choices: Array<{ message: { content: string } }>;
   }> {
     const provider = this.inferProvider(params.model);
-    const client = this.createClient(provider);
-    console.log(`[WauleAPI] 文本生成: model=${params.model}, provider=${provider}, url=${this.getUrl(provider)}`);
+    const client = this.createClient(provider, serverConfig);
+    const actualUrl = serverConfig?.url || this.getUrl(provider);
+    console.log(`[WauleAPI] 文本生成: model=${params.model}, provider=${provider}, url=${actualUrl}`);
     const response = await client.post('/v1/chat/completions', params);
     return response.data;
   }
@@ -173,12 +186,13 @@ class WauleApiClient {
     model: string;
     input: string;
     voice?: string;
-  }): Promise<{
+  }, serverConfig?: ServerConfig): Promise<{
     data: Array<{ url: string }>;
   }> {
     const provider = this.inferProvider(params.model);
-    const client = this.createClient(provider);
-    console.log(`[WauleAPI] 音频生成: model=${params.model}, provider=${provider}, url=${this.getUrl(provider)}`);
+    const client = this.createClient(provider, serverConfig);
+    const actualUrl = serverConfig?.url || this.getUrl(provider);
+    console.log(`[WauleAPI] 音频生成: model=${params.model}, provider=${provider}, url=${actualUrl}`);
     const response = await client.post('/v1/audio/speech', params);
     return response.data;
   }
@@ -190,11 +204,12 @@ class WauleApiClient {
     video_url?: string;
     video_creation_id?: string;
     upscale_resolution?: '1080p' | '2K' | '4K' | '8K';
-  }): Promise<{
+  }, serverConfig?: ServerConfig): Promise<{
     data: Array<{ url: string }>;
   }> {
-    const client = this.createClient('vidu');
-    console.log(`[WauleAPI] 智能超清: resolution=${params.upscale_resolution}, url=${this.getUrl('vidu')}`);
+    const client = this.createClient('vidu', serverConfig);
+    const actualUrl = serverConfig?.url || this.getUrl('vidu');
+    console.log(`[WauleAPI] 智能超清: resolution=${params.upscale_resolution}, url=${actualUrl}`);
     const response = await client.post('/v1/videos/upscale', params);
     return response.data;
   }
@@ -208,11 +223,12 @@ class WauleApiClient {
     duration?: number;
     ratio?: '16:9' | '9:16' | '1:1';
     language?: 'zh' | 'en';
-  }): Promise<{
+  }, serverConfig?: ServerConfig): Promise<{
     data: Array<{ url: string }>;
   }> {
-    const client = this.createClient('vidu');
-    console.log(`[WauleAPI] 广告成片: images=${params.images?.length}, url=${this.getUrl('vidu')}`);
+    const client = this.createClient('vidu', serverConfig);
+    const actualUrl = serverConfig?.url || this.getUrl('vidu');
+    console.log(`[WauleAPI] 广告成片: images=${params.images?.length}, url=${actualUrl}`);
     const response = await client.post('/v1/videos/commercial', params);
     return response.data;
   }
@@ -225,12 +241,12 @@ class WauleApiClient {
   async mjImagine(params: {
     prompt: string;
     userId?: string;
-  }): Promise<{
+  }, serverConfig?: ServerConfig): Promise<{
     success: boolean;
     taskId: string;
     message?: string;
   }> {
-    const client = this.createClient('midjourney');
+    const client = this.createClient('midjourney', serverConfig);
     console.log(`[WauleAPI] MJ Imagine: prompt=${params.prompt.substring(0, 50)}...`);
     const response = await client.post('/v1/midjourney/imagine', params);
     return response.data;
@@ -243,12 +259,12 @@ class WauleApiClient {
     messageId: string;
     customId: string;
     userId?: string;
-  }): Promise<{
+  }, serverConfig?: ServerConfig): Promise<{
     success: boolean;
     taskId: string;
     message?: string;
   }> {
-    const client = this.createClient('midjourney');
+    const client = this.createClient('midjourney', serverConfig);
     console.log(`[WauleAPI] MJ Action: messageId=${params.messageId}, customId=${params.customId}`);
     const response = await client.post('/v1/midjourney/action', params);
     return response.data;
@@ -257,7 +273,7 @@ class WauleApiClient {
   /**
    * Midjourney 查询任务状态
    */
-  async mjGetTask(taskId: string): Promise<{
+  async mjGetTask(taskId: string, serverConfig?: ServerConfig): Promise<{
     taskId: string;
     status: string;
     progress?: string;
@@ -271,7 +287,7 @@ class WauleApiClient {
     }>;
     failReason?: string;
   }> {
-    const client = this.createClient('midjourney');
+    const client = this.createClient('midjourney', serverConfig);
     const response = await client.get(`/v1/midjourney/task/${taskId}`);
     return response.data;
   }
@@ -286,9 +302,10 @@ class WauleApiClient {
     model: string;
     messages: Array<{ role: string; content: any }>;
     stream?: boolean;
-  }): Promise<any> {
-    const client = this.createClient('sora');
-    console.log(`[WauleAPI] Sora ChatCompletions: model=${params.model}, url=${this.getUrl('sora')}`);
+  }, serverConfig?: ServerConfig): Promise<any> {
+    const client = this.createClient('sora', serverConfig);
+    const actualUrl = serverConfig?.url || this.getUrl('sora');
+    console.log(`[WauleAPI] Sora ChatCompletions: model=${params.model}, url=${actualUrl}`);
     const response = await client.post('/v1/sora/chat/completions', params);
     return response.data;
   }
@@ -300,8 +317,8 @@ class WauleApiClient {
   async futureSoraCreateCharacter(params: {
     url: string;
     timestamps?: string;
-  }): Promise<any> {
-    const client = this.createClient('sora');
+  }, serverConfig?: ServerConfig): Promise<any> {
+    const client = this.createClient('sora', serverConfig);
     console.log(`[WauleAPI] Future Sora CreateCharacter: url=${params.url.substring(0, 50)}...`);
     const response = await client.post('/future-sora/v1/characters', params);
     return response.data;
@@ -310,7 +327,7 @@ class WauleApiClient {
   /**
    * Midjourney 等待任务完成（长轮询）
    */
-  async mjWaitTask(taskId: string, timeout: number = 300000): Promise<{
+  async mjWaitTask(taskId: string, timeout: number = 300000, serverConfig?: ServerConfig): Promise<{
     taskId: string;
     status: string;
     imageUrl?: string;
@@ -323,7 +340,7 @@ class WauleApiClient {
     }>;
     failReason?: string;
   }> {
-    const client = this.createClient('midjourney');
+    const client = this.createClient('midjourney', serverConfig);
     console.log(`[WauleAPI] MJ WaitTask: taskId=${taskId}, timeout=${timeout}`);
     const response = await client.post(`/v1/midjourney/task/${taskId}/wait`, { timeout });
     return response.data;
@@ -331,3 +348,42 @@ class WauleApiClient {
 }
 
 export const wauleApiClient = new WauleApiClient();
+
+/**
+ * 根据模型 ID 获取服务器配置
+ * 用于从数据库查询模型关联的 WauleApiServer
+ */
+export async function getServerConfigByModelId(modelId: string): Promise<ServerConfig | undefined> {
+  const { PrismaClient } = await import('@prisma/client');
+  const prisma = new PrismaClient();
+  
+  try {
+    const model = await prisma.aIModel.findFirst({
+      where: { modelId },
+      include: { wauleApiServer: true },
+    });
+    
+    if (model?.wauleApiServer) {
+      return {
+        url: model.wauleApiServer.url,
+        authToken: model.wauleApiServer.authToken,
+      };
+    }
+    
+    // 如果模型没有指定服务器，尝试获取默认服务器
+    const defaultServer = await prisma.wauleApiServer.findFirst({
+      where: { isDefault: true, isActive: true },
+    });
+    
+    if (defaultServer) {
+      return {
+        url: defaultServer.url,
+        authToken: defaultServer.authToken,
+      };
+    }
+    
+    return undefined;
+  } finally {
+    await prisma.$disconnect();
+  }
+}

@@ -4,7 +4,7 @@ import path from 'path';
 import { uploadBuffer } from '../../utils/oss';
 import { logger } from '../../utils/logger';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import { wauleApiClient } from '../wauleapi-client';
+import { wauleApiClient, getServerConfigByModelId, ServerConfig } from '../wauleapi-client';
 
 // SOCKS5 代理配置
 let _proxyAgent: SocksProxyAgent | undefined;
@@ -110,8 +110,9 @@ interface SoraVideoGenerateOptions {
   referenceImage?: string;
   referenceVideo?: string;
   duration?: number;
-  apiKey?: string;
-  apiUrl?: string;
+  serverConfig?: ServerConfig; // 服务器配置（来自数据库）
+  apiKey?: string; // 已废弃，保留向后兼容
+  apiUrl?: string; // 已废弃，保留向后兼容
 }
 
 /**
@@ -411,10 +412,13 @@ export async function generateVideo(options: SoraVideoGenerateOptions): Promise<
     hasReferenceVideo: !!referenceVideo,
   });
 
+  // 获取服务器配置
+  const finalServerConfig = options.serverConfig || await getServerConfigByModelId(finalModelId);
+
   // 通过 waule-api 网关调用
   try {
     logger.info(`[Sora] 使用 waule-api 网关调用`);
-    const response = await wauleApiClient.soraChatCompletions(requestBody);
+    const response = await wauleApiClient.soraChatCompletions(requestBody, finalServerConfig);
     
     const content = response.choices?.[0]?.message?.content || '';
     const videoMatch = content.match(/<video[^>]+src=['"]([^'"]+)['"]/i);
@@ -442,6 +446,7 @@ export async function generateVideo(options: SoraVideoGenerateOptions): Promise<
 interface SoraCharacterCreateOptions {
   videoUrl: string;
   modelId?: string;
+  serverConfig?: ServerConfig;
 }
 
 /**
@@ -458,7 +463,10 @@ interface SoraCharacterResult {
  * 通过 waule-api 网关调用，不需要 apiKey
  */
 export async function createCharacter(options: SoraCharacterCreateOptions): Promise<SoraCharacterResult> {
-  const { videoUrl, modelId = 'sora-video-landscape-10s' } = options;
+  const { videoUrl, modelId = 'sora-video-landscape-10s', serverConfig } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId(modelId);
 
   let finalModelId = modelId;
   if (!modelId.match(/-(10|15|25)s$/)) {
@@ -480,7 +488,7 @@ export async function createCharacter(options: SoraCharacterCreateOptions): Prom
       const response = await wauleApiClient.futureSoraCreateCharacter({
         url: videoUrl,
         timestamps: '1,3',
-      });
+      }, finalServerConfig);
       
       logger.info(`[Sora] future-sora-api 响应:`, JSON.stringify(response).substring(0, 300));
       
@@ -525,7 +533,7 @@ export async function createCharacter(options: SoraCharacterCreateOptions): Prom
       stream: true,
     };
     
-    const parsedData = await wauleApiClient.soraChatCompletions(requestBody);
+    const parsedData = await wauleApiClient.soraChatCompletions(requestBody, finalServerConfig);
     
     if (!parsedData?.choices?.length) {
       throw new Error('Sora API未返回有效的角色数据');

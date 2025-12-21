@@ -7,7 +7,7 @@
  * - 删除 proxy/discord 双模式、Redis 队列等复杂逻辑
  */
 
-import { wauleApiClient } from './wauleapi-client';
+import { wauleApiClient, getServerConfigByModelId, ServerConfig } from './wauleapi-client';
 import { MIDJOURNEY_TASK_STATUS, MidjourneyTaskStatus } from '../config/midjourney.config';
 
 // ==================== 接口定义 ====================
@@ -18,6 +18,7 @@ interface ImagineRequest {
   base64Array?: string[];  // 垫图（暂不支持，保留接口）
   notifyHook?: string;     // 回调（暂不支持，保留接口）
   nodeId?: string;
+  serverConfig?: ServerConfig; // 服务器配置（来自数据库）
 }
 
 interface TaskResponse {
@@ -63,6 +64,7 @@ interface ActionRequest {
   messageId?: string;
   messageHash?: string;
   nodeId?: string;
+  serverConfig?: ServerConfig; // 服务器配置（来自数据库）
 }
 
 // ==================== 服务实现 ====================
@@ -78,11 +80,14 @@ class MidjourneyService {
   async imagine(params: ImagineRequest): Promise<TaskResponse> {
     console.log('📤 [Midjourney] Imagine 请求:', params.prompt.substring(0, 50) + '...');
     
+    // 获取服务器配置
+    const finalServerConfig = params.serverConfig || await getServerConfigByModelId('midjourney');
+
     try {
       const result = await wauleApiClient.mjImagine({
         prompt: params.prompt,
         userId: params.userId,
-      });
+      }, finalServerConfig);
 
       if (result.success && result.taskId) {
         return {
@@ -109,11 +114,14 @@ class MidjourneyService {
   /**
    * 查询任务状态
    */
-  async fetch(taskId: string): Promise<TaskResult> {
+  async fetch(taskId: string, serverConfig?: ServerConfig): Promise<TaskResult> {
     console.log('🔍 [Midjourney] 查询任务:', taskId);
     
+    // 获取服务器配置
+    const finalServerConfig = serverConfig || await getServerConfigByModelId('midjourney');
+
     try {
-      const result = await wauleApiClient.mjGetTask(taskId);
+      const result = await wauleApiClient.mjGetTask(taskId, finalServerConfig);
 
       // 根据按钮判断 action 类型
       let action = 'IMAGINE';
@@ -215,11 +223,14 @@ class MidjourneyService {
     }
 
     try {
+      // 获取服务器配置
+      const finalServerConfig = params.serverConfig || await getServerConfigByModelId('midjourney');
+
       const result = await wauleApiClient.mjAction({
         messageId,
         customId: params.customId,
         userId: params.userId,
-      });
+      }, finalServerConfig);
 
       if (result.success && result.taskId) {
         return {

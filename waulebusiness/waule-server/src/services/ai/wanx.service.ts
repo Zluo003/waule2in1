@@ -8,7 +8,7 @@
  */
 
 import { uploadBuffer } from '../../utils/oss';
-import { wauleApiClient } from '../wauleapi-client';
+import { wauleApiClient, getServerConfigByModelId, ServerConfig } from '../wauleapi-client';
 
 // ==================== 工具函数 ====================
 
@@ -55,8 +55,9 @@ interface WanxVideoGenerateOptions {
   replaceVideoUrl?: string;
   mode?: string;
   useIntl?: boolean;
-  apiKey?: string;
-  apiUrl?: string;
+  serverConfig?: ServerConfig; // 服务器配置（来自数据库）
+  apiKey?: string; // 已废弃，保留向后兼容
+  apiUrl?: string; // 已废弃，保留向后兼容
 }
 
 interface VideoRetalkOptions {
@@ -65,6 +66,7 @@ interface VideoRetalkOptions {
   refImageUrl?: string;
   videoExtension?: boolean;
   useIntl?: boolean;
+  serverConfig?: ServerConfig;
 }
 
 interface VideoStylizeOptions {
@@ -73,6 +75,7 @@ interface VideoStylizeOptions {
   videoFps?: number;
   minLen?: number;
   useIntl?: boolean;
+  serverConfig?: ServerConfig;
 }
 
 // ==================== AI 服务函数 ====================
@@ -92,7 +95,11 @@ export async function generateVideoFromFirstFrame(options: WanxVideoGenerateOpti
     replaceVideoUrl,
     mode = 'wan-std',
     useIntl = false,
+    serverConfig,
   } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId(modelId);
 
   // 处理首帧图片
   let processedFirstFrame: string | undefined;
@@ -119,7 +126,7 @@ export async function generateVideoFromFirstFrame(options: WanxVideoGenerateOpti
       replace_image_url: replaceImageUrl,
       replace_video_url: replaceVideoUrl,
       mode,
-    });
+    }, finalServerConfig);
 
     if (!result.data || result.data.length === 0) {
       throw new Error('WauleAPI 未返回视频数据');
@@ -149,7 +156,10 @@ export async function generateVideoFromText(options: WanxVideoGenerateOptions): 
  * 注意：此功能需要 waule-api 端支持专用路由
  */
 export async function generateVideoRetalk(options: VideoRetalkOptions): Promise<string> {
-  const { videoUrl, audioUrl, refImageUrl, videoExtension, useIntl = false } = options;
+  const { videoUrl, audioUrl, refImageUrl, videoExtension, useIntl = false, serverConfig } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId('videoretalk');
 
   console.log('[Wanx] 视频换人请求:', {
     videoUrl: videoUrl?.substring(0, 50),
@@ -166,7 +176,7 @@ export async function generateVideoRetalk(options: VideoRetalkOptions): Promise<
       reference_images: refImageUrl ? [refImageUrl] : undefined,
       video_extension: videoExtension,
       use_intl: useIntl,
-    });
+    }, finalServerConfig);
 
     if (!result.data || result.data.length === 0) {
       throw new Error('WauleAPI 未返回视频数据');
@@ -186,7 +196,10 @@ export async function generateVideoRetalk(options: VideoRetalkOptions): Promise<
  * 注意：此功能需要 waule-api 端支持专用路由
  */
 export async function generateVideoStylize(options: VideoStylizeOptions): Promise<string> {
-  const { videoUrl, style, videoFps, minLen, useIntl = false } = options;
+  const { videoUrl, style, videoFps, minLen, useIntl = false, serverConfig } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId('video-style-transform');
 
   console.log('[Wanx] 视频风格转绘请求:', {
     videoUrl: videoUrl?.substring(0, 50),
@@ -202,7 +215,7 @@ export async function generateVideoStylize(options: VideoStylizeOptions): Promis
       video_fps: videoFps,
       min_len: minLen,
       use_intl: useIntl,
-    });
+    }, finalServerConfig);
 
     if (!result.data || result.data.length === 0) {
       throw new Error('WauleAPI 未返回视频数据');

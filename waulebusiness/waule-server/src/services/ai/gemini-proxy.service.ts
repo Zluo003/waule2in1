@@ -3,7 +3,7 @@
  * 通过 wauleApiClient 统一调用 waule-api 的 v1 接口
  */
 
-import { wauleApiClient } from '../wauleapi-client';
+import { wauleApiClient, getServerConfigByModelId, ServerConfig } from '../wauleapi-client';
 
 // 不重试，失败直接返回错误
 
@@ -13,8 +13,9 @@ interface GeminiImageGenerateOptions {
   aspectRatio?: string;
   imageSize?: string;
   referenceImages?: string[];
-  apiKey?: string;
-  apiUrl?: string;
+  serverConfig?: ServerConfig; // 服务器配置（来自数据库）
+  apiKey?: string; // 已废弃，保留向后兼容
+  apiUrl?: string; // 已废弃，保留向后兼容
 }
 
 interface GeminiTextGenerateOptions {
@@ -27,8 +28,9 @@ interface GeminiTextGenerateOptions {
   imageUrls?: string[];
   videoUrls?: string[];
   inlineImages?: Array<{ mimeType: string; data: string }>;
-  apiKey?: string;
-  apiUrl?: string;
+  serverConfig?: ServerConfig; // 服务器配置（来自数据库）
+  apiKey?: string; // 已废弃，保留向后兼容
+  apiUrl?: string; // 已废弃，保留向后兼容
 }
 
 /**
@@ -41,7 +43,11 @@ export const generateImage = async (options: GeminiImageGenerateOptions): Promis
     aspectRatio = '1:1',
     imageSize,
     referenceImages = [],
+    serverConfig,
   } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId(modelId);
 
   // 处理 Gemini 3 Pro Image 模型的 2K/4K 分辨率
   // 如果模型是 gemini-3-pro-image-preview 且指定了 imageSize，则添加对应后缀
@@ -70,7 +76,7 @@ export const generateImage = async (options: GeminiImageGenerateOptions): Promis
       prompt,
       size: aspectRatio,
       reference_images: referenceImages.length > 0 ? referenceImages : undefined,
-    });
+    }, finalServerConfig);
 
     if (!result.data || result.data.length === 0) {
       throw new Error('WauleAPI 未返回图片数据');
@@ -99,7 +105,11 @@ export const generateText = async (options: GeminiTextGenerateOptions): Promise<
     imageUrls = [],
     videoUrls = [],
     inlineImages = [],
+    serverConfig,
   } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId(modelId);
 
   console.log('[Gemini] 文本生成请求:', {
     model: modelId,
@@ -152,7 +162,7 @@ export const generateText = async (options: GeminiTextGenerateOptions): Promise<
       messages,
       temperature,
       max_tokens: maxTokens,
-    });
+    }, finalServerConfig);
 
     if (!result.choices || result.choices.length === 0) {
       throw new Error('WauleAPI 未返回文本内容');

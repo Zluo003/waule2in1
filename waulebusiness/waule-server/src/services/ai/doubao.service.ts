@@ -9,7 +9,7 @@
  */
 
 import { uploadBuffer } from '../../utils/oss';
-import { wauleApiClient } from '../wauleapi-client';
+import { wauleApiClient, getServerConfigByModelId, ServerConfig } from '../wauleapi-client';
 
 // ==================== 工具函数 ====================
 
@@ -57,8 +57,9 @@ interface DoubaoImageGenerateOptions {
   aspectRatio?: string;
   referenceImages?: string[];
   maxImages?: number; // SeeDream 4.5 组图数量 (1-15)
-  apiKey?: string; // 可选，由 waule-api 统一管理
-  apiUrl?: string; // 可选，由 waule-api 统一管理
+  serverConfig?: ServerConfig; // 服务器配置（来自数据库）
+  apiKey?: string; // 已废弃，保留向后兼容
+  apiUrl?: string; // 已废弃，保留向后兼容
 }
 
 interface DoubaoVideoGenerateOptions {
@@ -69,8 +70,9 @@ interface DoubaoVideoGenerateOptions {
   generationType?: string;
   duration?: number;
   referenceImages?: string[];
-  apiKey?: string;
-  apiUrl?: string;
+  serverConfig?: ServerConfig; // 服务器配置（来自数据库）
+  apiKey?: string; // 已废弃，保留向后兼容
+  apiUrl?: string; // 已废弃，保留向后兼容
 }
 
 interface DoubaoTextGenerateOptions {
@@ -81,8 +83,9 @@ interface DoubaoTextGenerateOptions {
   maxTokens?: number;
   imageUrls?: string[];
   videoUrls?: string[];
-  apiKey?: string;
-  apiUrl?: string;
+  serverConfig?: ServerConfig; // 服务器配置（来自数据库）
+  apiKey?: string; // 已废弃，保留向后兼容
+  apiUrl?: string; // 已废弃，保留向后兼容
 }
 
 // ==================== AI 服务函数 ====================
@@ -98,7 +101,11 @@ export async function generateImage(options: DoubaoImageGenerateOptions): Promis
     aspectRatio = '1:1',
     referenceImages = [],
     maxImages,
+    serverConfig,
   } = options;
+
+  // 获取服务器配置（优先使用传入的配置，否则从数据库获取）
+  const finalServerConfig = serverConfig || await getServerConfigByModelId(modelId);
 
   // 处理参考图片（base64 → OSS URL）
   const processedImages: string[] = [];
@@ -122,7 +129,7 @@ export async function generateImage(options: DoubaoImageGenerateOptions): Promis
       size: aspectRatio,
       reference_images: processedImages.length > 0 ? processedImages : undefined,
       max_images: maxImages, // 传递组图数量参数
-    });
+    }, finalServerConfig);
 
     if (!result.data || result.data.length === 0) {
       throw new Error('WauleAPI 未返回图片数据');
@@ -157,7 +164,11 @@ export async function generateVideo(options: DoubaoVideoGenerateOptions): Promis
     duration = 5,
     generationType,
     referenceImages = [],
+    serverConfig,
   } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId(modelId);
 
   // 处理参考图片（base64 → OSS URL）
   const processedImages: string[] = [];
@@ -184,7 +195,7 @@ export async function generateVideo(options: DoubaoVideoGenerateOptions): Promis
       resolution,
       duration,
       reference_images: processedImages.length > 0 ? processedImages : undefined,
-    });
+    }, finalServerConfig);
 
     if (!result.data || result.data.length === 0) {
       throw new Error('WauleAPI 未返回视频数据');
@@ -211,7 +222,11 @@ export async function generateText(options: DoubaoTextGenerateOptions): Promise<
     maxTokens = 4000,
     imageUrls = [],
     videoUrls = [],
+    serverConfig,
   } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId(modelId);
 
   console.log('[Doubao] 文本生成请求:', {
     model: modelId,
@@ -256,7 +271,7 @@ export async function generateText(options: DoubaoTextGenerateOptions): Promise<
       messages,
       temperature,
       max_tokens: maxTokens,
-    });
+    }, finalServerConfig);
 
     if (!result.choices || result.choices.length === 0) {
       throw new Error('WauleAPI 未返回文本内容');

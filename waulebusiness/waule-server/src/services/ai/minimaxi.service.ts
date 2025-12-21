@@ -8,7 +8,7 @@
  */
 
 import { uploadBuffer } from '../../utils/oss';
-import { wauleApiClient } from '../wauleapi-client';
+import { wauleApiClient, getServerConfigByModelId, ServerConfig } from '../wauleapi-client';
 
 // ==================== 工具函数 ====================
 
@@ -55,8 +55,9 @@ interface GenerateVideoOptions {
   generationType?: string;
   callbackUrl?: string;
   genTaskId?: string;
-  apiKey?: string;
-  apiUrl?: string;
+  serverConfig?: ServerConfig; // 服务器配置（来自数据库）
+  apiKey?: string; // 已废弃，保留向后兼容
+  apiUrl?: string; // 已废弃，保留向后兼容
 }
 
 // ==================== AI 服务函数 ====================
@@ -74,7 +75,11 @@ export async function generateVideo(options: GenerateVideoOptions): Promise<stri
     duration = 5,
     referenceImages = [],
     generationType,
+    serverConfig,
   } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId(modelId);
 
   // 处理参考图片
   const processedImages: string[] = [];
@@ -103,7 +108,7 @@ export async function generateVideo(options: GenerateVideoOptions): Promise<stri
       resolution,
       aspect_ratio: aspectRatio,
       reference_images: processedImages.length > 0 ? processedImages : undefined,
-    });
+    }, finalServerConfig);
 
     console.log('[MiniMax] WauleAPI 响应:', JSON.stringify(result).substring(0, 500));
 

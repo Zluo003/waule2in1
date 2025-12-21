@@ -9,7 +9,7 @@
 
 import { uploadBuffer } from '../../utils/oss';
 import { logger } from '../../utils/logger';
-import { wauleApiClient } from '../wauleapi-client';
+import { wauleApiClient, getServerConfigByModelId, ServerConfig } from '../wauleapi-client';
 
 // ==================== 接口定义 ====================
 
@@ -39,8 +39,9 @@ interface ViduImageToVideoOptions {
   wm_url?: string;
   meta_data?: string;
   callback_url?: string;
-  apiKey?: string;  // 保留但不使用
-  apiUrl?: string;  // 保留但不使用
+  serverConfig?: ServerConfig; // 服务器配置（来自数据库）
+  apiKey?: string;  // 已废弃，保留向后兼容
+  apiUrl?: string;  // 已废弃，保留向后兼容
 }
 
 // ==================== 工具函数 ====================
@@ -93,7 +94,11 @@ export async function imageToVideo(options: ViduImageToVideoOptions): Promise<st
     duration,
     resolution,
     movement_amplitude,
+    serverConfig,
   } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId(model);
 
   // 处理图片
   let processedImages: string[] = [];
@@ -146,7 +151,7 @@ export async function imageToVideo(options: ViduImageToVideoOptions): Promise<st
       bgm,
       movement_amplitude,
       generation_type: generationType,
-    });
+    }, finalServerConfig);
 
     if (!result.data || result.data.length === 0) {
       throw new Error('WauleAPI 未返回视频数据');
@@ -181,8 +186,7 @@ export async function textToVideo(options: {
   wm_url?: string;
   meta_data?: string;
   callback_url?: string;
-  apiKey?: string;
-  apiUrl?: string;
+  serverConfig?: ServerConfig;
 }): Promise<{ taskId: string; status: string }> {
   const {
     prompt,
@@ -192,7 +196,11 @@ export async function textToVideo(options: {
     aspect_ratio = '16:9',
     movement_amplitude,
     bgm,
+    serverConfig,
   } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId(model);
 
   logger.info(`[Vidu] 文生视频请求:`, {
     model,
@@ -211,7 +219,7 @@ export async function textToVideo(options: {
       movement_amplitude,
       bgm,
       generation_type: '文生视频',
-    });
+    }, finalServerConfig);
 
     if (!result.data || result.data.length === 0) {
       throw new Error('WauleAPI 未返回视频数据');
@@ -239,10 +247,12 @@ export async function upscaleVideo(options: {
   upscale_resolution?: '1080p' | '2K' | '4K' | '8K';
   payload?: string;
   callback_url?: string;
-  apiKey?: string;
-  apiUrl?: string;
+  serverConfig?: ServerConfig;
 }): Promise<{ taskId: string; status: string }> {
-  const { video_url, video_creation_id, upscale_resolution = '1080p' } = options;
+  const { video_url, video_creation_id, upscale_resolution = '1080p', serverConfig } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId('vidu-upscale');
 
   logger.info(`[Vidu] 智能超清请求:`, {
     hasVideoUrl: !!video_url,
@@ -255,7 +265,7 @@ export async function upscaleVideo(options: {
       video_url,
       video_creation_id,
       upscale_resolution,
-    });
+    }, finalServerConfig);
 
     if (!result.data || result.data.length === 0) {
       throw new Error('WauleAPI 未返回视频数据');
@@ -283,10 +293,12 @@ export async function createCommercialVideo(options: {
   duration?: number;
   ratio?: '16:9' | '9:16' | '1:1';
   language?: 'zh' | 'en';
-  apiKey?: string;
-  apiUrl?: string;
+  serverConfig?: ServerConfig;
 }): Promise<{ taskId: string; status: string }> {
-  const { images, prompt, duration = 30, ratio = '16:9', language = 'zh' } = options;
+  const { images, prompt, duration = 30, ratio = '16:9', language = 'zh', serverConfig } = options;
+
+  // 获取服务器配置
+  const finalServerConfig = serverConfig || await getServerConfigByModelId('vidu-commercial');
 
   logger.info(`[Vidu] 广告成片请求:`, {
     imageCount: images.length,
@@ -305,7 +317,7 @@ export async function createCommercialVideo(options: {
       duration,
       ratio,
       language,
-    });
+    }, finalServerConfig);
 
     if (!result.data || result.data.length === 0) {
       throw new Error('WauleAPI 未返回视频数据');
