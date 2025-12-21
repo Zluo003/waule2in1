@@ -208,6 +208,11 @@ async function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // 主窗口加载完成后检查更新
+  mainWindow.webContents.on('did-finish-load', () => {
+    setTimeout(checkForUpdates, 3000); // 延迟3秒检查更新
+  });
 }
 
 // 应用准备就绪
@@ -414,12 +419,13 @@ ipcMain.handle('check-for-updates', () => {
   checkForUpdates();
 });
 
+ipcMain.on('check-for-updates', () => {
+  checkForUpdates();
+});
+
 // IPC：立即安装更新
 ipcMain.on('install-update', () => {
   autoUpdater.quitAndInstall();
 });
 
-// 应用启动后延迟检查更新
-app.on('ready', () => {
-  setTimeout(checkForUpdates, 5000); // 延迟5秒检查
-});
+// 主窗口创建后延迟检查更新（在 createMainWindow 中调用）

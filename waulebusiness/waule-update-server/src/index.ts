@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -348,12 +349,23 @@ app.get('/update/:app/latest.yml', (req, res) => {
     return res.status(404).send('No installer found');
   }
 
-  // 生成 YAML 格式
+  // 生成 YAML 格式（electron-updater 需要完整 URL）
+  const filesYaml = release.files
+    .filter(f => {
+      const name = f.filename || f.url || '';
+      return name.endsWith('.exe') || name.endsWith('.blockmap');
+    })
+    .map(f => `  - url: ${f.url}
+    sha512: ${f.sha512 || ''}
+    size: ${f.size || 0}`)
+    .join('\n');
+
   const yaml = `version: ${release.version}
-releaseDate: '${release.releaseDate}'
-path: ${path.basename(exeFile.url)}
+files:
+${filesYaml}
+path: ${exeFile.url}
 sha512: ${exeFile.sha512 || ''}
-size: ${exeFile.size || 0}
+releaseDate: '${release.releaseDate}'
 `;
 
   res.type('text/yaml').send(yaml);

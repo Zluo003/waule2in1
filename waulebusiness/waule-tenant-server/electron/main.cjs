@@ -296,6 +296,11 @@ function createWindow(error = null) {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // 主窗口加载完成后检查更新
+  mainWindow.webContents.on('did-finish-load', () => {
+    setTimeout(checkForUpdates, 3000); // 延迟3秒检查更新
+  });
 }
 
 // 创建系统托盘
@@ -500,13 +505,14 @@ ipcMain.handle('check-for-updates', () => {
   checkForUpdates();
 });
 
+ipcMain.on('check-for-updates', () => {
+  checkForUpdates();
+});
+
 // IPC：立即安装更新
 ipcMain.on('install-update', () => {
   isQuitting = true;
   autoUpdater.quitAndInstall();
 });
 
-// 应用启动后延迟检查更新
-app.on('ready', () => {
-  setTimeout(checkForUpdates, 10000); // 延迟10秒检查
-});
+// 主窗口加载后自动检查更新（在 createWindow 的 did-finish-load 中处理）

@@ -335,9 +335,16 @@ const SettingsPage = () => {
                 退出登录
               </button>
               
-              {/* 公司名称 - 底部 */}
-              <div className="mt-auto pt-4 text-xs text-text-light-tertiary dark:text-text-dark-tertiary text-center">
-                {user?.tenant?.name || activation?.tenantName || ''}
+              {/* 公司名称和版本号 - 底部 */}
+              <div className="mt-auto pt-4 text-xs text-text-light-tertiary dark:text-text-dark-tertiary text-center space-y-1">
+                <div>{user?.tenant?.name || activation?.tenantName || ''}</div>
+                <div 
+                  className="opacity-60 cursor-pointer hover:opacity-100 transition-opacity"
+                  onClick={() => (window as any).electronAPI?.checkForUpdates?.()}
+                  title="点击检查更新"
+                >
+                  v{__APP_VERSION__}
+                </div>
               </div>
             </div>
 

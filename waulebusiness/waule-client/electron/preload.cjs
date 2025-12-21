@@ -21,4 +21,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   downloadFile: (url, filename) => ipcRenderer.invoke('download-file', url, filename),
   // 启动视频播放完成
   splashFinished: () => ipcRenderer.send('splash-finished'),
+  // 自动更新
+  checkForUpdates: () => ipcRenderer.send('check-for-updates'),
+  installUpdate: () => ipcRenderer.send('install-update'),
+  onUpdateAvailable: (callback) => ipcRenderer.on('update-available', (_, info) => callback(info)),
+  onUpdateProgress: (callback) => ipcRenderer.on('update-progress', (_, progress) => callback(progress)),
+  onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', (_, info) => callback(info)),
 });
