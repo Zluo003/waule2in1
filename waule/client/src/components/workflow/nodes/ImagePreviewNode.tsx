@@ -799,22 +799,15 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
         }
       }
 
-      // 使用后端代理下载，避免CORS问题并设置正确的文件名
+      // 直接从 OSS 下载，速度更快
       toast.info('正在下载图片...');
       
-      // 使用 apiClient 的相对路径，自动处理 baseURL
-      const downloadPath = `/assets/proxy-download-with-name?url=${encodeURIComponent(imageUrl)}&filename=${encodeURIComponent(fileName)}`;
-      
-      const response = await apiClient.get(downloadPath, {
-        responseType: 'blob'
-      });
-
-      const blob = response instanceof Blob ? response : response?.data;
-      
-      if (!blob || !(blob instanceof Blob)) {
-        throw new Error('下载失败：无效的响应数据');
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`下载失败: ${response.status}`);
       }
-
+      
+      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
