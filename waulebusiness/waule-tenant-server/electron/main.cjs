@@ -2,9 +2,14 @@
  * Electron 主进程
  * Waule 企业版服务端
  */
-const { app, BrowserWindow, shell, ipcMain, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, Tray, Menu, nativeImage, dialog } = require('electron');
 const path = require('path');
 const os = require('os');
+const { autoUpdater } = require('electron-updater');
+
+// 自动更新配置
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
 
 // 设置用户数据目录（避免缓存权限问题）
 const userDataPath = path.join(os.homedir(), '.waule-enterprise-server');
@@ -426,4 +431,82 @@ ipcMain.on('window-close', () => {
 
 ipcMain.handle('window-is-maximized', () => {
   return mainWindow ? mainWindow.isMaximized() : false;
+});
+
+// ============ 自动更新 ============
+
+// 检查更新
+function checkForUpdates() {
+  if (!app.isPackaged) {
+    console.log('[AutoUpdate] 开发模式，跳过更新检查');
+    return;
+  }
+  
+  console.log('[AutoUpdate] 检查更新...');
+  autoUpdater.checkForUpdatesAndNotify();
+}
+
+// 更新事件监听
+autoUpdater.on('checking-for-update', () => {
+  console.log('[AutoUpdate] 正在检查更新...');
+});
+
+autoUpdater.on('update-available', (info) => {
+  console.log('[AutoUpdate] 发现新版本:', info.version);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-available', info);
+  }
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  console.log('[AutoUpdate] 当前已是最新版本');
+});
+
+autoUpdater.on('download-progress', (progress) => {
+  console.log(`[AutoUpdate] 下载进度: ${Math.round(progress.percent)}%`);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-progress', progress);
+  }
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('[AutoUpdate] 更新已下载，准备安装');
+  if (mainWindow) {
+    mainWindow.webContents.send('update-downloaded', info);
+  }
+  
+  // 显示更新提示对话框
+  dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    title: '更新就绪',
+    message: `新版本 ${info.version} 已下载完成`,
+    detail: '服务端将在关闭时自动安装更新。是否现在重启以完成更新？',
+    buttons: ['立即重启', '稍后'],
+    defaultId: 0,
+  }).then((result) => {
+    if (result.response === 0) {
+      isQuitting = true;
+      autoUpdater.quitAndInstall();
+    }
+  });
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('[AutoUpdate] 更新错误:', err.message);
+});
+
+// IPC：手动检查更新
+ipcMain.handle('check-for-updates', () => {
+  checkForUpdates();
+});
+
+// IPC：立即安装更新
+ipcMain.on('install-update', () => {
+  isQuitting = true;
+  autoUpdater.quitAndInstall();
+});
+
+// 应用启动后延迟检查更新
+app.on('ready', () => {
+  setTimeout(checkForUpdates, 10000); // 延迟10秒检查
 });

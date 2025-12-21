@@ -19,6 +19,7 @@
     "@tanstack/react-query": "^5.12.2",
     "axios": "^1.6.2",
     "clsx": "^2.0.0",
+    "electron-updater": "^6.6.2",
     "fabric": "^6.9.0",
     "framer-motion": "^10.16.16",
     "jszip": "^3.10.1",

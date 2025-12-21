@@ -1,0 +1,26 @@
+{
+  "name": "waule-update-server",
+  "version": "1.0.0",
+  "description": "Waule 软件自动更新服务",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "semver": "^7.5.4",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.10.0",
+    "@types/semver": "^7.5.6",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.2"
+  }
+}

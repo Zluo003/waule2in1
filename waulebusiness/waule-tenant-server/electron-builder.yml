@@ -51,8 +51,8 @@ nsis:
   shortcutName: Waule企业版服务端
   runAfterFinish: true
 
-# 自动更新配置（可选）
+# 自动更新配置
 publish:
   provider: generic
-  url: https://your-update-server.com/tenant-releases
-  publishAutoUpdate: false
+  url: https://update.waule.com/update/waule-tenant-server
+  publishAutoUpdate: true

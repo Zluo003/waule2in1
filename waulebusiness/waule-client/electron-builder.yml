@@ -72,8 +72,8 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: Waule
 
-# 自动更新配置（可选）
+# 自动更新配置
 publish:
   provider: generic
-  url: https://your-update-server.com/releases
-  publishAutoUpdate: false
+  url: https://update.waule.com/update/waule-client
+  publishAutoUpdate: true
