@@ -5,6 +5,7 @@ import { apiClient } from './lib/api';
 import { connectSocket, disconnectSocket } from './lib/socket';
 
 const MainLayout = lazy(() => import('./components/layouts/MainLayout'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const PhoneLoginPage = lazy(() => import('./pages/auth/PhoneLoginPage'));
 const AdminLoginPage = lazy(() => import('./pages/auth/AdminLoginPage'));
 const TermsOfServicePage = lazy(() => import('./pages/legal/TermsOfServicePage'));
@@ -73,6 +74,7 @@ function App() {
     <Suspense fallback={<div className="p-6 text-center text-gray-400">加载中...</div>}>
       <Routes>
         {/* Public routes */}
+        <Route path="/" element={isAuthenticated ? <Navigate to="/quick" replace /> : <LandingPage />} />
         <Route path="/login" element={<PhoneLoginPage />} />
         <Route path="/frame25-login" element={<AdminLoginPage />} />
         <Route path="/terms" element={<TermsOfServicePage />} />
@@ -81,10 +83,9 @@ function App() {
         {/* Protected routes */}
         <Route
           element={
-            isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />
+            isAuthenticated ? <MainLayout /> : <Navigate to="/" replace />
           }
         >
-          <Route path="/" element={<Navigate to="/quick" replace />} />
           <Route path="/quick" element={<ProjectsPage />} />
           <Route path="/drama" element={<ProjectsPage />} />
 
@@ -107,7 +108,7 @@ function App() {
         </Route>
 
         {/* 404 */}
-        <Route path="*" element={<Navigate to="/quick" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
   );
