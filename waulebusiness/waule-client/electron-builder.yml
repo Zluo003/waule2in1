@@ -12,6 +12,8 @@ directories:
 files:
   - dist/**/*
   - electron/**/*.cjs
+  - electron/splash.html
+  - electron/splash.mp4
   - package.json
 
 # 额外资源
@@ -56,11 +58,8 @@ win:
     - target: nsis
       arch:
         - x64
-    - target: portable
-      arch:
-        - x64
   icon: resources/icon.ico
-  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+  artifactName: ${productName}-Setup-${version}.${ext}
 
 # NSIS 安装程序配置
 nsis:

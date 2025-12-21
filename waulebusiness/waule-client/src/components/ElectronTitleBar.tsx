@@ -7,7 +7,6 @@ import { useState, useEffect } from 'react';
 const ElectronTitleBar = () => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isElectron, setIsElectron] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     const checkElectron = () => {
@@ -38,57 +37,52 @@ const ElectronTitleBar = () => {
 
   return (
     <div 
-      className="h-8 flex items-center justify-start flex-shrink-0 fixed top-0 left-0 right-0 z-[9999]"
+      className="h-8 flex items-center justify-end flex-shrink-0 fixed top-0 left-0 right-0 z-[9999] bg-[#fdfdfd] dark:bg-[#010101]"
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
-      {/* 苹果风格交通灯按钮 */}
+      {/* Windows 风格控制按钮 - 右侧 */}
       <div 
-        className="flex items-center gap-2 ml-3"
+        className="flex items-center h-full"
         style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
-        {/* 关闭 - 红色 */}
-        <button
-          onClick={handleClose}
-          className="w-3 h-3 rounded-full bg-[#ff5f57] hover:bg-[#ff5f57] flex items-center justify-center transition-all group"
-          title="关闭"
-        >
-          {isHovered && (
-            <svg className="w-2 h-2 text-[#4c0002]" viewBox="0 0 12 12" fill="currentColor">
-              <path d="M3.5 3.5l5 5M8.5 3.5l-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
-            </svg>
-          )}
-        </button>
-        
-        {/* 最小化 - 黄色 */}
+        {/* 最小化 */}
         <button
           onClick={handleMinimize}
-          className="w-3 h-3 rounded-full bg-[#febc2e] hover:bg-[#febc2e] flex items-center justify-center transition-all group"
+          className="w-12 h-full flex items-center justify-center hover:bg-white/10 transition-colors"
           title="最小化"
         >
-          {isHovered && (
-            <svg className="w-2 h-2 text-[#995700]" viewBox="0 0 12 12" fill="currentColor">
-              <path d="M2.5 6h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+          <svg className="w-4 h-4 text-gray-400" viewBox="0 0 12 12" fill="none">
+            <path d="M2 6h8" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+          </svg>
+        </button>
+        
+        {/* 最大化/还原 */}
+        <button
+          onClick={handleMaximize}
+          className="w-12 h-full flex items-center justify-center hover:bg-white/10 transition-colors"
+          title={isMaximized ? '还原' : '最大化'}
+        >
+          {isMaximized ? (
+            <svg className="w-4 h-4 text-gray-400" viewBox="0 0 12 12" fill="none">
+              <rect x="2" y="4" width="6" height="6" stroke="currentColor" strokeWidth="1"/>
+              <path d="M4 4V2h6v6h-2" stroke="currentColor" strokeWidth="1"/>
+            </svg>
+          ) : (
+            <svg className="w-4 h-4 text-gray-400" viewBox="0 0 12 12" fill="none">
+              <rect x="2" y="2" width="8" height="8" stroke="currentColor" strokeWidth="1"/>
             </svg>
           )}
         </button>
         
-        {/* 最大化 - 绿色 */}
+        {/* 关闭 */}
         <button
-          onClick={handleMaximize}
-          className="w-3 h-3 rounded-full bg-[#28c840] hover:bg-[#28c840] flex items-center justify-center transition-all group"
-          title={isMaximized ? '还原' : '最大化'}
+          onClick={handleClose}
+          className="w-12 h-full flex items-center justify-center hover:bg-red-500 transition-colors group"
+          title="关闭"
         >
-          {isHovered && (
-            <svg className="w-2 h-2 text-[#006500]" viewBox="0 0 12 12" fill="currentColor">
-              {isMaximized ? (
-                <path d="M4 8l4-4M4 4v4h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              ) : (
-                <path d="M3 3l6 6M3 9V3h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              )}
-            </svg>
-          )}
+          <svg className="w-4 h-4 text-gray-400 group-hover:text-white" viewBox="0 0 12 12" fill="none">
+            <path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+          </svg>
         </button>
       </div>
     </div>

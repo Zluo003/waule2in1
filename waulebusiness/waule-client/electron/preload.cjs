@@ -19,4 +19,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   windowIsMaximized: () => ipcRenderer.invoke('window-is-maximized'),
   // 下载文件（Electron 专用）
   downloadFile: (url, filename) => ipcRenderer.invoke('download-file', url, filename),
+  // 启动视频播放完成
+  splashFinished: () => ipcRenderer.send('splash-finished'),
 });

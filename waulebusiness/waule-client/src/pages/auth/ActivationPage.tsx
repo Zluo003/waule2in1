@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { apiClient } from '../../lib/api';
+import { useTenantStorageStore } from '../../store/tenantStorageStore';
 
 interface ActivationPageProps {
   deviceFingerprint: string;
@@ -8,21 +9,97 @@ interface ActivationPageProps {
 }
 
 const ActivationPage = ({ deviceFingerprint, onActivated }: ActivationPageProps) => {
+  const [serverAddress, setServerAddress] = useState('');
+  const [serverPort, setServerPort] = useState('3002');
   const [activationCode, setActivationCode] = useState('');
   const [deviceName, setDeviceName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'failed'>('idle');
+  
+  const { setLocalServerUrl, setConnected } = useTenantStorageStore();
+
+  // 测试服务端连接
+  const testConnection = async () => {
+    if (!serverAddress) {
+      toast.error('请输入服务端地址');
+      return false;
+    }
+    
+    const serverUrl = `http://${serverAddress}:${serverPort || '3002'}`;
+    setTestingConnection(true);
+    setConnectionStatus('idle');
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch(`${serverUrl}/health`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        setConnectionStatus('success');
+        toast.success('连接成功！');
+        return true;
+      } else {
+        setConnectionStatus('failed');
+        toast.error('服务端响应异常');
+        return false;
+      }
+    } catch (error) {
+      setConnectionStatus('failed');
+      toast.error('无法连接到服务端，请检查地址和端口');
+      return false;
+    } finally {
+      setTestingConnection(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!serverAddress) {
+      toast.error('请输入服务端地址');
+      return;
+    }
+    
     if (!activationCode) {
       toast.error('请输入激活码');
       return;
     }
 
+    // 先测试连接
+    const serverUrl = `http://${serverAddress}:${serverPort || '3002'}`;
+    
     setLoading(true);
 
     try {
+      // 先测试连接
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const healthResponse = await fetch(`${serverUrl}/health`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!healthResponse.ok) {
+        toast.error('无法连接到服务端');
+        setLoading(false);
+        return;
+      }
+      
+      // 保存服务端地址
+      setLocalServerUrl(serverUrl);
+      setConnected(true);
+      
+      // 发送激活请求（通过 tenant-server）
       const response = await apiClient.post('/client/activate', {
         activationCode: activationCode.toUpperCase().trim(),
         deviceFingerprint,
@@ -36,7 +113,7 @@ const ActivationPage = ({ deviceFingerprint, onActivated }: ActivationPageProps)
         toast.error(response.message || '激活失败');
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '激活失败');
+      toast.error(error.response?.data?.message || '激活失败，请检查网络连接');
     } finally {
       setLoading(false);
     }
@@ -95,6 +172,43 @@ const ActivationPage = ({ deviceFingerprint, onActivated }: ActivationPageProps)
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* 服务端地址和端口 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">企业服务端</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={serverAddress}
+                    onChange={(e) => setServerAddress(e.target.value.trim())}
+                    placeholder="服务端地址，如 192.168.1.100"
+                    className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-neutral-800/50 focus:ring-2 focus:ring-neutral-800/20 transition-all"
+                  />
+                  <input
+                    type="text"
+                    value={serverPort}
+                    onChange={(e) => setServerPort(e.target.value.replace(/\D/g, ''))}
+                    placeholder="端口"
+                    className="w-24 px-3 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-center placeholder-gray-500 focus:outline-none focus:border-neutral-800/50 focus:ring-2 focus:ring-neutral-800/20 transition-all"
+                    maxLength={5}
+                  />
+                  <button
+                    type="button"
+                    onClick={testConnection}
+                    disabled={testingConnection || !serverAddress}
+                    className={`px-4 py-3 rounded-xl font-medium transition-all ${
+                      connectionStatus === 'success'
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                        : connectionStatus === 'failed'
+                        ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                        : 'bg-white/10 text-gray-300 border border-white/10 hover:bg-white/20'
+                    } disabled:opacity-50`}
+                  >
+                    {testingConnection ? '...' : connectionStatus === 'success' ? '✓' : '测试'}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-gray-500">请输入管理员提供的企业服务端地址</p>
+              </div>
+
               {/* 激活码 */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">激活码</label>
@@ -125,7 +239,7 @@ const ActivationPage = ({ deviceFingerprint, onActivated }: ActivationPageProps)
               {/* 激活按钮 */}
               <button
                 type="submit"
-                disabled={loading || !activationCode}
+                disabled={loading || !activationCode || !serverAddress}
                 className="w-full py-3.5 bg-gradient-to-r from-neutral-800 via-fuchsia-500 to-neutral-800 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-neutral-800/25 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? '激活中...' : '激活'}

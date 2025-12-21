@@ -82,6 +82,9 @@ function App() {
   // 检查激活状态（始终从服务器验证）
   useEffect(() => {
     const checkActivation = async () => {
+      // 先尝试恢复租户存储配置
+      await tryAutoRestoreConfig();
+      
       try {
         const response = await apiClient.post('/client/check-activation', {
           deviceFingerprint,
@@ -102,7 +105,10 @@ function App() {
         }
       } catch (error) {
         console.log('检查激活状态失败', error);
-        // 网络错误时，如果有缓存的激活信息，暂时保留
+        // 网络错误时，清除激活状态让用户重新配置
+        if (activation) {
+          clearActivation();
+        }
       } finally {
         setCheckingActivation(false);
       }

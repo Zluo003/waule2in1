@@ -31,7 +31,7 @@ function getApiBaseUrl(): string {
 // 创建axios实例
 export const api = axios.create({
   baseURL: getApiBaseUrl(),
-  timeout: 300000,
+  timeout: 30000, // 默认 30 秒超时
 });
 
 // 监听租户存储配置变化，动态更新 baseURL
@@ -46,12 +46,19 @@ useTenantStorageStore.subscribe(() => {
 // 请求拦截器 - 添加token和租户ID
 api.interceptors.request.use(
   (config) => {
-    // 如果请求走网关，使用较短超时（避免网关不可用时等待太久）
     const tenantStorage = useTenantStorageStore.getState().config;
+    
+    // 如果生产环境未配置服务端地址，立即拒绝请求
+    if (!import.meta.env.DEV && !tenantStorage.localServerUrl) {
+      return Promise.reject(new Error('未配置企业服务端地址，请先在激活页面配置'));
+    }
+    
+    // 如果请求走网关，使用较短超时（避免网关不可用时等待太久）
     const isUsingGateway = tenantStorage.localServerUrl && 
                            config.baseURL?.includes(tenantStorage.localServerUrl);
-    if (isUsingGateway && !config.timeout) {
-      config.timeout = 15000; // 网关请求 15 秒超时
+    if (isUsingGateway) {
+      // 网关请求使用 10 秒超时（覆盖默认值）
+      config.timeout = config.timeout && config.timeout < 30000 ? config.timeout : 10000;
     }
     
     // 获取租户状态
@@ -83,20 +90,43 @@ api.interceptors.request.use(
 // 响应拦截器 - 处理错误
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ message: string }>) => {
-    // 网络错误或超时时，标记网关断开
+  async (error: AxiosError<{ message: string }>) => {
+    // 网络错误或超时时，尝试回退
     const isNetworkError = error.code === 'ERR_NETWORK' || 
                            error.code === 'ECONNABORTED' || 
                            error.code === 'ETIMEDOUT' ||
-                           error.message?.includes('timeout');
+                           error.message?.includes('timeout') ||
+                           error.message?.includes('Network Error');
     
-    if (isNetworkError) {
+    const tenantStorage = useTenantStorageStore.getState();
+    const config = error.config;
+    
+    // 如果是网关请求失败，且还没重试过，尝试回退到 Electron 内置代理
+    if (
+      isNetworkError &&
+      config &&
+      tenantStorage.config.localServerUrl &&
+      config.baseURL?.includes(tenantStorage.config.localServerUrl) &&
+      !(config as any).__retriedWithFallback
+    ) {
       // 标记网关断开
-      const tenantStorage = useTenantStorageStore.getState();
-      if (tenantStorage.config.localServerUrl) {
-        tenantStorage.setConnected(false);
-        console.error('[API] 网关连接失败，请检查租户服务端是否运行');
-      }
+      tenantStorage.setConnected(false);
+      console.warn('[API] 网关连接失败，回退到内置代理');
+      
+      // 使用 Electron 内置代理（/api 会被 main.cjs 代理到 qiye.waule.com）
+      const newConfig = {
+        ...config,
+        baseURL: '/api',
+        url: config.url?.replace(/^\/api/, '') || config.url,
+        __retriedWithFallback: true,
+        timeout: 30000,
+      };
+      
+      return api.request(newConfig);
+    }
+    
+    if (isNetworkError && tenantStorage.config.localServerUrl) {
+      console.error('[API] 网关连接失败，请检查租户服务端是否运行');
     }
 
     // 401 - 未授权，清除auth状态

@@ -181,11 +181,16 @@ export const useTenantStorageStore = create<TenantStorageState>()(
         }
 
         try {
+          // 使用 AbortController 实现超时
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          
           const response = await fetch(`${config.localServerUrl}/health`, {
             method: 'GET',
-            timeout: 5000,
-          } as RequestInit);
+            signal: controller.signal,
+          });
           
+          clearTimeout(timeoutId);
           const isConnected = response.ok;
           
           set((state) => ({

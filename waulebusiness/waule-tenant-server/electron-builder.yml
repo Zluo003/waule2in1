@@ -12,7 +12,6 @@ directories:
 files:
   - dist/**/*
   - electron/**/*.cjs
-  - data/**/*
   - package.json
   - node_modules/better-sqlite3/**/*
   - node_modules/bindings/**/*
@@ -34,23 +33,23 @@ extraResources:
 # 仅 Windows 配置
 win:
   target:
-    - target: portable
+    - target: nsis
       arch:
         - x64
   icon: resources/icon.ico
   artifactName: ${productName}-${version}-win-${arch}.${ext}
 
-# NSIS 安装程序配置（暂时不用）
-# nsis:
-#   oneClick: false
-#   allowToChangeInstallationDirectory: true
-#   installerIcon: resources/icon.ico
-#   uninstallerIcon: resources/icon.ico
-#   installerHeaderIcon: resources/icon.ico
-#   createDesktopShortcut: true
-#   createStartMenuShortcut: true
-#   shortcutName: Waule租户服务端
-#   runAfterFinish: true
+# NSIS 安装程序配置
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: resources/icon.ico
+  uninstallerIcon: resources/icon.ico
+  installerHeaderIcon: resources/icon.ico
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Waule企业版服务端
+  runAfterFinish: true
 
 # 自动更新配置（可选）
 publish:

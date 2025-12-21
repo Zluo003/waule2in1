@@ -12,8 +12,15 @@ const fs = require('fs');
 const isDev = process.env.NODE_ENV === 'development';
 
 let mainWindow = null;
+let splashWindow = null;
 let localServer = null;
 let serverPort = 18852;
+
+// 是否启用启动视频（检查视频文件是否存在）
+function hasSplashVideo() {
+  const videoPath = path.join(__dirname, 'splash.mp4');
+  return fs.existsSync(videoPath);
+}
 
 // 远程 API 服务器地址
 const REMOTE_SERVER = 'https://qiye.waule.com';
@@ -127,6 +134,31 @@ function startLocalServer(distPath) {
   });
 }
 
+// 创建启动视频窗口
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 800,
+    height: 500,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    center: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+  
+  splashWindow.loadFile(path.join(__dirname, 'splash.html'));
+  
+  splashWindow.on('closed', () => {
+    splashWindow = null;
+  });
+}
+
 async function createWindow() {
   // 生产模式先启动本地服务器
   if (!isDev) {
@@ -174,14 +206,35 @@ async function createWindow() {
 }
 
 // 应用准备就绪
-app.whenReady().then(() => {
-  createWindow();
+app.whenReady().then(async () => {
+  // 检查是否有启动视频（仅生产模式）
+  if (!isDev && hasSplashVideo()) {
+    // 显示启动视频
+    createSplashWindow();
+    // 同时在后台准备主窗口
+    await createWindow();
+    mainWindow.hide(); // 先隐藏主窗口
+  } else {
+    // 没有启动视频，直接显示主窗口
+    await createWindow();
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
+});
+
+// IPC：启动视频播放完成
+ipcMain.on('splash-finished', () => {
+  if (splashWindow) {
+    splashWindow.close();
+  }
+  if (mainWindow) {
+    mainWindow.show();
+    mainWindow.focus();
+  }
 });
 
 // 所有窗口关闭时退出（macOS 除外）
