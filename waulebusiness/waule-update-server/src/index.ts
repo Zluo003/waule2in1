@@ -4,6 +4,9 @@ import path from 'path';
 import fs from 'fs';
 import semver from 'semver';
 import multer from 'multer';
+import OSS from 'ali-oss';
+import chokidar from 'chokidar';
+import crypto from 'crypto';
 
 const app = express();
 const PORT = process.env.PORT || 3008;
@@ -13,16 +16,157 @@ const OSS_CONFIG = {
   enabled: process.env.OSS_ENABLED === 'true',
   bucket: process.env.OSS_BUCKET || 'waule-releases',
   region: process.env.OSS_REGION || 'oss-cn-hangzhou',
+  accessKeyId: process.env.OSS_ACCESS_KEY_ID || '',
+  accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET || '',
   // 自定义域名或 OSS 默认域名
   baseUrl: process.env.OSS_BASE_URL || 'https://waule-releases.oss-cn-hangzhou.aliyuncs.com',
 };
 
-// 发布目录（存放元数据）
+// 创建 OSS 客户端
+let ossClient: OSS | null = null;
+if (OSS_CONFIG.enabled && OSS_CONFIG.accessKeyId && OSS_CONFIG.accessKeySecret) {
+  ossClient = new OSS({
+    region: OSS_CONFIG.region,
+    accessKeyId: OSS_CONFIG.accessKeyId,
+    accessKeySecret: OSS_CONFIG.accessKeySecret,
+    bucket: OSS_CONFIG.bucket,
+  });
+  console.log('[OSS] 已连接阿里云 OSS');
+}
+
+// 发布目录（存放元数据和安装包）
 const RELEASES_DIR = path.join(__dirname, '../releases');
 
 // 确保发布目录存在
 if (!fs.existsSync(RELEASES_DIR)) {
   fs.mkdirSync(RELEASES_DIR, { recursive: true });
+}
+
+// 计算文件 SHA512
+function calculateSha512(filePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash('sha512');
+    const stream = fs.createReadStream(filePath);
+    stream.on('data', (data) => hash.update(data));
+    stream.on('end', () => resolve(hash.digest('base64')));
+    stream.on('error', reject);
+  });
+}
+
+// 上传文件到 OSS
+async function uploadToOSS(localPath: string, ossPath: string): Promise<boolean> {
+  if (!ossClient) {
+    console.log('[OSS] OSS 未配置，跳过上传');
+    return false;
+  }
+
+  try {
+    console.log(`[OSS] 上传中: ${ossPath}`);
+    await ossClient.put(ossPath, localPath);
+    console.log(`[OSS] 上传成功: ${ossPath}`);
+    return true;
+  } catch (error: any) {
+    console.error(`[OSS] 上传失败: ${error.message}`);
+    return false;
+  }
+}
+
+// 自动生成/更新 release.json
+async function updateReleaseJson(appName: string, version: string, filename: string, filePath: string) {
+  const versionDir = path.join(RELEASES_DIR, appName, version);
+  const releaseJsonPath = path.join(versionDir, 'release.json');
+
+  // 计算文件信息
+  const stats = fs.statSync(filePath);
+  const sha512 = await calculateSha512(filePath);
+
+  // 读取现有的 release.json 或创建新的
+  let releaseInfo: any = {
+    version,
+    releaseDate: new Date().toISOString(),
+    releaseNotes: '',
+    mandatory: false,
+    files: [],
+  };
+
+  if (fs.existsSync(releaseJsonPath)) {
+    releaseInfo = JSON.parse(fs.readFileSync(releaseJsonPath, 'utf-8'));
+  }
+
+  // 更新或添加文件信息
+  const fileIndex = releaseInfo.files.findIndex((f: any) => f.filename === filename);
+  const fileInfo = {
+    filename,
+    size: stats.size,
+    sha512,
+  };
+
+  if (fileIndex >= 0) {
+    releaseInfo.files[fileIndex] = fileInfo;
+  } else {
+    releaseInfo.files.push(fileInfo);
+  }
+
+  // 保存 release.json
+  fs.writeFileSync(releaseJsonPath, JSON.stringify(releaseInfo, null, 2));
+  console.log(`[Release] 已更新: ${appName}/${version}/release.json`);
+}
+
+// 处理新文件
+async function handleNewFile(filePath: string) {
+  // 解析路径: releases/appName/version/filename
+  const relativePath = path.relative(RELEASES_DIR, filePath);
+  const parts = relativePath.split(path.sep);
+
+  if (parts.length !== 3) return;
+
+  const [appName, version, filename] = parts;
+
+  // 只处理安装程序文件
+  if (!filename.endsWith('.exe') && !filename.endsWith('.dmg') && 
+      !filename.endsWith('.AppImage') && !filename.endsWith('.zip')) {
+    return;
+  }
+
+  // 验证版本号格式
+  if (!semver.valid(version)) {
+    console.log(`[Watch] 忽略无效版本目录: ${version}`);
+    return;
+  }
+
+  console.log(`[Watch] 检测到新文件: ${appName}/${version}/${filename}`);
+
+  // 上传到 OSS
+  const ossPath = `${appName}/${version}/${filename}`;
+  const uploaded = await uploadToOSS(filePath, ossPath);
+
+  // 更新 release.json
+  await updateReleaseJson(appName, version, filename, filePath);
+
+  if (uploaded) {
+    console.log(`[Watch] 处理完成: ${filename} → OSS`);
+  } else {
+    console.log(`[Watch] 处理完成: ${filename} (本地模式)`);
+  }
+}
+
+// 启动文件监听
+function startFileWatcher() {
+  const watcher = chokidar.watch(RELEASES_DIR, {
+    ignored: /(^|[\/\\])\..|(release\.json$)/, // 忽略隐藏文件和 release.json
+    persistent: true,
+    ignoreInitial: true,
+    awaitWriteFinish: {
+      stabilityThreshold: 2000, // 等待文件写入完成
+      pollInterval: 100,
+    },
+  });
+
+  watcher.on('add', handleNewFile);
+  watcher.on('change', handleNewFile);
+
+  console.log(`[Watch] 监听目录: ${RELEASES_DIR}`);
+  console.log('[Watch] 拷贝安装程序到对应目录即可自动上传');
 }
 
 // 中间件
@@ -294,4 +438,7 @@ app.get('/versions/:app', (req, res) => {
 app.listen(PORT, () => {
   console.log(`[Update Server] 运行在 http://localhost:${PORT}`);
   console.log(`[Update Server] 发布目录: ${RELEASES_DIR}`);
+  
+  // 启动文件监听
+  startFileWatcher();
 });
