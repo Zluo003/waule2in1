@@ -14,16 +14,23 @@
 import { Router, Request, Response } from 'express';
 import * as gemini from '../providers/gemini';
 import * as futureApi from '../providers/future-api';
+import * as gemini3Proxy from '../providers/gemini3-proxy';
 import * as doubao from '../providers/doubao';
 import * as wanx from '../providers/wanx';
 import * as qwen from '../providers/qwen';
 import * as minimax from '../providers/minimax';
-import { getProxyApiConfig } from '../db';
+import { getProxyApiConfig, getGemini3ProxyConfig } from '../db';
 
 const router = Router();
 
 function log(msg: string, data?: any) {
   console.log(`[${new Date().toISOString()}] [Images] ${msg}`, data || '');
+}
+
+// 移除提示词末尾的比例后缀（原生API和My API Key CC不需要这个后缀）
+function stripAspectRatioSuffix(prompt: string): string {
+  // 匹配类似 "，生成16:9的比例" 或 "，生成1:1比例的图片" 等模式
+  return prompt.replace(/[,，]\s*生成\d+:\d+(的)?比例(的图片)?$/g, '').trim();
 }
 
 // 判断是否是 Gemini 3.0 Pro Image 模型
@@ -35,9 +42,22 @@ function isGemini3ProImageModel(model: string): boolean {
          modelLower === 'gemini-3-pro-image-preview-4k';
 }
 
-// 判断使用哪个通道
+// 判断使用哪个通道 (旧版 Future API)
 function shouldUseProxyChannel(model: string): boolean {
   const config = getProxyApiConfig();
+  if (!config) return false;
+  
+  // 如果模型是 Gemini 3.0 Pro Image，检查配置的通道
+  if (isGemini3ProImageModel(model)) {
+    return config.channel === 'proxy' && config.is_active === 1 && !!config.api_key;
+  }
+  
+  return false;
+}
+
+// 判断是否使用 Gemini 3 Pro 专用中转通道 (my.api-key.cc 等)
+function shouldUseGemini3ProxyChannel(model: string): boolean {
+  const config = getGemini3ProxyConfig();
   if (!config) return false;
   
   // 如果模型是 Gemini 3.0 Pro Image，检查配置的通道
@@ -65,15 +85,29 @@ router.post('/generations', async (req: Request, res: Response) => {
     
     // 检查是否使用中转API通道
     if (isGemini3ProImageModel(model)) {
-      const useProxy = shouldUseProxyChannel(model);
-      log(`Gemini 3.0 Pro Image 模型, 使用${useProxy ? '中转API' : '原生API'}通道`);
+      // 优先检查 Gemini 3 Pro 专用中转通道 (my.api-key.cc)
+      const useGemini3Proxy = shouldUseGemini3ProxyChannel(model);
+      // 回退到旧的 Future API 中转
+      const useFutureProxy = !useGemini3Proxy && shouldUseProxyChannel(model);
       
-      if (useProxy) {
-        // 使用中转API
+      if (useGemini3Proxy) {
+        // My API Key CC 通道：移除比例后缀（API通过aspectRatio参数控制比例）
+        const cleanPrompt = stripAspectRatioSuffix(prompt);
+        log(`Gemini 3.0 Pro Image 模型, 使用 Gemini 3 专用中转API (${gemini3Proxy.getProviderName()}), 清理后提示词长度: ${cleanPrompt.length}`);
+        result = await gemini3Proxy.generateImage({ 
+          prompt: cleanPrompt, 
+          imageSize: image_size, 
+          aspectRatio: size, 
+          referenceImages: reference_images 
+        });
+      } else if (useFutureProxy) {
+        log(`Gemini 3.0 Pro Image 模型, 使用 Future API 中转通道`);
         result = await futureApi.generateImage({ model, prompt, size, imageSize: image_size, referenceImages: reference_images });
       } else {
-        // 使用原生Gemini API，传递分辨率参数
-        result = await gemini.generateImage({ model, prompt, size, imageSize: image_size, referenceImages: reference_images });
+        // 原生 Google API 通道：移除比例后缀（API通过aspectRatio参数控制比例）
+        const cleanPrompt = stripAspectRatioSuffix(prompt);
+        log(`Gemini 3.0 Pro Image 模型, 使用原生 Google API 通道, 清理后提示词长度: ${cleanPrompt.length}`);
+        result = await gemini.generateImage({ model, prompt: cleanPrompt, size, imageSize: image_size, referenceImages: reference_images });
       }
     } else if (modelLower.includes('gemini')) {
       // 其他 Gemini 模型使用原生API

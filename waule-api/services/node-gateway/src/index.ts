@@ -9,6 +9,7 @@ import providerKeysRouter from './routes/provider-keys';
 import platformOssRouter from './routes/platform-oss';
 import discordAccountsRouter from './routes/discord-accounts';
 import proxyApiConfigRouter from './routes/proxy-api-config';
+import gemini3ProxyConfigRouter from './routes/gemini3-proxy-config';
 import v1ImagesRouter from './routes/v1-images';
 import v1VideosRouter from './routes/v1-videos';
 import v1AudioRouter from './routes/v1-audio';
@@ -85,6 +86,7 @@ async function start() {
   gatewayApp.use('/api/platform-oss', platformOssRouter);
   gatewayApp.use('/api/discord-accounts', discordAccountsRouter);
   gatewayApp.use('/api/proxy-api-config', proxyApiConfigRouter);
+  gatewayApp.use('/api/gemini3-proxy-config', gemini3ProxyConfigRouter);
   gatewayApp.use('/api/sora-proxy-config', soraProxyConfigRouter);
   gatewayApp.use('/api/gemini', authMiddleware, geminiRouter);
   
@@ -169,6 +171,8 @@ async function start() {
   geminiApp.use('/api/discord-accounts', cors({ origin: '*' }), discordAccountsRouter);
   // proxy-api-config 管理API（中转API配置）
   geminiApp.use('/api/proxy-api-config', cors({ origin: '*' }), proxyApiConfigRouter);
+  // gemini3-proxy-config 管理API（Gemini 3 Pro中转API配置）
+  geminiApp.use('/api/gemini3-proxy-config', cors({ origin: '*' }), gemini3ProxyConfigRouter);
   // Config API (Midjourney Command ID 等)
   geminiApp.get('/api/config/:key', cors({ origin: '*' }), (req, res) => {
     const value = getConfig(req.params.key);

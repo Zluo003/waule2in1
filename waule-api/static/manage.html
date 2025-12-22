@@ -47,7 +47,7 @@
                 <button onclick="switchTab('apikeys')" id="tabApikeys" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">API Key 管理</button>
                 <button onclick="switchTab('discord')" id="tabDiscord" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">Discord(MJ)</button>
                 <button onclick="switchTab('oss')" id="tabOss" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">平台OSS</button>
-                <button onclick="switchTab('proxyapi')" id="tabProxyapi" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">中转API</button>
+                <button onclick="switchTab('proxyapi')" id="tabProxyapi" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">图片中转API</button>
                 <button onclick="switchTab('soraproxy')" id="tabSoraproxy" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">Sora中转</button>
                 <button onclick="switchTab('settings')" id="tabSettings" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">系统配置</button>
                 <button onclick="switchTab('logs')" id="tabLogs" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">请求日志</button>
@@ -394,103 +394,158 @@
             </div>
         </div>
 
-        <!-- 中转API配置面板 -->
+        <!-- 图片中转API配置面板 (统一) -->
         <div id="panelProxyapi" class="hidden">
             <!-- 说明卡片 -->
             <div class="rounded-lg border border-blue-200 bg-blue-50 p-4 mb-6">
-                <h3 class="font-semibold text-blue-800 mb-2">📖 使用说明</h3>
-                <p class="text-sm text-blue-700 mb-2">配置第三方中转API服务，支持以下模型：</p>
+                <h3 class="font-semibold text-blue-800 mb-2">🖼️ Gemini 3 Pro Image 图片生成通道配置</h3>
+                <p class="text-sm text-blue-700 mb-2">为 Gemini 3 Pro Image Preview 模型选择图片生成通道：</p>
                 <ul class="text-sm text-blue-700 list-disc list-inside space-y-1">
-                    <li><code class="bg-blue-100 px-1 rounded">gemini-3-pro-image-preview-2k</code> - 2K分辨率图片生成</li>
-                    <li><code class="bg-blue-100 px-1 rounded">gemini-3-pro-image-preview-4k</code> - 4K分辨率图片生成</li>
+                    <li><strong>原生 Google API</strong> - 直接调用 Google Gemini API（需配置 Google API Key）</li>
+                    <li><strong>My API Key CC</strong> - 推荐的中转服务，支持文生图/图生图</li>
+                    <li><strong>Future API</strong> - 备用中转服务</li>
                 </ul>
             </div>
 
             <div class="rounded-lg border border-border bg-background p-6">
-                <h3 class="text-lg font-semibold mb-6">中转API配置</h3>
+                <h3 class="text-lg font-semibold mb-6">通道选择</h3>
                 <div class="space-y-6">
-                    <!-- 通道选择 -->
-                    <div>
-                        <label class="text-sm font-medium mb-3 block">通道选择</label>
-                        <div class="flex items-center gap-6">
-                            <label class="inline-flex items-center gap-2 cursor-pointer p-3 rounded-lg border border-border hover:bg-muted transition-colors">
-                                <input type="radio" name="proxyChannel" id="proxyChannelNative" value="native" class="h-4 w-4">
-                                <div>
-                                    <span class="text-sm font-medium">原生 Google API</span>
-                                    <p class="text-xs text-muted-foreground">直接调用 Google Gemini API</p>
+                    <!-- 三选一通道 -->
+                    <div class="grid gap-4 md:grid-cols-3">
+                        <label class="relative flex flex-col cursor-pointer p-4 rounded-lg border-2 border-border hover:border-primary/50 transition-colors" id="channelCardNative">
+                            <input type="radio" name="imageProxyChannel" value="native" class="sr-only" onchange="onImageChannelChange()">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                 </div>
-                            </label>
-                            <label class="inline-flex items-center gap-2 cursor-pointer p-3 rounded-lg border border-border hover:bg-muted transition-colors">
-                                <input type="radio" name="proxyChannel" id="proxyChannelProxy" value="proxy" class="h-4 w-4">
-                                <div>
-                                    <span class="text-sm font-medium">中转 API</span>
-                                    <p class="text-xs text-muted-foreground">使用第三方中转服务</p>
+                                <span class="font-semibold">原生 Google API</span>
+                            </div>
+                            <p class="text-xs text-muted-foreground">直接调用 Google Gemini API</p>
+                            <p class="text-xs text-muted-foreground mt-1">需要配置 Google API Key</p>
+                        </label>
+
+                        <label class="relative flex flex-col cursor-pointer p-4 rounded-lg border-2 border-border hover:border-primary/50 transition-colors" id="channelCardGemini3">
+                            <input type="radio" name="imageProxyChannel" value="gemini3" class="sr-only" onchange="onImageChannelChange()">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                 </div>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- 当前状态 -->
-                    <div class="p-4 rounded-lg bg-muted">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="text-sm font-medium">当前通道状态</span>
-                                <p class="text-xs text-muted-foreground mt-1">Gemini 3.0 Pro Image 模型当前使用的通道</p>
+                                <div>
+                                    <span class="font-semibold">My API Key CC</span>
+                                    <span class="ml-2 text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">推荐</span>
+                                </div>
                             </div>
-                            <div id="proxyChannelBadge" class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-gray-100 text-gray-700">加载中...</div>
-                        </div>
-                    </div>
+                            <p class="text-xs text-muted-foreground">my.api-key.cc 中转服务</p>
+                            <p class="text-xs text-muted-foreground mt-1">支持文生图、图生图、多分辨率</p>
+                        </label>
 
-                    <hr class="border-border">
-
-                    <!-- 中转API配置 -->
-                    <div>
-                        <h4 class="text-sm font-semibold mb-4">中转API服务配置</h4>
-                        <div class="grid gap-4 md:grid-cols-2">
-                            <div class="md:col-span-2">
-                                <label class="text-sm font-medium mb-2 block">API 地址</label>
-                                <input id="proxyBaseUrl" type="text" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="https://future-api.vodeshop.com">
+                        <label class="relative flex flex-col cursor-pointer p-4 rounded-lg border-2 border-border hover:border-primary/50 transition-colors" id="channelCardFuture">
+                            <input type="radio" name="imageProxyChannel" value="future" class="sr-only" onchange="onImageChannelChange()">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                                </div>
+                                <span class="font-semibold">Future API</span>
                             </div>
-                            <div class="md:col-span-2">
-                                <label class="text-sm font-medium mb-2 block">API Key</label>
-                                <input id="proxyApiKey" type="password" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="输入中转API的密钥（留空则不修改）">
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium mb-2 block">2K模型映射</label>
-                                <input id="proxyModel2k" type="text" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="gemini-2.5-flash-image">
-                                <p class="text-xs text-muted-foreground mt-1">gemini-3-pro-image-preview-2k → 实际模型</p>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium mb-2 block">4K模型映射</label>
-                                <input id="proxyModel4k" type="text" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="gemini-2.5-flash-image">
-                                <p class="text-xs text-muted-foreground mt-1">gemini-3-pro-image-preview-4k → 实际模型</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <hr class="border-border">
-
-                    <!-- 启用状态 -->
-                    <div class="flex items-center justify-between p-4 rounded-lg border border-border">
-                        <div>
-                            <span class="text-sm font-medium">启用中转API</span>
-                            <p class="text-xs text-muted-foreground mt-1">关闭后，即使选择"中转API"通道也会使用原生API</p>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="proxyIsActive" class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                            <p class="text-xs text-muted-foreground">future-api.vodeshop.com</p>
+                            <p class="text-xs text-muted-foreground mt-1">备用中转服务</p>
                         </label>
                     </div>
 
-                    <!-- 保存按钮 -->
-                    <div class="flex gap-3">
-                        <button onclick="saveProxyApiConfig()" class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4">保存配置</button>
-                        <button onclick="loadProxyApiConfig()" class="inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent h-9 px-4">刷新</button>
+                    <!-- 当前状态显示 -->
+                    <div class="p-4 rounded-lg bg-muted">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-sm font-medium">当前生效通道</span>
+                                <p class="text-xs text-muted-foreground mt-1">Gemini 3 Pro Image 模型使用此通道生成图片</p>
+                            </div>
+                            <div id="imageChannelBadge" class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-gray-100 text-gray-700">加载中...</div>
+                        </div>
                     </div>
+
+                    <hr class="border-border">
+
+                    <!-- My API Key CC 配置区域 -->
+                    <div id="gemini3ConfigSection" class="space-y-4">
+                        <h4 class="text-sm font-semibold flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            My API Key CC 配置
+                        </h4>
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div class="md:col-span-2">
+                                <label class="text-sm font-medium mb-2 block">API 地址</label>
+                                <input id="gemini3BaseUrl" type="text" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="https://my.api-key.cc">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-sm font-medium mb-2 block">API Key</label>
+                                <input id="gemini3ApiKey" type="password" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="输入API Key（留空则不修改）">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-sm font-medium mb-2 block">模型名称</label>
+                                <input id="gemini3Model" type="text" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="gemini-3-pro-image-preview">
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="saveGemini3Config()" class="inline-flex items-center justify-center rounded-md bg-emerald-600 text-white hover:bg-emerald-700 h-8 px-3 text-sm">保存</button>
+                            <button onclick="testGemini3Connection()" class="inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent h-8 px-3 text-sm">测试连接</button>
+                        </div>
+                    </div>
+
+                    <hr class="border-border">
+
+                    <!-- Future API 配置区域 -->
+                    <div id="futureConfigSection" class="space-y-4">
+                        <h4 class="text-sm font-semibold flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            Future API 配置
+                        </h4>
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div class="md:col-span-2">
+                                <label class="text-sm font-medium mb-2 block">API 地址</label>
+                                <input id="futureBaseUrl" type="text" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="https://future-api.vodeshop.com">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-sm font-medium mb-2 block">API Key</label>
+                                <input id="futureApiKey" type="password" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="输入API Key（留空则不修改）">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium mb-2 block">2K模型映射</label>
+                                <input id="futureModel2k" type="text" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="gemini-2.5-flash-image">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium mb-2 block">4K模型映射</label>
+                                <input id="futureModel4k" type="text" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="gemini-2.5-flash-image">
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="saveFutureConfig()" class="inline-flex items-center justify-center rounded-md bg-blue-600 text-white hover:bg-blue-700 h-8 px-3 text-sm">保存</button>
+                        </div>
+                    </div>
+
+                    <hr class="border-border">
+
+                    <!-- 统计信息 -->
+                    <div>
+                        <h4 class="text-sm font-semibold mb-4">使用统计</h4>
+                        <div class="grid gap-4 md:grid-cols-3">
+                            <div class="rounded-lg border border-border bg-background p-4">
+                                <p class="text-sm font-medium text-muted-foreground mb-2">总请求数</p>
+                                <h3 class="text-xl font-bold text-blue-600" id="imageProxyStatRequests">-</h3>
+                            </div>
+                            <div class="rounded-lg border border-border bg-background p-4">
+                                <p class="text-sm font-medium text-muted-foreground mb-2">错误数</p>
+                                <h3 class="text-xl font-bold text-destructive" id="imageProxyStatErrors">-</h3>
+                            </div>
+                            <div class="rounded-lg border border-border bg-background p-4">
+                                <p class="text-sm font-medium text-muted-foreground mb-2">最后使用</p>
+                                <h3 class="text-sm font-medium" id="imageProxyStatLastUsed">-</h3>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-
-            </div>
+        </div>
 
         <!-- Sora中转API配置面板 -->
         <div id="panelSoraproxy" class="hidden">
@@ -1118,7 +1173,7 @@
         refreshLogs=async()=>{await loadLogs()},
         showToast=(m,t='info')=>{const d=document.createElement('div'),bc={success:'bg-green-600',error:'bg-destructive',info:'bg-primary'};d.className=`fixed bottom-4 right-4 ${bc[t]||bc.info} text-white px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium z-50 animate-slide-up`;d.textContent=m;document.body.appendChild(d);setTimeout(()=>{d.style.opacity='0';d.style.transition='opacity .3s';setTimeout(()=>d.parentNode&&document.body.removeChild(d),300)},2000)},
         logout=()=>{if(!confirm('确定要退出登录吗?'))return;localStorage.removeItem('adminToken');location.href='/login'},
-        switchTab=t=>{const cap=n=>n.charAt(0).toUpperCase()+n.slice(1);['tokens','apikeys','discord','oss','proxyapi','soraproxy','settings','logs'].forEach(n=>{const active=n===t;$(`panel${cap(n)}`).classList.toggle('hidden',!active);$(`tab${cap(n)}`).classList.toggle('border-primary',active);$(`tab${cap(n)}`).classList.toggle('text-primary',active);$(`tab${cap(n)}`).classList.toggle('border-transparent',!active);$(`tab${cap(n)}`).classList.toggle('text-muted-foreground',!active)});if(t==='settings'){loadAdminConfig();loadProxyConfig();loadWatermarkFreeConfig();loadCacheConfig();loadGenerationTimeout();loadATAutoRefreshConfig()}else if(t==='logs'){loadLogs()}else if(t==='apikeys'){loadProviderKeys()}else if(t==='discord'){loadDiscordAccounts();loadMjConfig()}else if(t==='oss'){loadOssConfig()}else if(t==='proxyapi'){loadProxyApiConfig()}else if(t==='soraproxy'){loadSoraProxyConfig()}},
+        switchTab=t=>{const cap=n=>n.charAt(0).toUpperCase()+n.slice(1);['tokens','apikeys','discord','oss','proxyapi','soraproxy','settings','logs'].forEach(n=>{const active=n===t;$(`panel${cap(n)}`).classList.toggle('hidden',!active);$(`tab${cap(n)}`).classList.toggle('border-primary',active);$(`tab${cap(n)}`).classList.toggle('text-primary',active);$(`tab${cap(n)}`).classList.toggle('border-transparent',!active);$(`tab${cap(n)}`).classList.toggle('text-muted-foreground',!active)});if(t==='settings'){loadAdminConfig();loadProxyConfig();loadWatermarkFreeConfig();loadCacheConfig();loadGenerationTimeout();loadATAutoRefreshConfig()}else if(t==='logs'){loadLogs()}else if(t==='apikeys'){loadProviderKeys()}else if(t==='discord'){loadDiscordAccounts();loadMjConfig()}else if(t==='oss'){loadOssConfig()}else if(t==='proxyapi'){loadImageProxyConfig()}else if(t==='soraproxy'){loadSoraProxyConfig()}},
         // ========== Gemini API Keys 管理 ==========
         geminiApiRequest=async(url,opts={})=>{try{const r=await fetch(`${GEMINI_API_BASE}${url}`,{...opts,headers:{...opts.headers,'Content-Type':'application/json'}});return r}catch(e){console.error('Gemini API请求失败:',e);return null}},
         loadGeminiStats=async()=>{try{const r=await geminiApiRequest('/api/gemini-keys/stats');if(!r)return;const d=await r.json();if(d.success&&d.stats){$('geminiStatTotal').textContent=d.stats.total||0;$('geminiStatActive').textContent=d.stats.active||0;$('geminiStatRequests').textContent=d.stats.total_requests||0;$('geminiStatErrors').textContent=d.stats.total_errors||0}}catch(e){console.error('加载Gemini统计失败:',e)}},
@@ -1144,10 +1199,112 @@
         submitAddKey=async()=>{const provider=$('addKeyProvider').value,keys=$('addKeyValue').value.trim(),name=$('addKeyName').value.trim();if(!keys){showToast('请输入API Key','error');return}const keyList=keys.split('\n').map(k=>k.trim()).filter(k=>k);try{if(keyList.length===1){const r=await gatewayApiRequest('/api/provider-keys',{method:'POST',body:JSON.stringify({provider,api_key:keyList[0],name})});const d=await r.json();if(d.success){showToast('添加成功','success');closeAddKeyModal();loadProviderKeys()}else showToast(d.error||'添加失败','error')}else{const r=await gatewayApiRequest('/api/provider-keys/batch',{method:'POST',body:JSON.stringify({provider,keys:keyList})});const d=await r.json();showToast(`添加${d.added}个，跳过${d.skipped}个`,'success');closeAddKeyModal();loadProviderKeys()}}catch(e){showToast('添加失败','error')}},
         toggleProviderKey=async id=>{try{await gatewayApiRequest(`/api/provider-keys/${id}/toggle`,{method:'POST'});loadProviderKeys()}catch(e){showToast('操作失败','error')}},
         deleteProviderKey=async id=>{if(!confirm('确定删除?'))return;try{await gatewayApiRequest(`/api/provider-keys/${id}`,{method:'DELETE'});loadProviderKeys()}catch(e){showToast('删除失败','error')}},
-        // ========== 中转API配置 ==========
-        updateProxyChannelBadge=(channel,isActive)=>{const badge=$('proxyChannelBadge');if(channel==='proxy'&&isActive){badge.className='inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-blue-100 text-blue-700';badge.textContent='中转API'}else{badge.className='inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-green-100 text-green-700';badge.textContent='原生Google API'}},
-        loadProxyApiConfig=async()=>{try{const r=await gatewayApiRequest('/api/proxy-api-config');if(!r)return;const d=await r.json();if(d.success&&d.config){const c=d.config;$('proxyBaseUrl').value=c.base_url||'https://future-api.vodeshop.com';$('proxyModel2k').value=c.model_2k||'gemini-2.5-flash-image';$('proxyModel4k').value=c.model_4k||'gemini-2.5-flash-image';$('proxyIsActive').checked=!!c.is_active;$('proxyApiKey').placeholder=c.api_key_masked?`已保存: ${c.api_key_masked}`:'输入中转API的密钥（留空则不修改）';if(c.channel==='proxy'){$('proxyChannelProxy').checked=true}else{$('proxyChannelNative').checked=true}updateProxyChannelBadge(c.channel,!!c.is_active);loadSora2Config(c)}}catch(e){console.error('加载中转API配置失败:',e)}},
-        saveProxyApiConfig=async()=>{const baseUrl=$('proxyBaseUrl').value.trim(),apiKey=$('proxyApiKey').value.trim(),model2k=$('proxyModel2k').value.trim(),model4k=$('proxyModel4k').value.trim(),isActive=$('proxyIsActive').checked,channel=$('proxyChannelProxy').checked?'proxy':'native';const body={base_url:baseUrl||'https://future-api.vodeshop.com',model_2k:model2k||'gemini-2.5-flash-image',model_4k:model4k||'gemini-2.5-flash-image',is_active:isActive?1:0,channel:channel};if(apiKey)body.api_key=apiKey;try{const r=await gatewayApiRequest('/api/proxy-api-config',{method:'PUT',body:JSON.stringify(body)});if(!r)return showToast('保存失败：网络错误','error');const d=await r.json();if(d.success){showToast('中转API配置保存成功','success');$('proxyApiKey').value='';updateProxyChannelBadge(channel,isActive)}else{showToast('保存失败: '+(d.error||'未知错误'),'error')}}catch(e){showToast('保存失败: '+e.message,'error')}},
+        // ========== 图片中转API统一配置 ==========
+        updateImageChannelUI=(channel)=>{
+            ['Native','Gemini3','Future'].forEach(n=>{
+                const card=$('channelCard'+n);
+                if(card){
+                    const isActive=(n==='Native'&&channel==='native')||(n==='Gemini3'&&channel==='gemini3')||(n==='Future'&&channel==='future');
+                    card.classList.remove('border-primary','border-emerald-500','border-blue-500','bg-emerald-50','bg-blue-50','bg-green-50');
+                    card.classList.add('border-border');
+                    if(isActive){
+                        card.classList.remove('border-border');
+                        if(n==='Native'){card.classList.add('border-green-500','bg-green-50')}
+                        else if(n==='Gemini3'){card.classList.add('border-emerald-500','bg-emerald-50')}
+                        else if(n==='Future'){card.classList.add('border-blue-500','bg-blue-50')}
+                    }
+                    card.querySelector('input[type="radio"]').checked=isActive;
+                }
+            });
+            const badge=$('imageChannelBadge');
+            if(channel==='native'){badge.className='inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-green-100 text-green-700';badge.textContent='原生 Google API'}
+            else if(channel==='gemini3'){badge.className='inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-emerald-100 text-emerald-700';badge.textContent='My API Key CC'}
+            else if(channel==='future'){badge.className='inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-blue-100 text-blue-700';badge.textContent='Future API'}
+            else{badge.className='inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-green-100 text-green-700';badge.textContent='原生 Google API'}
+        },
+        onImageChannelChange=async()=>{
+            const selected=document.querySelector('input[name="imageProxyChannel"]:checked')?.value||'native';
+            updateImageChannelUI(selected);
+            try{
+                if(selected==='native'){
+                    await gatewayApiRequest('/api/gemini3-proxy-config',{method:'PUT',body:JSON.stringify({channel:'native',is_active:0})});
+                    await gatewayApiRequest('/api/proxy-api-config',{method:'PUT',body:JSON.stringify({channel:'native',is_active:0})});
+                }else if(selected==='gemini3'){
+                    await gatewayApiRequest('/api/gemini3-proxy-config',{method:'PUT',body:JSON.stringify({channel:'proxy',is_active:1})});
+                    await gatewayApiRequest('/api/proxy-api-config',{method:'PUT',body:JSON.stringify({channel:'native',is_active:0})});
+                }else if(selected==='future'){
+                    await gatewayApiRequest('/api/gemini3-proxy-config',{method:'PUT',body:JSON.stringify({channel:'native',is_active:0})});
+                    await gatewayApiRequest('/api/proxy-api-config',{method:'PUT',body:JSON.stringify({channel:'proxy',is_active:1})});
+                }
+                showToast('通道切换成功','success');
+            }catch(e){showToast('通道切换失败: '+e.message,'error')}
+        },
+        loadImageProxyConfig=async()=>{
+            try{
+                const[g3Res,futureRes]=await Promise.all([gatewayApiRequest('/api/gemini3-proxy-config'),gatewayApiRequest('/api/proxy-api-config')]);
+                let g3=null,future=null;
+                try{g3=g3Res?await g3Res.json():null}catch(e){console.error('解析gemini3配置失败:',e)}
+                try{future=futureRes?await futureRes.json():null}catch(e){console.error('解析future配置失败:',e)}
+                let channel='native';
+                if(g3&&g3.success&&g3.config&&g3.config.channel==='proxy'&&g3.config.is_active===1){channel='gemini3'}
+                else if(future&&future.success&&future.config&&future.config.channel==='proxy'&&future.config.is_active===1){channel='future'}
+                console.log('当前通道:',channel,'g3:',g3,'future:',future);
+                updateImageChannelUI(channel);
+                if(g3&&g3.success&&g3.config){
+                    $('gemini3BaseUrl').value=g3.config.base_url||'https://my.api-key.cc';
+                    $('gemini3Model').value=g3.config.model||'gemini-3-pro-image-preview';
+                    $('gemini3ApiKey').placeholder=g3.config.api_key_masked?`已保存: ${g3.config.api_key_masked}`:'输入API Key（留空则不修改）';
+                    $('imageProxyStatRequests').textContent=g3.config.request_count||0;
+                    $('imageProxyStatErrors').textContent=g3.config.error_count||0;
+                    $('imageProxyStatLastUsed').textContent=g3.config.last_used_at?new Date(g3.config.last_used_at).toLocaleString():'从未使用';
+                }
+                if(future&&future.success&&future.config){
+                    $('futureBaseUrl').value=future.config.base_url||'https://future-api.vodeshop.com';
+                    $('futureModel2k').value=future.config.model_2k||'gemini-2.5-flash-image';
+                    $('futureModel4k').value=future.config.model_4k||'gemini-2.5-flash-image';
+                    $('futureApiKey').placeholder=future.config.api_key_masked?`已保存: ${future.config.api_key_masked}`:'输入API Key（留空则不修改）';
+                }
+            }catch(e){console.error('加载图片中转配置失败:',e);updateImageChannelUI('native')}
+        },
+        saveGemini3Config=async()=>{
+            const baseUrl=$('gemini3BaseUrl').value.trim();
+            const model=$('gemini3Model').value.trim();
+            const apiKey=$('gemini3ApiKey').value.trim();
+            const body={base_url:baseUrl||'https://my.api-key.cc',model:model||'gemini-3-pro-image-preview',provider:'my-api-key-cc'};
+            if(apiKey)body.api_key=apiKey;
+            try{
+                const r=await gatewayApiRequest('/api/gemini3-proxy-config',{method:'PUT',body:JSON.stringify(body)});
+                if(!r)return showToast('保存失败：网络错误','error');
+                const d=await r.json();
+                if(d.success){showToast('My API Key CC 配置保存成功','success');$('gemini3ApiKey').value='';await loadImageProxyConfig()}
+                else showToast('保存失败: '+(d.error||'未知错误'),'error');
+            }catch(e){showToast('保存失败: '+e.message,'error')}
+        },
+        testGemini3Connection=async()=>{
+            showToast('正在测试连接...','info');
+            try{
+                const r=await gatewayApiRequest('/api/gemini3-proxy-config/test',{method:'POST'});
+                if(!r)return showToast('测试失败：网络错误','error');
+                const d=await r.json();
+                if(d.success){showToast(`连接成功，响应时间: ${d.duration}ms`,'success')}
+                else showToast('连接失败: '+(d.error||'未知错误'),'error');
+            }catch(e){showToast('测试失败: '+e.message,'error')}
+        },
+        saveFutureConfig=async()=>{
+            const baseUrl=$('futureBaseUrl').value.trim();
+            const model2k=$('futureModel2k').value.trim();
+            const model4k=$('futureModel4k').value.trim();
+            const apiKey=$('futureApiKey').value.trim();
+            const body={base_url:baseUrl||'https://future-api.vodeshop.com',model_2k:model2k||'gemini-2.5-flash-image',model_4k:model4k||'gemini-2.5-flash-image'};
+            if(apiKey)body.api_key=apiKey;
+            try{
+                const r=await gatewayApiRequest('/api/proxy-api-config',{method:'PUT',body:JSON.stringify(body)});
+                if(!r)return showToast('保存失败：网络错误','error');
+                const d=await r.json();
+                if(d.success){showToast('Future API 配置保存成功','success');$('futureApiKey').value='';await loadImageProxyConfig()}
+                else showToast('保存失败: '+(d.error||'未知错误'),'error');
+            }catch(e){showToast('保存失败: '+e.message,'error')}
+        },
         // ========== Sora中转API配置 ==========
         updateSoraChannelBadge=()=>{const channel=document.querySelector('input[name="soraChannel"]:checked')?.value||'sora2api';const badge=$('soraChannelBadge');if(channel==='future-sora-api'){badge.className='inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-purple-100 text-purple-700';badge.textContent='中转API (future-api)'}else{badge.className='inline-flex items-center rounded-full px-3 py-1 text-sm font-medium bg-green-100 text-green-700';badge.textContent='直连 sora2api'}},
         loadSoraProxyConfig=async()=>{try{const r=await gatewayApiRequest('/api/sora-proxy-config');if(!r)return;const d=await r.json();if(d.success&&d.data){const config=d.data;$('soraProxyBaseUrl').value=config.base_url||'https://future-api.vodeshop.com';$('soraProxyIsActive').checked=!!config.is_active;const channel=config.channel||'sora2api';document.querySelectorAll('input[name="soraChannel"]').forEach(r=>{r.checked=r.value===channel});updateSoraChannelBadge()}}catch(e){console.error('加载Sora中转配置失败:',e)}},
@@ -1169,7 +1326,7 @@
         getMjConfigUrl=()=>GATEWAY_API_BASE,
         loadMjConfig=async()=>{try{const base=getMjConfigUrl();const[cmdRes,verRes]=await Promise.all([fetch(`${base}/api/config/mj_command_id`),fetch(`${base}/api/config/mj_version_id`)]);const cmdData=await cmdRes.json(),verData=await verRes.json();$('cfgMjCommandId').value=cmdData.value||'';$('cfgMjVersionId').value=verData.value||''}catch(e){console.error('加载MJ配置失败:',e)}},
         saveMjConfig=async()=>{const commandId=$('cfgMjCommandId').value.trim(),versionId=$('cfgMjVersionId').value.trim();if(!commandId||!versionId){showToast('请填写 Command ID 和 Version ID','error');return}try{const base=getMjConfigUrl();const[r1,r2]=await Promise.all([fetch(`${base}/api/config/mj_command_id`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:commandId})}),fetch(`${base}/api/config/mj_version_id`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:versionId})})]);const d1=await r1.json(),d2=await r2.json();if(d1.success&&d2.success){showToast('Midjourney 配置保存成功','success')}else{showToast('保存失败','error')}}catch(e){showToast('保存失败: '+e.message,'error')}};
-        window.addEventListener('DOMContentLoaded',()=>{checkAuth();refreshTokens();loadATAutoRefreshConfig();loadProxyApiConfig()});
+        window.addEventListener('DOMContentLoaded',()=>{checkAuth();refreshTokens();loadATAutoRefreshConfig();loadImageProxyConfig()});
     </script>
 </body>
 </html>
