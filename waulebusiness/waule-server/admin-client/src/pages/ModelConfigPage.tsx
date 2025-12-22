@@ -52,6 +52,7 @@ const MINIMAX_SPEECH_26_HD_ID = 'speech-2.6-hd'
 const SORA_IMAGE_ID = 'sora-image'
 const SORA_VIDEO_ID = 'sora-video'
 const VIDU_Q2_PRO_ID = 'viduq2-pro'
+const VIDU_Q2_PRO_FAST_ID = 'viduq2-pro-fast'
 const VIDU_Q2_TURBO_ID = 'viduq2-turbo'
 const VIDU_Q2_ID = 'viduq2'
 
@@ -66,7 +67,7 @@ const defaultViduApiUrl = 'https://api.vidu.cn/ent/v2'
 const ModelConfigPage = () => {
   const [loading, setLoading] = useState(false)
   const [existingModels, setExistingModels] = useState<AIModel[]>([])
-  const [selectedKey, setSelectedKey] = useState<'google_pro' | 'google_flash_text' | 'google_flash' | 'google_gemini3' | 'google_gemini3_image' | 'doubao_seedance_pro' | 'doubao_seedance_fast' | 'doubao_seedream' | 'doubao_seedream_45' | 'aliyun_qwen_image_edit' | 'aliyun_animate_move' | 'aliyun_animate_mix' | 'aliyun_video_style' | 'aliyun_videoretalk' | 'minimaxi_hailuo_23' | 'minimaxi_hailuo_23_fast' | 'minimaxi_hailuo_02' | 'minimaxi_speech_26_hd' | 'sora_image' | 'sora_video' | 'vidu_q2_pro' | 'vidu_q2_turbo' | 'vidu_q2'>('google_pro')
+  const [selectedKey, setSelectedKey] = useState<'google_pro' | 'google_flash_text' | 'google_flash' | 'google_gemini3' | 'google_gemini3_image' | 'doubao_seedance_pro' | 'doubao_seedance_fast' | 'doubao_seedream' | 'doubao_seedream_45' | 'aliyun_qwen_image_edit' | 'aliyun_animate_move' | 'aliyun_animate_mix' | 'aliyun_video_style' | 'aliyun_videoretalk' | 'minimaxi_hailuo_23' | 'minimaxi_hailuo_23_fast' | 'minimaxi_hailuo_02' | 'minimaxi_speech_26_hd' | 'sora_image' | 'sora_video' | 'vidu_q2_pro' | 'vidu_q2_pro_fast' | 'vidu_q2_turbo' | 'vidu_q2'>('google_pro')
   
   // Midjourney 设置
   const [mjFastEnabled, setMjFastEnabled] = useState(true)
@@ -301,6 +302,16 @@ const ModelConfigPage = () => {
   const [viduQ2ProAccepted, setViduQ2ProAccepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [viduQ2ProVideoConfig, setViduQ2ProVideoConfig] = useState({ supportedRatios: ['16:9', '9:16', '1:1', '4:3', '3:4'], supportedResolutions: ['540p', '720p', '1080p'], supportedGenerationTypes: ['文生视频', '主体参考', '首帧', '尾帧', '首尾帧'], supportedDurations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], maxDuration: 10, supportedFps: [24, 30], maxResolution: '1920x1080', supportsImageToVideo: true, maxReferenceImages: 2, supportsSubjects: true, supportsAudioOutput: true })
   const [viduQ2ProServerId, setViduQ2ProServerId] = useState<string>('')
+
+  const [viduQ2ProFastId, setViduQ2ProFastId] = useState<string | null>(null)
+  const [viduQ2ProFastName, setViduQ2ProFastName] = useState('Vidu Q2 Pro Fast')
+  const [viduQ2ProFastIsActive, setViduQ2ProFastIsActive] = useState(true)
+  const [viduQ2ProFastPrice, setViduQ2ProFastPrice] = useState('')
+  const [viduQ2ProFastApiKey, setViduQ2ProFastApiKey] = useState('')
+  const [viduQ2ProFastApiUrl, setViduQ2ProFastApiUrl] = useState('')
+  const [viduQ2ProFastAccepted, setViduQ2ProFastAccepted] = useState<string[]>(['TEXT', 'IMAGE'])
+  const [viduQ2ProFastVideoConfig, setViduQ2ProFastVideoConfig] = useState({ supportedRatios: ['16:9', '9:16', '1:1', '4:3', '3:4'], supportedResolutions: ['540p', '720p', '1080p'], supportedGenerationTypes: ['文生视频', '主体参考', '首帧', '尾帧', '首尾帧'], supportedDurations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], maxDuration: 10, supportedFps: [24, 30], maxResolution: '1920x1080', supportsImageToVideo: true, maxReferenceImages: 2, supportsSubjects: true, supportsAudioOutput: true })
+  const [viduQ2ProFastServerId, setViduQ2ProFastServerId] = useState<string>('')
 
   const [viduQ2TurboId, setViduQ2TurboId] = useState<string | null>(null)
   const [viduQ2TurboName, setViduQ2TurboName] = useState('Vidu Q2 Turbo')
@@ -1011,6 +1022,39 @@ const ModelConfigPage = () => {
           setViduQ2ProApiUrl(defaultViduApiUrl)
           setViduQ2ProAccepted(['TEXT', 'IMAGE'])
           setViduQ2ProVideoConfig({ supportedRatios: ['16:9', '9:16', '1:1', '4:3', '3:4'], supportedResolutions: ['540p', '720p', '1080p'], supportedGenerationTypes: ['文生视频', '主体参考', '首帧', '尾帧', '首尾帧'], supportedDurations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], maxDuration: 10, supportedFps: [24, 30], maxResolution: '1920x1080', supportsImageToVideo: true, maxReferenceImages: 2, supportsSubjects: true, supportsAudioOutput: true })
+        }
+
+        const viduQ2ProFast = list.find(m => m.modelId === VIDU_Q2_PRO_FAST_ID)
+        if (viduQ2ProFast) {
+          setViduQ2ProFastId(viduQ2ProFast.id)
+          setViduQ2ProFastName(viduQ2ProFast.name)
+          setViduQ2ProFastIsActive(viduQ2ProFast.isActive)
+          setViduQ2ProFastPrice(viduQ2ProFast.pricePerUse || '')
+          setViduQ2ProFastApiKey(viduQ2ProFast.apiKey || '')
+          setViduQ2ProFastApiUrl(viduQ2ProFast.apiUrl || defaultViduApiUrl)
+          setViduQ2ProFastAccepted(Array.isArray(viduQ2ProFast.config?.acceptedInputs) ? viduQ2ProFast.config.acceptedInputs : ['TEXT', 'IMAGE'])
+          setViduQ2ProFastVideoConfig({
+            supportedRatios: viduQ2ProFast.config?.supportedRatios || ['16:9', '9:16', '1:1', '4:3', '3:4'],
+            supportedResolutions: viduQ2ProFast.config?.supportedResolutions || ['540p', '720p', '1080p'],
+            supportedGenerationTypes: viduQ2ProFast.config?.supportedGenerationTypes || ['文生视频', '主体参考', '首帧', '尾帧', '首尾帧'],
+            supportedDurations: viduQ2ProFast.config?.supportedDurations || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            maxDuration: viduQ2ProFast.config?.maxDuration ?? 10,
+            supportedFps: viduQ2ProFast.config?.supportedFps || [24, 30],
+            maxResolution: viduQ2ProFast.config?.maxResolution || '1920x1080',
+            supportsImageToVideo: viduQ2ProFast.config?.supportsImageToVideo !== false,
+            maxReferenceImages: viduQ2ProFast.config?.maxReferenceImages ?? 2,
+            supportsSubjects: viduQ2ProFast.config?.supportsSubjects !== false,
+            supportsAudioOutput: viduQ2ProFast.config?.supportsAudioOutput !== false,
+          })
+        } else {
+          setViduQ2ProFastId(null)
+          setViduQ2ProFastName('Vidu Q2 Pro Fast')
+          setViduQ2ProFastIsActive(true)
+          setViduQ2ProFastPrice('')
+          setViduQ2ProFastApiKey('')
+          setViduQ2ProFastApiUrl(defaultViduApiUrl)
+          setViduQ2ProFastAccepted(['TEXT', 'IMAGE'])
+          setViduQ2ProFastVideoConfig({ supportedRatios: ['16:9', '9:16', '1:1', '4:3', '3:4'], supportedResolutions: ['540p', '720p', '1080p'], supportedGenerationTypes: ['文生视频', '主体参考', '首帧', '尾帧', '首尾帧'], supportedDurations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], maxDuration: 10, supportedFps: [24, 30], maxResolution: '1920x1080', supportsImageToVideo: true, maxReferenceImages: 2, supportsSubjects: true, supportsAudioOutput: true })
         }
 
         const viduQ2Turbo = list.find(m => m.modelId === VIDU_Q2_TURBO_ID)
@@ -2042,6 +2086,13 @@ const ModelConfigPage = () => {
                   <div className="text-xs text-slate-500 dark:text-gray-500 font-mono">{VIDU_Q2_PRO_ID}</div>
                 </div>
                 {existingModels.find(m => m.modelId === VIDU_Q2_PRO_ID) && (<span className="text-xs text-green-400">已配置</span>)}
+              </button>
+              <button type="button" onClick={() => setSelectedKey('vidu_q2_pro_fast')} className={`w-full text-left p-3 rounded-lg border ${selectedKey === 'vidu_q2_pro_fast' ? 'border-slate-400 dark:border-slate-500 bg-slate-100 dark:bg-slate-700' : 'border-slate-200 dark:border-border-dark'} flex items-center justify-between`}>
+                <div>
+                  <div className="text-slate-900 dark:text-white">Vidu Q2 Pro Fast</div>
+                  <div className="text-xs text-slate-500 dark:text-gray-500 font-mono">{VIDU_Q2_PRO_FAST_ID}</div>
+                </div>
+                {existingModels.find(m => m.modelId === VIDU_Q2_PRO_FAST_ID) && (<span className="text-xs text-green-400">已配置</span>)}
               </button>
               <button type="button" onClick={() => setSelectedKey('vidu_q2_turbo')} className={`w-full text-left p-3 rounded-lg border ${selectedKey === 'vidu_q2_turbo' ? 'border-slate-400 dark:border-slate-500 bg-slate-100 dark:bg-slate-700' : 'border-slate-200 dark:border-border-dark'} flex items-center justify-between`}>
                 <div>
@@ -3695,6 +3746,118 @@ const ModelConfigPage = () => {
                           const saved2 = resp2?.data || resp2
                           setViduQ2ProId(saved2?.id || dup.id)
                           toast.success('已保存 Vidu Q2 Pro 配置')
+                        } else {
+                          throw e
+                        }
+                      }
+                    }
+                    await refreshModels()
+                  } catch (e: any) {
+                    toast.error(e?.response?.data?.message || '保存失败')
+                  }
+                }} className="px-6 py-2 bg-primary text-white rounded-lg">保存配置</button>
+              </div>
+            </div>
+          )}
+
+          {selectedKey === 'vidu_q2_pro_fast' && (
+            <div className="bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Vidu Q2 Pro Fast</h2>
+                <span className="text-xs px-2 py-0.5 rounded bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-gray-300">VIDEO_GENERATION</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型名称 *</label>
+                  <input value={viduQ2ProFastName} onChange={e => setViduQ2ProFastName(e.target.value)} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型ID（只读）</label>
+                  <input value={VIDU_Q2_PRO_FAST_ID} disabled readOnly className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white font-mono text-sm" />
+                </div>
+              </div>
+              <ServerSelect value={viduQ2ProFastServerId} onChange={setViduQ2ProFastServerId} />
+              <div className="mt-6">
+                <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">可接受的输入</div>
+                <div className="flex gap-2 flex-wrap">
+                  {['TEXT', 'IMAGE'].map(t => (
+                    <button key={t} type="button" onClick={() => toggleList(viduQ2ProFastAccepted, t, setViduQ2ProFastAccepted)} className={`px-3 py-1.5 rounded border-2 text-sm ${viduQ2ProFastAccepted.includes(t) ? 'border-slate-400 dark:border-slate-500 bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-bold' : 'border-slate-200 dark:border-border-dark text-slate-600 dark:text-gray-400 hover:border-slate-400 dark:hover:border-gray-600'}`}>{t}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-6 space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">支持的比例（多选）</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['16:9', '9:16', '1:1', '4:3', '3:4'].map(r => (
+                      <button key={r} type="button" onClick={() => setViduQ2ProFastVideoConfig({ ...viduQ2ProFastVideoConfig, supportedRatios: viduQ2ProFastVideoConfig.supportedRatios.includes(r) ? viduQ2ProFastVideoConfig.supportedRatios.filter(x => x !== r) : [...viduQ2ProFastVideoConfig.supportedRatios, r] })} className={`px-3 py-2 rounded-lg border-2 text-sm ${viduQ2ProFastVideoConfig.supportedRatios.includes(r) ? 'border-slate-400 dark:border-slate-500 bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-bold' : 'border-slate-200 dark:border-border-dark text-slate-600 dark:text-gray-400 hover:border-slate-400 dark:hover:border-gray-600'}`}>{r}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">支持的分辨率（多选）</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['540p', '720p', '1080p'].map(res => (
+                      <button key={res} type="button" onClick={() => setViduQ2ProFastVideoConfig({ ...viduQ2ProFastVideoConfig, supportedResolutions: viduQ2ProFastVideoConfig.supportedResolutions.includes(res) ? viduQ2ProFastVideoConfig.supportedResolutions.filter(x => x !== res) : [...viduQ2ProFastVideoConfig.supportedResolutions, res] })} className={`px-3 py-2 rounded-lg border-2 text-sm ${viduQ2ProFastVideoConfig.supportedResolutions.includes(res) ? 'border-slate-400 dark:border-slate-500 bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-bold' : 'border-slate-200 dark:border-border-dark text-slate-600 dark:text-gray-400 hover:border-slate-400 dark:hover:border-gray-600'}`}>{res}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-background-dark rounded-lg">
+                  <input type="checkbox" checked={viduQ2ProFastVideoConfig.supportsSubjects} onChange={e => setViduQ2ProFastVideoConfig({ ...viduQ2ProFastVideoConfig, supportsSubjects: e.target.checked })} className="w-5 h-5" />
+                  <div className="flex-1">
+                    <div className="text-sm text-slate-900 dark:text-white">支持主体参考 (Subjects)</div>
+                    <div className="text-xs text-slate-500 dark:text-gray-500">支持从角色库选择角色组</div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">最大参考图数量</label>
+                  <input type="number" min={0} max={10} value={viduQ2ProFastVideoConfig.maxReferenceImages} onChange={e => setViduQ2ProFastVideoConfig({ ...viduQ2ProFastVideoConfig, maxReferenceImages: Number(e.target.value) })} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">生成类型（多选）</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['文生视频', '主体参考', '首帧', '尾帧', '首尾帧'].map(t => (
+                      <button key={t} type="button" onClick={() => setViduQ2ProFastVideoConfig({ ...viduQ2ProFastVideoConfig, supportedGenerationTypes: viduQ2ProFastVideoConfig.supportedGenerationTypes.includes(t) ? viduQ2ProFastVideoConfig.supportedGenerationTypes.filter(x => x !== t) : [...viduQ2ProFastVideoConfig.supportedGenerationTypes, t] })} className={`px-3 py-2 rounded-lg border-2 text-sm ${viduQ2ProFastVideoConfig.supportedGenerationTypes.includes(t) ? 'border-slate-400 dark:border-slate-500 bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-bold' : 'border-slate-200 dark:border-border-dark text-slate-600 dark:text-gray-400 hover:border-slate-400 dark:hover:border-gray-600'}`}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">视频时长（多选，秒）</label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(d => (
+                      <button key={d} type="button" onClick={() => setViduQ2ProFastVideoConfig({ ...viduQ2ProFastVideoConfig, supportedDurations: viduQ2ProFastVideoConfig.supportedDurations.includes(d) ? viduQ2ProFastVideoConfig.supportedDurations.filter(x => x !== d) : [...viduQ2ProFastVideoConfig.supportedDurations, d].sort((a, b) => a - b) })} className={`px-3 py-2 rounded-lg border-2 text-sm ${viduQ2ProFastVideoConfig.supportedDurations.includes(d) ? 'border-slate-400 dark:border-slate-500 bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white font-bold' : 'border-slate-200 dark:border-border-dark text-slate-600 dark:text-gray-400 hover:border-slate-400 dark:hover:border-gray-600'}`}>{d}s</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <input type="checkbox" checked={viduQ2ProFastIsActive} onChange={e => setViduQ2ProFastIsActive(e.target.checked)} className="w-5 h-5" />
+                  <span className="text-sm text-slate-900 dark:text-white">启用此模型</span>
+                </div>
+                <button onClick={async () => {
+                  try {
+                    const payload = { name: viduQ2ProFastName, provider: 'vidu', modelId: VIDU_Q2_PRO_FAST_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: viduQ2ProFastApiKey, apiUrl: viduQ2ProFastApiUrl, isActive: viduQ2ProFastIsActive, pricePerUse: viduQ2ProFastPrice ? parseFloat(viduQ2ProFastPrice) : undefined, config: { ...viduQ2ProFastVideoConfig, acceptedInputs: viduQ2ProFastAccepted } }
+                    const existing = existingModels.find(m => m.provider === 'vidu' && m.modelId === VIDU_Q2_PRO_FAST_ID)
+                    const targetId = viduQ2ProFastId || existing?.id
+                    if (targetId) {
+                      const resp = await apiClient.admin.updateAIModel(targetId, payload)
+                      const saved = resp?.data || resp
+                      setViduQ2ProFastId(saved?.id || targetId)
+                      toast.success('已保存 Vidu Q2 Pro Fast 配置')
+                    } else {
+                      try {
+                        const resp = await apiClient.admin.createAIModel(payload)
+                        const saved = resp?.data || resp
+                        setViduQ2ProFastId(saved?.id || null)
+                        toast.success('已创建 Vidu Q2 Pro Fast 配置')
+                      } catch (e) {
+                        const dup = existingModels.find(m => m.provider === 'vidu' && m.modelId === VIDU_Q2_PRO_FAST_ID)
+                        if (dup) {
+                          const resp2 = await apiClient.admin.updateAIModel(dup.id, payload)
+                          const saved2 = resp2?.data || resp2
+                          setViduQ2ProFastId(saved2?.id || dup.id)
+                          toast.success('已保存 Vidu Q2 Pro Fast 配置')
                         } else {
                           throw e
                         }
