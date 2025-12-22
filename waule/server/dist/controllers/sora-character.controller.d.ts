@@ -17,7 +17,7 @@ export declare class SoraCharacterController {
      */
     getById(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     /**
-     * 创建角色
+     * 创建角色（如果同名角色已存在则更新）
      */
     create(req: Request, res: Response): Promise<Response<any, Record<string, any>> | undefined>;
     /**

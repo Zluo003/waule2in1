@@ -1291,13 +1291,33 @@ async function processCommercialTask(
     });
 
     // 退还积分
-    if (options.usageRecordId && options.creditsCharged && options.creditsCharged > 0) {
+    if (options.usageRecordId && options.usageRecordId !== 'no-record' && options.creditsCharged && options.creditsCharged > 0) {
       try {
         const { billingService } = await import('../services/billing.service');
         await billingService.refundCredits(options.usageRecordId, '广告成片失败退还');
         console.log(`[Commercial] ✅ 已退还积分: ${options.creditsCharged}`);
       } catch (refundError: any) {
         console.error(`[Commercial] ❌ 退还积分失败:`, refundError.message);
+      }
+    } else if (options.creditsCharged && options.creditsCharged > 0) {
+      // usageRecordId 无效但已扣费，需要直接退还积分
+      try {
+        const { PrismaClient } = await import('@prisma/client');
+        const prisma = new PrismaClient();
+        const task = await prisma.generationTask.findUnique({
+          where: { id: taskId },
+          select: { userId: true }
+        });
+        if (task) {
+          await prisma.user.update({
+            where: { id: task.userId },
+            data: { credits: { increment: options.creditsCharged } }
+          });
+          console.log(`[Commercial] ✅ 直接退还积分: ${options.creditsCharged}`);
+        }
+        await prisma.$disconnect();
+      } catch (refundError: any) {
+        console.error(`[Commercial] ❌ 直接退还积分失败:`, refundError.message);
       }
     }
   }

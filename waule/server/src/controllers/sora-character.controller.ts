@@ -208,7 +208,7 @@ export class SoraCharacterController {
   }
 
   /**
-   * 创建角色
+   * 创建角色（如果同名角色已存在则更新）
    */
   async create(req: Request, res: Response) {
     try {
@@ -231,22 +231,33 @@ export class SoraCharacterController {
         },
       });
 
+      let character;
       if (existing) {
-        return res.status(400).json({ error: '角色自定义名称已存在' });
+        // 如果角色已存在，更新角色信息（支持重复提交场景）
+        character = await prisma.soraCharacter.update({
+          where: { id: existing.id },
+          data: {
+            characterName,
+            ...(avatarUrl && { avatarUrl }), // 只有传入了 avatarUrl 才更新
+            ...(sourceVideoUrl && { sourceVideoUrl }),
+            ...(description !== undefined && { description }),
+          },
+        });
+        logger.info(`[SoraCharacter] 更新已存在角色: ${character.id}, customName: ${customName}, characterName: ${characterName}`);
+      } else {
+        // 创建新角色
+        character = await prisma.soraCharacter.create({
+          data: {
+            userId,
+            customName,
+            characterName,
+            avatarUrl,
+            sourceVideoUrl,
+            description,
+          },
+        });
+        logger.info(`[SoraCharacter] 创建角色成功: ${character.id}, customName: ${customName}, characterName: ${characterName}`);
       }
-
-      const character = await prisma.soraCharacter.create({
-        data: {
-          userId,
-          customName,
-          characterName,
-          avatarUrl,
-          sourceVideoUrl,
-          description,
-        },
-      });
-
-      logger.info(`[SoraCharacter] 创建角色成功: ${character.id}, customName: ${customName}, characterName: ${characterName}`);
 
       res.json({
         success: true,
