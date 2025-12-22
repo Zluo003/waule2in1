@@ -24,22 +24,29 @@
 
 正常部署新版本代码到服务器。
 
-### 第二步：恢复数据库备份
+### 第二步：创建新数据库
 
-按照正常流程恢复数据库备份。
-
-### 第三步：添加新字段
-
-连接到 PostgreSQL 数据库，执行以下 SQL：
-
-```sql
--- 添加 legacy_member_expire_at 字段（如果不存在）
-ALTER TABLE users ADD COLUMN IF NOT EXISTS legacy_member_expire_at TIMESTAMP;
+```bash
+cd waule/server
+npx prisma migrate deploy
 ```
 
-### 第四步：记录老会员特权到期日
+这会创建完整的数据库结构（包括 `legacyMemberExpireAt` 字段）。
 
-执行以下 SQL，将现有 VIP/SVIP 用户的**当前会员到期日**复制到 `legacy_member_expire_at`：
+### 第三步：恢复数据库备份
+
+将旧平台的数据导入到新数据库（只导入数据，不导入表结构）。
+
+```bash
+# 示例：使用 pg_restore 只恢复数据
+pg_restore --data-only -d 新数据库名 备份文件.dump
+```
+
+或使用其他数据迁移工具导入用户、项目等数据。
+
+### 第四步：设置老会员特权到期日
+
+恢复数据后，执行以下 SQL，将现有 VIP/SVIP 用户的**当前会员到期日**复制到 `legacy_member_expire_at`：
 
 ```sql
 -- 记录老会员的特权到期日（= 迁移时的会员到期日）
@@ -67,21 +74,6 @@ FROM users
 WHERE legacy_member_expire_at IS NOT NULL
 ORDER BY legacy_member_expire_at DESC
 LIMIT 20;
-```
-
-### 第六步：（可选）清理旧的 ModelPermission 免费配额
-
-如果不希望新用户获得免费额度，可以清理旧的权限配置：
-
-```sql
--- 查看当前的免费配额配置
-SELECT mp.*, am.model_id, am.name 
-FROM model_permissions mp
-LEFT JOIN ai_models am ON mp.ai_model_id = am.id
-WHERE mp.is_free_for_member = true;
-
--- 禁用免费配额（取消注释执行）
--- UPDATE model_permissions SET free_daily_limit = 0, is_free_for_member = false;
 ```
 
 ---
