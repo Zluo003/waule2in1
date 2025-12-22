@@ -43,10 +43,10 @@ export declare class BillingService {
     refundCredits(usageRecordId: string, reason?: string): Promise<{
         id: string;
         createdAt: Date;
-        nodeType: string | null;
-        moduleType: string | null;
         userId: string;
+        nodeType: string | null;
         metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        moduleType: string | null;
         modelId: string | null;
         duration: number | null;
         mode: string | null;

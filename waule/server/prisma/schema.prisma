@@ -26,6 +26,7 @@ model User {
   credits                     Int                  @default(0)
   giftStartDate               DateTime?
   membershipExpireAt          DateTime?
+  legacyMemberExpireAt        DateTime?            // 老会员特权到期日（迁移时记录的原到期日）
   // 双因素认证 (TOTP)
   totpSecret                  String?              // TOTP 密钥 (加密存储)
   totpEnabled                 Boolean              @default(false) // 是否启用 2FA

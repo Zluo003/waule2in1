@@ -1,3 +1,6 @@
+-- 启用 pg_trgm 扩展（用于模糊搜索索引）
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 -- DropForeignKey
 ALTER TABLE "workflows" DROP CONSTRAINT "workflows_episodeId_fkey";
 

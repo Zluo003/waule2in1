@@ -57,7 +57,7 @@ export declare function createRechargeOrder(params: {
  */
 export declare function queryOrderStatus(orderNo: string): Promise<{
     orderNo: string;
-    status: "PAID" | "FAILED" | "EXPIRED" | "REFUNDED" | "CANCELLED";
+    status: "CANCELLED" | "PAID" | "FAILED" | "EXPIRED" | "REFUNDED";
     paidAt: Date | null;
     credits: number;
 } | {
@@ -98,17 +98,17 @@ export declare function getUserOrders(userId: string, options?: {
         updatedAt: Date;
         credits: number;
         userId: string;
+        metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        status: import(".prisma/client").$Enums.OrderStatus;
+        expireAt: Date;
         amount: number;
         orderNo: string;
         packageId: string | null;
         paymentMethod: import(".prisma/client").$Enums.PaymentProvider;
-        status: import(".prisma/client").$Enums.OrderStatus;
         tradeNo: string | null;
         qrCodeUrl: string | null;
         qrCodeExpireAt: Date | null;
         paidAt: Date | null;
-        expireAt: Date;
-        metadata: import("@prisma/client/runtime/library").JsonValue | null;
     })[];
     pagination: {
         page: number;
@@ -130,11 +130,11 @@ export declare function getUserTransactions(userId: string, options?: {
         id: string;
         createdAt: Date;
         userId: string;
+        description: string;
+        orderId: string | null;
         amount: number;
         balance: number;
         usageRecordId: string | null;
-        description: string;
-        orderId: string | null;
     }[];
     pagination: {
         page: number;

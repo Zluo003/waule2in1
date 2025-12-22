@@ -3,6 +3,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.userLevelService = void 0;
 const index_1 = require("../index");
 /**
+ * 老会员免费配额配置（硬编码）
+ * 仅对 isLegacyMember = true 且会员有效期内的用户生效
+ */
+const LEGACY_MEMBER_FREE_QUOTAS = {
+    VIP: {
+        'gemini-3-pro-image-preview': 20, // VIP 每天 20 次免费
+    },
+    SVIP: {
+        'gemini-3-pro-image-preview': 100, // SVIP 每天 100 次免费
+        'midjourney': 50, // SVIP 每天 50 次免费
+    },
+    USER: {},
+    ADMIN: {},
+    INTERNAL: {},
+};
+/**
  * 用户等级权限服务
  * 负责处理用户等级相关的权限检查、积分赠送、使用限制等
  */
@@ -43,6 +59,56 @@ class UserLevelService {
             return new Date() <= user.membershipExpireAt;
         }
         return false;
+    }
+    /**
+     * 检查老会员免费配额
+     * 仅对 legacyMemberExpireAt 有值且未过期的用户生效
+     */
+    async checkLegacyMemberFreeQuota(params) {
+        const { userId, aiModelId, nodeType } = params;
+        // 获取用户信息（legacyMemberExpireAt 是新字段，需要类型断言）
+        const user = await index_1.prisma.user.findUnique({
+            where: { id: userId },
+            select: { role: true, legacyMemberExpireAt: true },
+        });
+        // 检查是否有老会员特权到期日
+        if (!user || !user.legacyMemberExpireAt) {
+            return { isLegacy: false, isFree: false, freeRemaining: 0 };
+        }
+        // 检查老会员特权是否已过期
+        if (new Date() > user.legacyMemberExpireAt) {
+            return { isLegacy: true, isFree: false, freeRemaining: 0 };
+        }
+        if (user.role !== 'VIP' && user.role !== 'SVIP') {
+            return { isLegacy: false, isFree: false, freeRemaining: 0 };
+        }
+        // 获取老会员配额配置
+        const quotas = LEGACY_MEMBER_FREE_QUOTAS[user.role] || {};
+        const modelKey = aiModelId || nodeType || '';
+        const dailyLimit = quotas[modelKey] || 0;
+        if (dailyLimit === 0) {
+            return { isLegacy: true, isFree: false, freeRemaining: 0 };
+        }
+        // 检查今日已使用次数
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const usage = await index_1.prisma.dailyUsageRecord.findFirst({
+            where: {
+                userId,
+                date: today,
+                aiModelId: aiModelId || null,
+                nodeType: nodeType || null,
+                moduleType: null,
+            },
+        });
+        const freeUsed = usage?.freeUsageCount || 0;
+        const freeRemaining = Math.max(0, dailyLimit - freeUsed);
+        console.log(`[UserLevel] 老会员配额检查: userId=${userId}, role=${user.role}, model=${modelKey}, limit=${dailyLimit}, used=${freeUsed}, remaining=${freeRemaining}`);
+        return {
+            isLegacy: true,
+            isFree: freeRemaining > 0,
+            freeRemaining,
+        };
     }
     /**
      * 🚀 获取用户等级配置（带缓存）
@@ -218,6 +284,16 @@ class UserLevelService {
         // ADMIN 和 INTERNAL 角色拥有全部权限
         if (userRole === 'ADMIN' || userRole === 'INTERNAL') {
             console.log(`[UserLevel] 管理员/内部用户，允许访问`);
+            return { allowed: true, isFree: true };
+        }
+        // 🔥 检查老会员免费配额（优先于普通权限配置）
+        const legacyResult = await this.checkLegacyMemberFreeQuota({
+            userId,
+            aiModelId,
+            nodeType,
+        });
+        if (legacyResult.isLegacy && legacyResult.isFree) {
+            console.log(`[UserLevel] 老会员免费配额生效，剩余 ${legacyResult.freeRemaining} 次`);
             return { allowed: true, isFree: true };
         }
         // 获取权限配置

@@ -35,6 +35,19 @@ declare class UserLevelService {
      */
     isMembershipActive(userId: string): Promise<boolean>;
     /**
+     * 检查老会员免费配额
+     * 仅对 legacyMemberExpireAt 有值且未过期的用户生效
+     */
+    checkLegacyMemberFreeQuota(params: {
+        userId: string;
+        aiModelId?: string;
+        nodeType?: string;
+    }): Promise<{
+        isLegacy: boolean;
+        isFree: boolean;
+        freeRemaining: number;
+    }>;
+    /**
      * 🚀 获取用户等级配置（带缓存）
      */
     getUserLevelConfig(userRole: UserRole): Promise<any>;
@@ -97,10 +110,10 @@ declare class UserLevelService {
         isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        userRole: import(".prisma/client").$Enums.UserRole;
         aiModelId: string | null;
         nodeType: string | null;
         moduleType: string | null;
+        userRole: import(".prisma/client").$Enums.UserRole;
         isAllowed: boolean;
         dailyLimit: number;
         isFreeForMember: boolean;
@@ -124,10 +137,10 @@ declare class UserLevelService {
         isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        userRole: import(".prisma/client").$Enums.UserRole;
         aiModelId: string | null;
         nodeType: string | null;
         moduleType: string | null;
+        userRole: import(".prisma/client").$Enums.UserRole;
         isAllowed: boolean;
         dailyLimit: number;
         isFreeForMember: boolean;
@@ -208,11 +221,11 @@ declare class UserLevelService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        userId: string;
         aiModelId: string | null;
         nodeType: string | null;
-        moduleType: string | null;
-        userId: string;
         date: Date;
+        moduleType: string | null;
         usageCount: number;
         freeUsageCount: number;
     }[]>;
@@ -224,10 +237,10 @@ declare class UserLevelService {
         isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        userRole: import(".prisma/client").$Enums.UserRole;
         aiModelId: string | null;
         nodeType: string | null;
         moduleType: string | null;
+        userRole: import(".prisma/client").$Enums.UserRole;
         isAllowed: boolean;
         dailyLimit: number;
         isFreeForMember: boolean;
@@ -249,10 +262,10 @@ declare class UserLevelService {
         isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
-        userRole: import(".prisma/client").$Enums.UserRole;
         aiModelId: string | null;
         nodeType: string | null;
         moduleType: string | null;
+        userRole: import(".prisma/client").$Enums.UserRole;
         isAllowed: boolean;
         dailyLimit: number;
         isFreeForMember: boolean;
