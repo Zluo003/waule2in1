@@ -48,9 +48,13 @@ api.interceptors.response.use(
 
     // 401 - 未授权，清除auth状态
     if (error.response?.status === 401) {
-      useAuthStore.getState().clearAuth();
-      window.location.href = '/login';
-      toast.error('登录已过期，请重新登录');
+      // 只有在已登录状态下才清除并跳转（避免登录失败时也跳转）
+      const isAuthenticated = useAuthStore.getState().isAuthenticated;
+      if (isAuthenticated) {
+        useAuthStore.getState().clearAuth();
+        window.location.href = '/';
+        toast.error('登录已过期，请重新登录');
+      }
     }
     // 403 - 禁止访问
     else if (error.response?.status === 403 && !(error.config as any)?.skipGlobalErrorHandler) {
