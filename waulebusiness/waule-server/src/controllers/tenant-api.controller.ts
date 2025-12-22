@@ -70,6 +70,50 @@ async function deductTenantCredits(
 }
 
 /**
+ * 退还租户积分（任务失败时调用）
+ */
+async function refundTenantCredits(
+  tenantId: string,
+  amount: number,
+  operation: string,
+  userId: string,
+  description?: string
+): Promise<boolean> {
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 获取当前余额
+      const tenant = await tx.tenant.findUnique({
+        where: { id: tenantId },
+        select: { credits: true },
+      });
+
+      if (!tenant) return false;
+
+      // 退还积分
+      await tx.tenant.update({
+        where: { id: tenantId },
+        data: { credits: { increment: amount } },
+      });
+
+      // 记录积分流水
+      await tx.tenantCreditLog.create({
+        data: {
+          tenantId,
+          amount: amount, // 正数表示退还
+          balance: tenant.credits + amount,
+          type: 'REFUND',
+          description: description || `${operation} 失败退还`,
+        },
+      });
+    });
+    return true;
+  } catch (error) {
+    console.error('[RefundCredits] 退还积分失败:', error);
+    return false;
+  }
+}
+
+/**
  * 检查租户积分是否足够
  */
 async function checkTenantCredits(tenantId: string, amount: number): Promise<boolean> {
@@ -2247,7 +2291,16 @@ export const commercialVideo = asyncHandler(async (req: Request, res: Response) 
   console.log(`[CommercialVideo] 任务已创建: ${task.id}`);
 
   // 异步处理任务
-  processCommercialVideoTask(task.id, { images, prompt, duration, ratio, language }).catch(error => {
+  processCommercialVideoTask(task.id, { 
+    images, 
+    prompt, 
+    duration, 
+    ratio, 
+    language,
+    tenantId: tenantUser.tenantId,
+    userId: tenantUser.id,
+    creditCost,
+  }).catch(error => {
     console.error(`[CommercialVideo] 任务处理失败: ${task.id}`, error);
   });
 
@@ -2263,7 +2316,7 @@ export const commercialVideo = asyncHandler(async (req: Request, res: Response) 
  */
 async function processCommercialVideoTask(
   taskId: string,
-  params: { images: string[]; prompt: string; duration: number; ratio: string; language: string }
+  params: { images: string[]; prompt: string; duration: number; ratio: string; language: string; tenantId: string; userId: string; creditCost: number }
 ) {
   try {
     // 更新为处理中
@@ -2311,6 +2364,18 @@ async function processCommercialVideoTask(
         completedAt: new Date(),
       },
     });
+
+    // 退还积分
+    const refunded = await refundTenantCredits(
+      params.tenantId,
+      params.creditCost,
+      'COMMERCIAL_VIDEO',
+      params.userId,
+      '商业视频生成失败退还'
+    );
+    if (refunded) {
+      console.log(`[CommercialVideo] 已退还积分: ${params.creditCost}`);
+    }
   }
 }
 

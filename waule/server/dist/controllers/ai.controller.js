@@ -1209,6 +1209,8 @@ exports.createCommercial = (0, errorHandler_1.asyncHandler)(async (req, res) => 
             language,
             apiKey,
             apiUrl,
+            usageRecordId,
+            creditsCharged,
         }).catch(error => {
             console.error(`[Commercial] 任务处理失败: ${task.id}`, error);
         });
@@ -1263,6 +1265,17 @@ async function processCommercialTask(taskId, options) {
                 completedAt: new Date(),
             },
         });
+        // 退还积分
+        if (options.usageRecordId && options.creditsCharged && options.creditsCharged > 0) {
+            try {
+                const { billingService } = await Promise.resolve().then(() => __importStar(require('../services/billing.service')));
+                await billingService.refundCredits(options.usageRecordId, '广告成片失败退还');
+                console.log(`[Commercial] ✅ 已退还积分: ${options.creditsCharged}`);
+            }
+            catch (refundError) {
+                console.error(`[Commercial] ❌ 退还积分失败:`, refundError.message);
+            }
+        }
     }
 }
 /**
