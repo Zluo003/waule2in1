@@ -2,16 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import LoginModal from '../components/landing/LoginModal';
 
-// 示例作品数据 - 后续替换为真实素材
+// OSS CDN 加速地址
+const OSS_BASE = 'https://aivider.oss-accelerate.aliyuncs.com/aivider/showcase';
+
+// 示例作品数据 - 使用阿里云 OSS CDN 加速
 const showcaseItems = [
-  { id: 1, src: '/showcase/video1.mp4', title: '都市时尚' },
-  { id: 2, src: '/showcase/video2.mp4', title: '光影艺术' },
-  { id: 3, src: '/showcase/video3.mp4', title: '未来时装' },
-  { id: 4, src: '/showcase/video4.mp4', title: '液态金属' },
-  { id: 5, src: '/showcase/video5.mp4', title: '沙漠高定' },
-  { id: 6, src: '/showcase/video6.mp4', title: '樱花雨中' },
-  { id: 7, src: '/showcase/video7.mp4', title: '冰川时尚' },
-  { id: 8, src: '/showcase/video8.mp4', title: '前卫时装' },
+  { id: 1, src: `${OSS_BASE}/video1.mp4`, title: '都市时尚' },
+  { id: 2, src: `${OSS_BASE}/video2.mp4`, title: '光影艺术' },
+  { id: 3, src: `${OSS_BASE}/video3.mp4`, title: '未来时装' },
+  { id: 4, src: `${OSS_BASE}/video4.mp4`, title: '液态金属' },
+  { id: 5, src: `${OSS_BASE}/video5.mp4`, title: '沙漠高定' },
+  { id: 6, src: `${OSS_BASE}/video6.mp4`, title: '樱花雨中' },
+  { id: 7, src: `${OSS_BASE}/video7.mp4`, title: '冰川时尚' },
+  { id: 8, src: `${OSS_BASE}/video8.mp4`, title: '前卫时装' },
 ];
 
 // 功能特性
@@ -38,11 +41,11 @@ const features = [
   },
 ];
 
-// Hero 背景视频列表（用户生成后替换）
+// Hero 背景视频列表 - 使用阿里云 OSS CDN 加速
 const heroVideos = [
-  '/showcase/hero1.mp4',
-  '/showcase/hero2.mp4',
-  '/showcase/hero3.mp4',
+  `${OSS_BASE}/hero1.mp4`,
+  `${OSS_BASE}/hero2.mp4`,
+  `${OSS_BASE}/hero3.mp4`,
 ];
 
 const LandingPage = () => {
