@@ -6,7 +6,6 @@ import { connectSocket, disconnectSocket } from './lib/socket';
 
 const MainLayout = lazy(() => import('./components/layouts/MainLayout'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
-const PhoneLoginPage = lazy(() => import('./pages/auth/PhoneLoginPage'));
 const AdminLoginPage = lazy(() => import('./pages/auth/AdminLoginPage'));
 const TermsOfServicePage = lazy(() => import('./pages/legal/TermsOfServicePage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/legal/PrivacyPolicyPage'));
@@ -75,7 +74,7 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={isAuthenticated ? <Navigate to="/quick" replace /> : <LandingPage />} />
-        <Route path="/login" element={<PhoneLoginPage />} />
+        <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/frame25-login" element={<AdminLoginPage />} />
         <Route path="/terms" element={<TermsOfServicePage />} />
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
