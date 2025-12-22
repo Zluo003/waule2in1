@@ -154,7 +154,7 @@ export async function generateImage(options: FutureApiImageOptions): Promise<{
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
-        timeout: 300000 // 5分钟超时
+        timeout: 600000 // 10分钟超时
       }
     );
     
