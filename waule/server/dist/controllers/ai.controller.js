@@ -1279,20 +1279,17 @@ async function processCommercialTask(taskId, options) {
         else if (options.creditsCharged && options.creditsCharged > 0) {
             // usageRecordId 无效但已扣费，需要直接退还积分
             try {
-                const { PrismaClient } = await Promise.resolve().then(() => __importStar(require('@prisma/client')));
-                const prisma = new PrismaClient();
-                const task = await prisma.generationTask.findUnique({
+                const task = await index_1.prisma.generationTask.findUnique({
                     where: { id: taskId },
                     select: { userId: true }
                 });
                 if (task) {
-                    await prisma.user.update({
+                    await index_1.prisma.user.update({
                         where: { id: task.userId },
                         data: { credits: { increment: options.creditsCharged } }
                     });
                     console.log(`[Commercial] ✅ 直接退还积分: ${options.creditsCharged}`);
                 }
-                await prisma.$disconnect();
             }
             catch (refundError) {
                 console.error(`[Commercial] ❌ 直接退还积分失败:`, refundError.message);
