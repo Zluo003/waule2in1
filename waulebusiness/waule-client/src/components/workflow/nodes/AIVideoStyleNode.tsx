@@ -379,7 +379,7 @@ const AIVideoStyleNode = ({ data, selected, id }: NodeProps<AIVideoStyleNodeData
       {/* 创建者头像徽章 */}
       <NodeCreatorBadge createdBy={(data as any).createdBy} isSharedWorkflow={(data as any)._isSharedWorkflow} />
       <CustomHandle type="target" position={Position.Left} id={`${id}-target`} className="!w-3 !h-3 !border-2 !rounded-full !bg-white dark:!bg-black !border-slate-400 dark:!border-white hover:!scale-150 !transition-transform !cursor-crosshair !shadow-[0_0_5px_rgba(255,255,255,0.5)]" />
-      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#18181b]">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>palette</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">风格转换</span>

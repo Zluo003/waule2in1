@@ -1174,7 +1174,7 @@ const SuperCanvasNode = ({ data, id, selected }: NodeProps<SuperCanvasNodeData>)
                 `}
             </style>
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#18181b]">
+            <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl">
                 <div className="flex items-center gap-2">
                     <MousePointer2 className="text-slate-800 dark:text-white" size={16} />
                     <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">自由画布</span>

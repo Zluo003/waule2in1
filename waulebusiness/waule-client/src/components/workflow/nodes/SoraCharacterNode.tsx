@@ -492,7 +492,7 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
       />
 
       {/* 头部 */}
-      <div className="px-4 py-3 flex items-center justify-between select-none rounded-t-2xl bg-white dark:bg-[#18181b]">
+      <div className="px-4 py-3 flex items-center justify-between select-none rounded-t-2xl">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>face</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">

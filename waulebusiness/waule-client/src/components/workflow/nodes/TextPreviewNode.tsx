@@ -207,7 +207,7 @@ const TextPreviewNode = ({ data, id, selected }: NodeProps<TextPreviewData>) => 
   return (
     <div className={`relative bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-neutral-700 ring-black/5 dark:ring-neutral-700 ring-black/5'}`} style={{ width: 340 }}>
       {/* 节点头部 - Aurora渐变样式 */}
-      <div className="flex items-center justify-between px-3 py-2 rounded-t-2xl border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#18181b]">
+      <div className="flex items-center justify-between px-3 py-2 rounded-t-2xl">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>assignment</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">{data.title || '分镜设计'}</span>

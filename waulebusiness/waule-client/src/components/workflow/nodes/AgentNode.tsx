@@ -529,7 +529,7 @@ const AgentNode = ({ data, selected, id }: NodeProps<AgentNodeData>) => {
       />
 
       {/* 节点头部 - Aurora 渐变样式 */}
-      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl border-slate-200 dark:border-neutral-800 bg-white dark:bg-[#18181b]">
+      <div className="flex items-center justify-between px-4 py-3 rounded-t-2xl">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-slate-800 dark:text-white" style={{ fontSize: '14px', fontVariationSettings: '"FILL" 0, "wght" 200, "GRAD" 0, "opsz" 20' }}>psychology</span>
           <span className="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-white">
