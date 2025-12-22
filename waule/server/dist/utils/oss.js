@@ -160,10 +160,16 @@ const ensureAliyunOssUrl = async (u) => {
     // 已是 OSS 链接，直接返回（支持多种格式）
     // 格式1: https://bucket.oss-cn-hangzhou.aliyuncs.com/xxx
     // 格式2: https://bucket.cn-hangzhou.aliyuncs.com/xxx
-    if (/https:\/\/.+\.(oss-)?[a-z]+-[a-z0-9]+\.aliyuncs\.com\//i.test(trimmed) ||
-        trimmed.includes('.aliyuncs.com/')) {
+    // 注意：api-key.oss-accelerate.aliyuncs.com 是临时链接（2小时过期），需要转存
+    const isTemporaryOss = /api-key\.oss-accelerate\.aliyuncs\.com/i.test(trimmed);
+    if (!isTemporaryOss &&
+        (/https:\/\/.+\.(oss-)?[a-z]+-[a-z0-9]+\.aliyuncs\.com\//i.test(trimmed) ||
+            trimmed.includes('.aliyuncs.com/'))) {
         logger_1.default.info(`[Rehost] 已是OSS链接，跳过转存: ${trimmed.substring(0, 80)}...`);
         return trimmed;
+    }
+    if (isTemporaryOss) {
+        logger_1.default.info(`[Rehost] 检测到临时OSS链接(api-key.cc)，需要转存: ${trimmed.substring(0, 80)}...`);
     }
     // 纯路径：映射到本地并上传
     if (!trimmed.startsWith('http')) {

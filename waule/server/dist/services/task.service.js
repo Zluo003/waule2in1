@@ -46,6 +46,7 @@ const soraService = __importStar(require("./ai/sora.service"));
 const viduService = __importStar(require("./ai/vidu.service"));
 const aliyunService = __importStar(require("./ai/aliyun.service"));
 const wanxService = __importStar(require("./ai/wanx.service"));
+const waule_api_client_1 = require("./waule-api.client");
 const logger_1 = __importDefault(require("../utils/logger"));
 const index_1 = require("../index");
 const user_level_service_1 = require("./user-level.service");
@@ -419,6 +420,25 @@ class TaskService {
             return await this.processImageEditingTask(task);
         }
         if (provider === 'google') {
+            // 对于 Gemini 3 Pro Image 模型，优先使用 waule-api 网关（网关有正确的通道切换逻辑）
+            const isGemini3ProImage = model.modelId?.toLowerCase().includes('gemini-3-pro-image');
+            // 使用全局 waule-api 客户端（从环境变量读取配置，确保认证正确）
+            const wauleApiClient = isGemini3ProImage ? (0, waule_api_client_1.getGlobalWauleApiClient)() : null;
+            if (isGemini3ProImage && wauleApiClient) {
+                logger_1.default.info(`[TaskService] Gemini 3 Pro Image 使用 waule-api 网关生成, URL: ${process.env.WAULEAPI_URL}`);
+                const result = await wauleApiClient.generateImage({
+                    model: model.modelId,
+                    prompt: task.prompt,
+                    size: task.ratio || '1:1',
+                    image_size: imageSize, // 2K/4K
+                    reference_images: referenceImages.length > 0 ? referenceImages : undefined,
+                });
+                if (result?.data?.[0]?.url) {
+                    return result.data[0].url;
+                }
+                throw new Error('waule-api 返回的图片URL为空');
+            }
+            // 其他 Gemini 模型使用原有逻辑
             const imageUrl = await gemini_proxy_service_1.default.generateImage({
                 prompt: task.prompt,
                 modelId: model.modelId,

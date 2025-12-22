@@ -20,7 +20,7 @@ const handleMulterError = (err, req, res, next) => {
     }
     next();
 };
-// 通用代理下载端点 - 支持自定义文件名
+// 通用代理下载端点 - 支持自定义文件名（流式传输，立即开始下载）
 router.get('/proxy-download-with-name', async (req, res) => {
     try {
         const { url, filename } = req.query;
@@ -34,36 +34,47 @@ router.get('/proxy-download-with-name', async (req, res) => {
         }
         // 国内CDN不走代理
         const isChinaCdn = /oscdn2\.dyysy\.com|soraapi\.aimuse\.club|\.aliyuncs\.com/i.test(rawUrl);
-        logger_1.logger.info('代理下载资源:', { url: rawUrl.substring(0, 100), filename: downloadName, isChinaCdn });
-        const response = await axios_1.default.get(rawUrl, {
-            responseType: 'arraybuffer',
-            timeout: 300000,
-            maxRedirects: 5,
-            validateStatus: (status) => status >= 200 && status < 300,
-        });
-        const buffer = Buffer.from(response.data);
-        const contentType = response.headers['content-type'] || 'application/octet-stream';
+        logger_1.logger.info('代理下载资源(流式):', { url: rawUrl.substring(0, 100), filename: downloadName, isChinaCdn });
         // 确定最终文件名
         let finalName = downloadName;
         if (!finalName) {
-            // 从URL提取文件名
             const urlParts = rawUrl.split('/');
             finalName = urlParts[urlParts.length - 1].split('?')[0] || `download-${Date.now()}`;
         }
+        // 使用流式传输，立即开始下载
+        const response = await axios_1.default.get(rawUrl, {
+            responseType: 'stream',
+            timeout: 600000,
+            maxRedirects: 5,
+            validateStatus: (status) => status >= 200 && status < 300,
+        });
+        const contentType = response.headers['content-type'] || 'application/octet-stream';
+        const contentLength = response.headers['content-length'];
         // 设置响应头
         res.setHeader('Content-Type', contentType);
-        res.setHeader('Content-Length', buffer.length);
+        if (contentLength) {
+            res.setHeader('Content-Length', contentLength);
+        }
         res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(finalName)}"`);
         res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
-        res.send(buffer);
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, Content-Length');
+        // 流式传输：边下载边发送
+        response.data.pipe(res);
+        response.data.on('error', (err) => {
+            logger_1.logger.error('流式下载错误:', err);
+            if (!res.headersSent) {
+                res.status(500).json({ success: false, message: '下载中断' });
+            }
+        });
     }
     catch (error) {
         logger_1.logger.error('资源代理下载失败:', error);
-        res.status(500).json({
-            success: false,
-            message: '资源下载失败: ' + error.message
-        });
+        if (!res.headersSent) {
+            res.status(500).json({
+                success: false,
+                message: '资源下载失败: ' + error.message
+            });
+        }
     }
 });
 // 图片代理下载端点 - 解决CORS问题

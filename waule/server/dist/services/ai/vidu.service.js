@@ -684,6 +684,9 @@ async function upscaleVideo(options) {
 }
 /**
  * 广告成片 API (根据官方文档)
+ * 支持两种模式：
+ * 1. 有 apiKey：直接调用 Vidu 官方 API
+ * 2. 无 apiKey 但有 apiUrl：使用自定义服务器（waule-api 网关），不需要 Authorization
  */
 async function createCommercialVideo(options) {
     const { images, prompt, duration = 30, ratio = '16:9', language = 'zh', apiKey, apiUrl = 'https://api.vidu.cn' } = options;
@@ -694,18 +697,17 @@ async function createCommercialVideo(options) {
         prompt,
         duration,
         ratio,
-        language
+        language,
+        hasApiKey: !!apiKey,
+        apiUrl
     });
     if (images.length > 15) {
         throw new Error('最多支持15张图片');
     }
     try {
-        // 调用 Vidu 广告成片专用 API
         // 确保 API URL 正确（避免路径重复）
-        const baseUrl = apiUrl.replace(/\/ent\/v2$/, ''); // 移除尾部的 /ent/v2
-        const endpoint = `${baseUrl}/ent/v2/ad-one-click`;
+        const baseUrl = apiUrl.replace(/\/ent\/v2$/, '').replace(/\/$/, ''); // 移除尾部的 /ent/v2 和斜杠
         // 根据官方 curl 示例，images 是数组
-        // 尝试两种格式：带空格和下划线
         const payload = {
             images: images, // 数组格式
             prompt,
@@ -713,34 +715,78 @@ async function createCommercialVideo(options) {
             'aspect_ratio': ratio, // 改用下划线格式
             language,
         };
-        console.log(`[Vidu Commercial] [${requestId}] 📤 发送请求到:`, endpoint);
-        console.log(`[Vidu Commercial] [${requestId}] 📋 请求体:`, JSON.stringify(payload, null, 2));
-        const response = await axios_1.default.post(endpoint, payload, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Token ${apiKey}`,
-            },
-            timeout: 30000,
-        });
-        console.log('[Vidu Commercial] 📦 API 响应:', response.data);
-        const taskId = response.data?.task_id;
-        if (!taskId) {
-            throw new Error('API 未返回任务 ID');
+        // 根据是否有 apiKey 决定调用方式
+        if (apiKey) {
+            // 有 apiKey：直接调用 Vidu 官方 API
+            const endpoint = `${baseUrl}/ent/v2/ad-one-click`;
+            console.log(`[Vidu Commercial] [${requestId}] 📤 使用 Vidu 官方 API:`, endpoint);
+            console.log(`[Vidu Commercial] [${requestId}] 📋 请求体:`, JSON.stringify(payload, null, 2));
+            const response = await axios_1.default.post(endpoint, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Token ${apiKey}`,
+                },
+                timeout: 30000,
+            });
+            console.log('[Vidu Commercial] 📦 API 响应:', response.data);
+            const taskId = response.data?.task_id;
+            if (!taskId) {
+                throw new Error('API 未返回任务 ID');
+            }
+            console.log('[Vidu Commercial] ✅ 任务创建成功，ID:', taskId);
+            // 使用通用的轮询函数
+            const apiPrefixForPoll = `${baseUrl}/ent/v2`;
+            const videoUrl = await pollTaskStatus(taskId, apiKey, apiPrefixForPoll);
+            return {
+                taskId,
+                status: videoUrl
+            };
         }
-        console.log('[Vidu Commercial] ✅ 任务创建成功，ID:', taskId);
-        // 使用通用的轮询函数（端点：/ent/v2/tasks/{id}/creations）
-        // pollTaskStatus 会拼接 /tasks/{id}/creations，所以需要传入 baseUrl/ent/v2
-        // 轮询间隔 10 秒，120 次 = 20 分钟
-        const apiPrefixForPoll = `${baseUrl}/ent/v2`;
-        const videoUrl = await pollTaskStatus(taskId, apiKey, apiPrefixForPoll);
-        return {
-            taskId,
-            status: videoUrl
-        };
+        else {
+            // 无 apiKey：从数据库获取 Vidu 模型的 apiKey 和 apiUrl
+            const { prisma } = await Promise.resolve().then(() => __importStar(require('../../index')));
+            const viduModel = await prisma.aIModel.findFirst({
+                where: {
+                    provider: 'vidu',
+                    isActive: true,
+                    apiKey: { not: null },
+                },
+                select: { apiKey: true, apiUrl: true },
+            });
+            if (!viduModel?.apiKey) {
+                throw new Error('未找到可用的 Vidu API Key，请在模型配置中设置');
+            }
+            const viduApiKey = viduModel.apiKey;
+            // 使用数据库中配置的 apiUrl，如果没有则使用默认值
+            const viduBaseUrl = (viduModel.apiUrl || 'https://api.vidu.cn').replace(/\/ent\/v2$/, '').replace(/\/$/, '');
+            const endpoint = `${viduBaseUrl}/ent/v2/ad-one-click`;
+            console.log(`[Vidu Commercial] [${requestId}] 📤 使用 Vidu API (从数据库获取配置):`, endpoint);
+            console.log(`[Vidu Commercial] [${requestId}] 📋 请求体:`, JSON.stringify(payload, null, 2));
+            const response = await axios_1.default.post(endpoint, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Token ${viduApiKey}`,
+                },
+                timeout: 30000,
+            });
+            console.log('[Vidu Commercial] 📦 API 响应:', response.data);
+            const taskId = response.data?.task_id;
+            if (!taskId) {
+                throw new Error('API 未返回任务 ID');
+            }
+            console.log('[Vidu Commercial] ✅ 任务创建成功，ID:', taskId);
+            // 使用通用的轮询函数
+            const apiPrefixForPoll = `${viduBaseUrl}/ent/v2`;
+            const videoUrl = await pollTaskStatus(taskId, viduApiKey, apiPrefixForPoll);
+            return {
+                taskId,
+                status: videoUrl
+            };
+        }
     }
     catch (error) {
         console.error('[Vidu Commercial] ❌ 创建失败:', error);
-        const msg = error.response?.data?.message || error.message || '广告成片创建失败';
+        const msg = error.response?.data?.message || error.response?.data?.error || error.message || '广告成片创建失败';
         throw new Error(msg);
     }
 }

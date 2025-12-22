@@ -110,6 +110,9 @@ export declare function upscaleVideo(options: {
 }>;
 /**
  * 广告成片 API (根据官方文档)
+ * 支持两种模式：
+ * 1. 有 apiKey：直接调用 Vidu 官方 API
+ * 2. 无 apiKey 但有 apiUrl：使用自定义服务器（waule-api 网关），不需要 Authorization
  */
 export declare function createCommercialVideo(options: {
     images: string[];
@@ -117,7 +120,7 @@ export declare function createCommercialVideo(options: {
     duration?: number;
     ratio?: '16:9' | '9:16' | '1:1';
     language?: 'zh' | 'en';
-    apiKey: string;
+    apiKey?: string;
     apiUrl?: string;
 }): Promise<{
     taskId: string;

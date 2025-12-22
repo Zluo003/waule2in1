@@ -281,17 +281,6 @@ const LandingPage = () => {
                   playsInline
                   className="w-full h-full object-cover"
                 />
-                
-                {/* Hover 遮罩 */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <p className="text-white font-semibold text-lg">{item.title}</p>
-                    <span className="inline-flex items-center gap-1 text-white/70 text-sm mt-1">
-                      <span className="material-symbols-outlined text-sm">play_circle</span>
-                      AI 视频
-                    </span>
-                  </div>
-                </div>
               </motion.div>
             ))}
           </div>

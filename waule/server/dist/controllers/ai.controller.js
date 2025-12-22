@@ -1149,8 +1149,9 @@ exports.createCommercial = (0, errorHandler_1.asyncHandler)(async (req, res) => 
     if (images.length > 15) {
         throw new errorHandler_1.AppError('最多支持15张图片', 400);
     }
-    if (!apiKey) {
-        throw new errorHandler_1.AppError('缺少 Vidu API Key', 400);
+    // apiKey 为空时，使用自定义服务器地址（不需要 apiKey）
+    if (!apiKey && !apiUrl) {
+        throw new errorHandler_1.AppError('缺少 Vidu API Key 或自定义服务器地址', 400);
     }
     // 扣费逻辑
     let creditsCharged = 0;
