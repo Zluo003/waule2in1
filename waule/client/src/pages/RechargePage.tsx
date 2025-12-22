@@ -315,7 +315,8 @@ const RechargePage = () => {
           <div className="inline-flex bg-slate-100 dark:bg-slate-800 rounded-full p-1">
             {[
               { key: 'packages', label: '会员订阅', icon: 'workspace_premium' },
-              { key: 'credits', label: '购买积分', icon: 'diamond' },
+              // 购买积分仅 VIP/SVIP/ADMIN/INTERNAL 可见
+              ...(user?.role && user.role !== 'USER' ? [{ key: 'credits', label: '购买积分', icon: 'diamond' }] : []),
               { key: 'orders', label: '订单记录', icon: 'receipt_long' },
               { key: 'transactions', label: '积分明细', icon: 'account_balance' },
             ].map((tab) => (

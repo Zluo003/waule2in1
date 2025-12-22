@@ -82,7 +82,7 @@ const MainLayout = () => {
         {/* 分隔线 */}
         <div className="h-px bg-neutral-200 dark:bg-neutral-700 my-1" />
 
-        {/* Credits & Recharge - 平台版保留 */}
+        {/* Credits & Recharge - 所有登录用户可见 */}
         <Link
           to="/recharge"
           className="flex flex-col items-center justify-center w-10 h-12 rounded-xl transition-all duration-200 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white"
