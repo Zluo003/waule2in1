@@ -989,7 +989,27 @@ export async function createCommercialVideo(options: {
         status: videoUrl
       };
     } else {
-      // 无 apiKey：从数据库获取 Vidu 模型的 apiKey 和 apiUrl
+      // 无 apiKey：优先使用 waule-api 网关
+      const wauleApiClient = getGlobalWauleApiClient();
+      if (wauleApiClient) {
+        console.log(`[Vidu Commercial] [${requestId}] 🌐 使用 waule-api 网关生成广告成片`);
+        const result = await wauleApiClient.commercialVideo({
+          images,
+          prompt,
+          duration,
+          ratio,
+          language,
+        });
+        const videoUrl = result?.data?.[0]?.url;
+        if (!videoUrl) throw new Error('waule-api 未返回视频数据');
+        console.log(`[Vidu Commercial] [${requestId}] ✅ waule-api 广告成片成功: ${videoUrl.substring(0, 80)}...`);
+        return {
+          taskId: `waule_${Date.now()}`,
+          status: videoUrl
+        };
+      }
+      
+      // waule-api 不可用时，尝试从数据库获取 Vidu 模型配置
       const { prisma } = await import('../../index');
       const viduModel = await prisma.aIModel.findFirst({
         where: {
@@ -1001,7 +1021,7 @@ export async function createCommercialVideo(options: {
       });
       
       if (!viduModel?.apiKey) {
-        throw new Error('未找到可用的 Vidu API Key，请在模型配置中设置');
+        throw new Error('未找到可用的 Vidu API Key，请配置 WAULEAPI_URL 环境变量或在模型配置中设置 Vidu API Key');
       }
       
       const viduApiKey = viduModel.apiKey;

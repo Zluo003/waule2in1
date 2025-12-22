@@ -93,7 +93,7 @@ const CommercialVideoNode = ({ data, selected, id }: NodeProps<CommercialVideoNo
       if (initialTaskId) {
         try {
           console.log('[CommercialVideoNode] 恢复任务:', initialTaskId);
-          const response = await apiClient.get(`/tasks/${initialTaskId}`);
+          const response = await apiClient.tenant.get(`/tasks/${initialTaskId}`);
           const task = response.task;
 
           if (task.status === 'SUCCESS') {
@@ -141,7 +141,7 @@ const CommercialVideoNode = ({ data, selected, id }: NodeProps<CommercialVideoNo
       try {
         attempts++;
         console.log(`[CommercialVideoNode] 📡 轮询第 ${attempts} 次, taskId: ${taskId}`);
-        const response = await apiClient.get(`/tasks/${taskId}`);
+        const response = await apiClient.tenant.get(`/tasks/${taskId}`);
         const task = response.task;
 
         if (task.status === 'SUCCESS') {

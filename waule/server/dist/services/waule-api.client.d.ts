@@ -159,6 +159,22 @@ export declare class WauleApiClient {
         }>;
         failReason?: string;
     }>;
+    /**
+     * 广告成片（Vidu ad-one-click）
+     * POST /v1/videos/commercial
+     */
+    commercialVideo(params: {
+        images: string[];
+        prompt: string;
+        duration?: number;
+        ratio?: '16:9' | '9:16' | '1:1';
+        language?: 'zh' | 'en';
+    }): Promise<{
+        created: number;
+        data: Array<{
+            url: string;
+        }>;
+    }>;
 }
 export declare function getWauleApiClient(model?: any): WauleApiClient | null;
 /**

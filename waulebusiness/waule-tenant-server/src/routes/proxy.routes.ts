@@ -28,7 +28,8 @@ async function proxyRequest(req: Request, res: Response) {
     });
   }
   
-  // 构建目标 URL
+  // 构建目标 URL（直接转发，不修改路径）
+  // waulebusiness/waule-server 有完整的 /api/tenant/* 路由，无需转换
   const targetUrl = `${config.platformServerUrl}${req.originalUrl}`;
   
   try {

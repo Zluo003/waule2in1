@@ -175,6 +175,15 @@ class WauleApiClient {
         const resp = await client.post(`/v1/midjourney/task/${taskId}/wait`, { timeout });
         return resp.data;
     }
+    /**
+     * 广告成片（Vidu ad-one-click）
+     * POST /v1/videos/commercial
+     */
+    async commercialVideo(params) {
+        const client = this.createClient(true);
+        const resp = await client.post('/v1/videos/commercial', params);
+        return resp.data;
+    }
 }
 exports.WauleApiClient = WauleApiClient;
 function getWauleApiClient(model) {

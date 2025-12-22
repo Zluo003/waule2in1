@@ -2203,7 +2203,11 @@ export const designVoice = asyncHandler(async (req: Request, res: Response) => {
  */
 export const commercialVideo = asyncHandler(async (req: Request, res: Response) => {
   const tenantUser = req.tenantUser!;
-  const { images, prompt, duration, ratio, language, apiKey, apiUrl } = req.body;
+  const { images, prompt, duration = 30, ratio = '16:9', language = 'zh' } = req.body;
+
+  if (!images || !Array.isArray(images) || images.length === 0) {
+    return res.status(400).json({ success: false, message: '至少需要一张图片' });
+  }
 
   // 检查积分
   const creditCost = 100; // 商业视频每次 100 积分
@@ -2211,8 +2215,6 @@ export const commercialVideo = asyncHandler(async (req: Request, res: Response) 
   if (!hasCredits) {
     return res.status(402).json({ success: false, message: '积分不足' });
   }
-
-  // TODO: 调用实际的商业视频生成服务
 
   // 扣除积分
   await deductTenantCredits(
@@ -2223,12 +2225,94 @@ export const commercialVideo = asyncHandler(async (req: Request, res: Response) 
     '商业视频生成'
   );
 
+  // 创建任务记录
+  const task = await prisma.tenantTask.create({
+    data: {
+      tenantId: tenantUser.tenantId,
+      tenantUserId: tenantUser.id,
+      type: 'VIDEO',
+      modelId: 'vidu-commercial', // 虚拟模型ID
+      status: 'PENDING',
+      input: {
+        images,
+        prompt,
+        duration,
+        ratio,
+        language,
+      },
+      creditsCost: creditCost,
+    },
+  });
+
+  console.log(`[CommercialVideo] 任务已创建: ${task.id}`);
+
+  // 异步处理任务
+  processCommercialVideoTask(task.id, { images, prompt, duration, ratio, language }).catch(error => {
+    console.error(`[CommercialVideo] 任务处理失败: ${task.id}`, error);
+  });
+
   res.json({
     success: true,
-    taskId: `task_${Date.now()}`,
+    taskId: task.id,
     creditsCharged: creditCost,
   });
 });
+
+/**
+ * 异步处理商业视频任务
+ */
+async function processCommercialVideoTask(
+  taskId: string,
+  params: { images: string[]; prompt: string; duration: number; ratio: string; language: string }
+) {
+  try {
+    // 更新为处理中
+    await prisma.tenantTask.update({
+      where: { id: taskId },
+      data: { status: 'PROCESSING' },
+    });
+
+    console.log(`[CommercialVideo] 开始处理任务: ${taskId}`);
+
+    // 调用 vidu 服务生成商业视频
+    const { createCommercialVideo } = await import('../services/ai/vidu.service');
+    const result = await createCommercialVideo({
+      images: params.images,
+      prompt: params.prompt,
+      duration: params.duration,
+      ratio: params.ratio as '16:9' | '9:16' | '1:1',
+      language: params.language as 'zh' | 'en',
+    });
+
+    // 更新任务为成功
+    await prisma.tenantTask.update({
+      where: { id: taskId },
+      data: {
+        status: 'SUCCESS',
+        output: {
+          resultUrl: result.status, // vidu service 返回的 status 实际是 video URL
+          type: 'videoPreview',
+          ratio: params.ratio,
+        },
+        completedAt: new Date(),
+      },
+    });
+
+    console.log(`[CommercialVideo] 任务完成: ${taskId}, URL: ${result.status?.substring(0, 80)}...`);
+  } catch (error: any) {
+    console.error(`[CommercialVideo] 任务失败: ${taskId}`, error);
+
+    // 更新任务为失败
+    await prisma.tenantTask.update({
+      where: { id: taskId },
+      data: {
+        status: 'FAILURE',
+        error: error.message || '商业视频生成失败',
+        completedAt: new Date(),
+      },
+    });
+  }
+}
 
 /**
  * 视频超清

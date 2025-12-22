@@ -264,6 +264,22 @@ export class WauleApiClient {
     const resp = await client.post(`/v1/midjourney/task/${taskId}/wait`, { timeout });
     return resp.data;
   }
+
+  /**
+   * 广告成片（Vidu ad-one-click）
+   * POST /v1/videos/commercial
+   */
+  async commercialVideo(params: {
+    images: string[];
+    prompt: string;
+    duration?: number;
+    ratio?: '16:9' | '9:16' | '1:1';
+    language?: 'zh' | 'en';
+  }): Promise<{ created: number; data: Array<{ url: string }> }> {
+    const client = this.createClient(true);
+    const resp = await client.post('/v1/videos/commercial', params);
+    return resp.data;
+  }
 }
 
 export function getWauleApiClient(model?: any): WauleApiClient | null {
