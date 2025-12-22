@@ -1,6 +1,6 @@
 /**
  * 平台 OSS 服务
- * 通过平台 API 上传临时文件（不需要租户自己配置 OSS）
+ * 通过平台 API 上传临时文件（不需要企业自己配置 OSS）
  */
 import axios from 'axios';
 import fs from 'fs';

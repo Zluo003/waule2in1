@@ -24,7 +24,7 @@ async function proxyRequest(req: Request, res: Response) {
   if (!config.platformServerUrl) {
     return res.status(503).json({
       success: false,
-      message: '租户服务端未配置平台地址，请先在管理页面完成配置',
+      message: '企业服务端未配置平台地址，请先在管理页面完成配置',
     });
   }
   
@@ -45,7 +45,7 @@ async function proxyRequest(req: Request, res: Response) {
       }
     }
     
-    // 如果有租户 API Key，自动添加到请求头（用于某些需要的接口）
+    // 如果有企业 API Key，自动添加到请求头（用于某些需要的接口）
     if (config.tenantApiKey && !headers['x-tenant-api-key']) {
       headers['X-Tenant-API-Key'] = config.tenantApiKey;
     }

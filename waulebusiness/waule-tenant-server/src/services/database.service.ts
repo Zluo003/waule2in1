@@ -76,7 +76,7 @@ export interface AppConfig {
   storagePath: string;
   // 平台服务端地址
   platformServerUrl: string;
-  // 租户 API Key
+  // 企业 API Key
   tenantApiKey: string;
   // 是否已完成初始配置
   isConfigured: boolean;

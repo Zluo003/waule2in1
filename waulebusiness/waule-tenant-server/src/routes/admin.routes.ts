@@ -352,7 +352,7 @@ router.post('/api/config', requireAuth, async (req: Request, res: Response) => {
           });
         }
         
-        logger.info(`API Key 激活成功: ${activateResponse.data?.data?.tenantName || '未知租户'}`);
+        logger.info(`API Key 激活成功: ${activateResponse.data?.data?.tenantName || '未知企业'}`);
         
       } catch (activateError: any) {
         const status = activateError.response?.status;
@@ -477,7 +477,7 @@ router.post('/api/test-connection', requireAuth, async (req: Request, res: Respo
       success: true,
       message: '连接成功！',
       tenant: {
-        name: data?.tenant?.name || data?.user?.tenant?.name || '未知租户',
+        name: data?.tenant?.name || data?.user?.tenant?.name || '未知企业',
         credits: data?.tenant?.credits || data?.user?.tenant?.credits || 0,
       },
     });
@@ -812,10 +812,10 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
     </div>
     <div id="resetForm" class="auth-card hidden">
       <h2>🔑 重置密码</h2>
-      <p class="subtitle">输入租户 API Key 验证身份</p>
+      <p class="subtitle">输入企业 API Key 验证身份</p>
       <div id="resetAlert" class="alert"></div>
       <div class="form-group">
-        <label>租户 API Key</label>
+        <label>企业 API Key</label>
         <input type="text" id="resetApiKey" placeholder="wk_live_xxxxxxxx" style="font-family:monospace;">
       </div>
       <div class="form-group">
@@ -911,9 +911,15 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
                 <div class="hint">Waule 平台 API 地址</div>
               </div>
               <div class="form-group">
-                <label>租户 API Key *</label>
-                <input type="text" id="tenantApiKey" name="api_key_${Date.now()}" value="" placeholder="${config.tenantApiKey ? '已配置 (***' + config.tenantApiKey.slice(-8) + ')' : 'wk_live_xxxxxxxx'}" ${config.tenantApiKey ? '' : 'required'} autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');">
-                <div class="hint">${config.tenantApiKey ? '留空保持原配置，输入新值则更新' : '格式为 wk_live_xxx'}</div>
+                <label>企业 API Key *</label>
+                ${config.tenantApiKey ? `
+                <input type="text" id="tenantApiKeyDisplay" value="${config.tenantApiKey}" readonly style="background:#f5f5f5;cursor:not-allowed;color:#666;">
+                <div class="hint">API Key 已激活，如需更换请联系平台</div>
+                <input type="hidden" id="tenantApiKey" value="">
+                ` : `
+                <input type="text" id="tenantApiKey" name="api_key_${Date.now()}" value="" placeholder="wk_live_xxxxxxxx" required autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');">
+                <div class="hint">格式为 wk_live_xxx</div>
+                `}
               </div>
             </div>
             <div class="form-row">
@@ -1158,7 +1164,7 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
         const data = await res.json();
         
         if (data.success) {
-          showAlert('success', '连接成功！租户：' + data.tenant.name + '，积分：' + data.tenant.credits);
+          showAlert('success', '连接成功！企业：' + data.tenant.name + '，积分：' + data.tenant.credits);
         } else {
           showAlert('error', data.error);
         }

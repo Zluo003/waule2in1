@@ -114,7 +114,7 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
  * 上传文件到平台 OSS（用于 AI 处理）
  * POST /api/upload/to-oss
  * 
- * 通过平台 API 上传，租户不需要配置自己的 OSS
+ * 通过平台 API 上传，企业不需要配置自己的 OSS
  * 
  * 支持三种方式：
  * 1. FormData 上传文件: { file: File }
