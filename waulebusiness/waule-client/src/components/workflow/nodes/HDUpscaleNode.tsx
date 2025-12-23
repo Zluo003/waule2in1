@@ -209,7 +209,7 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
       // 获取后台配置的提示词
       let prompt = '';
       try {
-        const res = await apiClient.get('/node-prompts/type/hdUpscale');
+        const res = await apiClient.get('/tenant/node-prompts/type/hdUpscale');
         if (res.success && res.data?.userPromptTemplate) {
           prompt = res.data.userPromptTemplate;
         }

@@ -240,7 +240,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
       // 尝试从后台获取提示词配置
       try {
-        const res = await apiClient.get('/tenant/node-prompts/type/storyboardMaster');
+        const res = await apiClient.get('/tenant/node-prompts/type/smartStoryboard');
         if (res.success && res.data) {
           if (res.data.systemPrompt) {
             systemPrompt = res.data.systemPrompt;
