@@ -3,10 +3,13 @@
  */
 
 // 最大边长限制（用于压缩）
-const MAX_DIMENSION = 1920;
+const MAX_DIMENSION = 2560;  // 最小边长超过2560时压缩
+// 文件大小限制（超过此大小强制压缩）
+const MAX_FILE_SIZE_MB = 10;
 
 /**
- * 压缩图片：最大边不超过指定尺寸
+ * 压缩图片：最小边不超过指定尺寸
+ * 当最小边超过 maxDimension 时，按比例缩放使最小边等于 maxDimension
  */
 export const compressImage = (
   blob: Blob,
@@ -21,13 +24,14 @@ export const compressImage = (
       URL.revokeObjectURL(url);
       
       let { width, height } = img;
+      const minDimension = Math.min(width, height);
       
-      // 计算缩放比例
-      if (width > maxDimension || height > maxDimension) {
-        const scale = maxDimension / Math.max(width, height);
+      // 当最小边超过 maxDimension 时，按比例缩放
+      if (minDimension > maxDimension) {
+        const scale = maxDimension / minDimension;
         width = Math.round(width * scale);
         height = Math.round(height * scale);
-        console.log(`[ImageUtils] 压缩图片: ${img.width}x${img.height} -> ${width}x${height}`);
+        console.log(`[ImageUtils] 压缩图片: ${img.width}x${img.height} -> ${width}x${height} (最小边${minDimension} -> ${maxDimension})`);
       }
       
       // 创建 canvas 进行压缩
@@ -126,16 +130,65 @@ export const processImageUrl = async (url: string): Promise<string> => {
     return url;
   }
   
-  // OSS URL 直接返回（豆包、Vidu 等可以直接访问）
-  if (url.includes('aliyuncs.com') || url.includes('oss-cn-')) {
-    console.log('Using OSS URL directly:', url.substring(0, 60));
-    return url;
-  }
+  // OSS URL 或公网 HTTPS URL：检查是否需要压缩
+  const isOssUrl = url.includes('aliyuncs.com') || url.includes('oss-cn-');
+  const isPublicUrl = url.startsWith('https://') && !isLocalUrl(url);
   
-  // 其他公网 HTTPS URL 直接返回
-  if (url.startsWith('https://') && !isLocalUrl(url)) {
-    console.log('Using public URL directly:', url.substring(0, 60));
-    return url;
+  if (isOssUrl || isPublicUrl) {
+    // 先用 HEAD 请求快速获取文件大小，决定是否需要下载压缩
+    try {
+      // 30秒超时
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      // 先检查文件大小
+      let fileSizeMB = 0;
+      try {
+        const headResponse = await fetch(url, { method: 'HEAD', signal: controller.signal });
+        const contentLength = headResponse.headers.get('content-length');
+        if (contentLength) {
+          fileSizeMB = parseInt(contentLength) / (1024 * 1024);
+        }
+      } catch {
+        // HEAD 请求失败，继续下载
+      }
+      
+      // 如果文件小于等于10MB且不需要检查尺寸，直接返回URL（优化性能）
+      // 但为了确保尺寸检查，还是需要下载
+      console.log(`[ImageUtils] 开始下载图片 (${fileSizeMB.toFixed(1)}MB)...`);
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      const blob = await response.blob();
+      const actualSizeMB = blob.size / (1024 * 1024);
+      console.log(`[ImageUtils] 图片下载完成，实际大小: ${actualSizeMB.toFixed(1)}MB`);
+      
+      // 如果文件大于10MB，强制压缩
+      if (actualSizeMB > MAX_FILE_SIZE_MB) {
+        console.log(`[ImageUtils] 图片过大 (${actualSizeMB.toFixed(1)}MB > ${MAX_FILE_SIZE_MB}MB)，进行压缩...`);
+        return await compressImage(blob, MAX_DIMENSION, 0.85);
+      }
+      
+      // 检查图片尺寸是否需要压缩
+      const dimensions = await getImageDimensionsFromBlob(blob);
+      const minDimension = Math.min(dimensions.width, dimensions.height);
+      
+      if (minDimension > MAX_DIMENSION) {
+        console.log(`[ImageUtils] 图片尺寸过大 (${dimensions.width}x${dimensions.height}，最小边${minDimension} > ${MAX_DIMENSION})，进行压缩...`);
+        return await compressImage(blob, MAX_DIMENSION, 0.9);
+      }
+      
+      // 不需要压缩，直接返回原URL
+      console.log(`Using ${isOssUrl ? 'OSS' : 'public'} URL directly:`, url.substring(0, 60));
+      return url;
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.error('[ImageUtils] 图片下载超时（30秒），跳过此图');
+        throw new Error('图片下载超时');
+      }
+      console.warn('[ImageUtils] 检查图片失败，直接使用原URL:', error);
+      return url;
+    }
   }
   
   // 本地地址，转换为base64（因为第三方AI服务无法访问）
@@ -176,7 +229,7 @@ export const validateImageUrl = async (url: string): Promise<boolean> => {
 };
 
 /**
- * 获取图片尺寸
+ * 获取图片尺寸（从URL）
  */
 export const getImageDimensions = (url: string): Promise<{ width: number; height: number }> => {
   return new Promise((resolve, reject) => {
@@ -186,5 +239,24 @@ export const getImageDimensions = (url: string): Promise<{ width: number; height
     };
     img.onerror = reject;
     img.src = url;
+  });
+};
+
+/**
+ * 获取图片尺寸（从Blob）
+ */
+export const getImageDimensionsFromBlob = (blob: Blob): Promise<{ width: number; height: number }> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(blob);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve({ width: img.width, height: img.height });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Failed to load image'));
+    };
+    img.src = objectUrl;
   });
 };

@@ -2,21 +2,20 @@ import { UserRole } from '@prisma/client';
 import { prisma, redis } from '../index';
 
 /**
- * 老会员免费配额配置（硬编码）
- * 仅对 isLegacyMember = true 且会员有效期内的用户生效
+ * 老会员免费配额配置（已禁用）
+ * 2024-12-23: 迁移到新平台后取消老会员特权，避免权限检查逻辑复杂导致的问题
+ * 如需恢复，取消下面的注释即可
  */
 const LEGACY_MEMBER_FREE_QUOTAS: Record<UserRole, Record<string, number>> = {
-  VIP: {
-    'gemini-3-pro-image-preview': 20, // VIP 每天 20 次免费
-  },
-  SVIP: {
-    'gemini-3-pro-image-preview': 100, // SVIP 每天 100 次免费
-    'midjourney': 50, // SVIP 每天 50 次免费
-  },
+  VIP: {},
+  SVIP: {},
   USER: {},
   ADMIN: {},
   INTERNAL: {},
 };
+// 原配置（已禁用）:
+// VIP: { 'gemini-3-pro-image-preview': 20 },
+// SVIP: { 'gemini-3-pro-image-preview': 100, 'midjourney': 50 },
 
 interface CheckPermissionParams {
   userId: string;
@@ -369,16 +368,17 @@ class UserLevelService {
       return { allowed: true, isFree: true };
     }
 
-    // 🔥 检查老会员免费配额（优先于普通权限配置）
-    const legacyResult = await this.checkLegacyMemberFreeQuota({
-      userId,
-      aiModelId,
-      nodeType,
-    });
-    if (legacyResult.isLegacy && legacyResult.isFree) {
-      console.log(`[UserLevel] 老会员免费配额生效，剩余 ${legacyResult.freeRemaining} 次`);
-      return { allowed: true, isFree: true };
-    }
+    // 🔥 老会员免费配额检查（已禁用 2024-12-23）
+    // 迁移到新平台后取消老会员特权，直接走正常权限配置
+    // const legacyResult = await this.checkLegacyMemberFreeQuota({
+    //   userId,
+    //   aiModelId,
+    //   nodeType,
+    // });
+    // if (legacyResult.isLegacy && legacyResult.isFree) {
+    //   console.log(`[UserLevel] 老会员免费配额生效，剩余 ${legacyResult.freeRemaining} 次`);
+    //   return { allowed: true, isFree: true };
+    // }
 
     // 获取权限配置
     const permission = await this.getModelPermission({

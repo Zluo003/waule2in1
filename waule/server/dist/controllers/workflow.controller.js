@@ -344,7 +344,12 @@ exports.getOrCreateProjectWorkflow = (0, errorHandler_1.asyncHandler)(async (req
     delete workflowData._count;
     res.json({
         success: true,
-        data: workflowData,
+        data: {
+            ...workflowData,
+            isOwner: true, // 项目工作流只有所有者能访问
+            canEdit: true, // 所有者始终可编辑
+            currentUserId: req.user.id, // 返回当前用户ID
+        },
     });
 });
 /**
@@ -434,6 +439,7 @@ exports.getOrCreateEpisodeWorkflow = (0, errorHandler_1.asyncHandler)(async (req
     workflowData.hasCollaborators = workflow._count?.shares > 0;
     workflowData.isOwner = isOwner;
     workflowData.canEdit = canEdit;
+    workflowData.currentUserId = userId; // 返回当前用户ID
     // 如果是协作者，返回项目所有者信息
     if (!isOwner) {
         workflowData.isShared = true;
@@ -736,6 +742,7 @@ exports.getOrCreateShotWorkflow = (0, errorHandler_1.asyncHandler)(async (req, r
     workflowData.hasCollaborators = workflow._count?.shares > 0;
     workflowData.isOwner = isOwner;
     workflowData.canEdit = canEdit;
+    workflowData.currentUserId = userId; // 返回当前用户ID
     // 如果是协作者，返回项目所有者信息
     if (!isOwner) {
         workflowData.isShared = true;

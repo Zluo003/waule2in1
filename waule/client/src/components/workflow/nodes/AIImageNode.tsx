@@ -667,39 +667,44 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
 
   // 生成图片（异步任务）
   const handleGenerate = async () => {
-    if (!prompt.trim() || !selectedModel) return;
+    console.log('[AIImageNode] 🔥 handleGenerate 被调用', { 
+      prompt: prompt?.substring(0, 50), 
+      selectedModel: selectedModel?.id,
+      isGenerating,
+      _canEdit: data._canEdit 
+    });
+    if (!prompt.trim() || !selectedModel) {
+      console.log('[AIImageNode] ⚠️ 提前返回: prompt或model无效', { promptEmpty: !prompt.trim(), noModel: !selectedModel });
+      return;
+    }
 
     setIsGenerating(true);
     setGenerationProgress(0);
+    console.log('[AIImageNode] ✅ 开始生成，referenceImages数量:', referenceImages.length);
 
     try {
-      // 处理参考图片（本地转base64，公网直接用）
-      // 限制单张图片最大 10MB
-      const MAX_IMAGE_SIZE_MB = 10;
-      const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+      // 处理参考图片（processImageUrl会自动压缩大图）
       let processedReferenceImages: string[] = [];
 
       if (referenceImages.length > 0) {
+        console.log('[AIImageNode] 🖼️ 开始处理参考图片...');
         try {
-          for (const imageUrl of referenceImages) {
-            // 检查图片大小（对于可获取的URL）
-            if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) {
-              try {
-                const headRes = await fetch(imageUrl, { method: 'HEAD' });
-                const contentLength = headRes.headers.get('content-length');
-                if (contentLength && parseInt(contentLength) > MAX_IMAGE_SIZE_BYTES) {
-                  toast.error(`参考图片超过 ${MAX_IMAGE_SIZE_MB}MB 限制，请压缩后重试`);
-                  setIsGenerating(false);
-                  return;
-                }
-              } catch {
-                // HEAD 请求失败，继续处理（某些服务器不支持 HEAD）
-              }
+          for (let i = 0; i < referenceImages.length; i++) {
+            const imageUrl = referenceImages[i];
+            console.log(`[AIImageNode] 处理参考图 ${i + 1}/${referenceImages.length}:`, imageUrl?.substring(0, 50));
+            // processImageUrl 会自动处理：超时、压缩大图、转换本地图
+            try {
+              const processedUrl = await processImageUrl(imageUrl);
+              console.log('[AIImageNode] processImageUrl完成');
+              processedReferenceImages.push(processedUrl);
+            } catch (processError) {
+              console.error('[AIImageNode] processImageUrl失败，跳过此图:', processError);
+              // 处理失败时跳过此图，继续处理其他图片
             }
-            const processedUrl = await processImageUrl(imageUrl);
-            processedReferenceImages.push(processedUrl);
           }
+          console.log('[AIImageNode] ✅ 所有参考图片处理完成，成功:', processedReferenceImages.length);
         } catch (error) {
+          console.error('[AIImageNode] ❌ 处理参考图失败:', error);
           // 处理参考图失败
         }
       }
@@ -1283,7 +1288,7 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
 
             {/* 生成按钮 - Aurora样式 */}
             <button
-              onClick={handleGenerate}
+              onClick={(e) => { e.stopPropagation(); handleGenerate(); }}
               onPointerDown={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               disabled={isGenerating || !prompt.trim() || data._canEdit === false}
