@@ -1979,7 +1979,7 @@ export const addAssetFromUrl = asyncHandler(async (req: Request, res: Response) 
 export const getNodePromptByType = asyncHandler(async (req: Request, res: Response) => {
   const { nodeType } = req.params;
 
-  const nodePrompt = await prisma.nodePrompt.findFirst({
+  const nodePrompt = await prisma.nodePromptTemplate.findFirst({
     where: { nodeType, isActive: true },
   });
 
