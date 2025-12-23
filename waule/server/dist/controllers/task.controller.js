@@ -3,10 +3,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.markPreviewNodeCreated = exports.createStoryboardTask = exports.getPendingPreviewNodes = exports.getActiveTask = exports.getUserTasks = exports.getTaskStatus = exports.createVideoEditTask = exports.createVideoTask = exports.createImageEditTask = exports.createImageTask = void 0;
+exports.deleteNodeTask = exports.getNodeTasks = exports.saveNodeTask = exports.markPreviewNodeCreated = exports.createStoryboardTask = exports.getPendingPreviewNodes = exports.getActiveTask = exports.getUserTasks = exports.getTaskStatus = exports.createVideoEditTask = exports.createVideoTask = exports.createImageEditTask = exports.createImageTask = void 0;
 const task_service_1 = __importDefault(require("../services/task.service"));
 const index_1 = require("../index");
 const logger_1 = __importDefault(require("../utils/logger"));
+// Redis key 前缀
+const NODE_TASK_PREFIX = 'node:task:';
 /**
  * 创建图片生成任务
  */
@@ -634,4 +636,72 @@ const markPreviewNodeCreated = async (req, res) => {
     }
 };
 exports.markPreviewNodeCreated = markPreviewNodeCreated;
+/**
+ * 保存节点任务ID到Redis
+ */
+const saveNodeTask = async (req, res) => {
+    try {
+        const { nodeId, taskId } = req.body;
+        const userId = req.user?.id;
+        if (!userId || !nodeId || !taskId) {
+            return res.status(400).json({ error: '缺少必要参数' });
+        }
+        const key = `${NODE_TASK_PREFIX}${userId}:${nodeId}`;
+        // 保存24小时，防止永久占用
+        await index_1.redis.set(key, taskId, 'EX', 86400);
+        logger_1.default.info(`[TaskController] 已保存节点任务到 Redis: key=${key}, taskId=${taskId}`);
+        res.json({ success: true });
+    }
+    catch (error) {
+        logger_1.default.error('[TaskController] 保存节点任务失败:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.saveNodeTask = saveNodeTask;
+/**
+ * 获取节点的任务ID（批量）
+ */
+const getNodeTasks = async (req, res) => {
+    try {
+        const { nodeIds } = req.body;
+        const userId = req.user?.id;
+        if (!userId || !nodeIds || !Array.isArray(nodeIds)) {
+            return res.status(400).json({ error: '缺少必要参数' });
+        }
+        const result = {};
+        for (const nodeId of nodeIds) {
+            const key = `${NODE_TASK_PREFIX}${userId}:${nodeId}`;
+            const taskId = await index_1.redis.get(key);
+            if (taskId) {
+                result[nodeId] = taskId;
+            }
+        }
+        res.json({ success: true, tasks: result });
+    }
+    catch (error) {
+        logger_1.default.error('[TaskController] 获取节点任务失败:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.getNodeTasks = getNodeTasks;
+/**
+ * 删除节点的任务ID
+ */
+const deleteNodeTask = async (req, res) => {
+    try {
+        const { nodeId } = req.params;
+        const userId = req.user?.id;
+        if (!userId || !nodeId) {
+            return res.status(400).json({ error: '缺少必要参数' });
+        }
+        const key = `${NODE_TASK_PREFIX}${userId}:${nodeId}`;
+        await index_1.redis.del(key);
+        res.json({ success: true });
+    }
+    catch (error) {
+        logger_1.default.error('[TaskController] 删除节点任务失败:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+exports.deleteNodeTask = deleteNodeTask;
 //# sourceMappingURL=task.controller.js.map

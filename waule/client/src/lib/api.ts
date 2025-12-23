@@ -497,6 +497,14 @@ export const apiClient = {
     // 标记预览节点已创建
     markPreviewNodeCreated: (taskId: string) =>
       apiClient.post(`/tasks/${taskId}/mark-preview-created`),
+
+    // 节点任务管理（Redis）
+    saveNodeTask: (nodeId: string, taskId: string) =>
+      apiClient.post('/tasks/node-task', { nodeId, taskId }),
+    getNodeTasks: (nodeIds: string[]) =>
+      apiClient.post('/tasks/node-tasks', { nodeIds }),
+    deleteNodeTask: (nodeId: string) =>
+      apiClient.delete(`/tasks/node-task/${nodeId}`),
   },
 
   // AI服务API

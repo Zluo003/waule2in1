@@ -11,6 +11,9 @@ import {
   getPendingPreviewNodes,
   markPreviewNodeCreated,
   createStoryboardTask,
+  saveNodeTask,
+  getNodeTasks,
+  deleteNodeTask,
 } from '../controllers/task.controller';
 
 const router = Router();
@@ -29,6 +32,11 @@ router.post('/storyboard', createStoryboardTask);
 router.get('/active', getActiveTask);
 router.get('/pending-preview-nodes', getPendingPreviewNodes);
 router.post('/:taskId/mark-preview-created', markPreviewNodeCreated);
+
+// 节点任务管理（Redis）
+router.post('/node-task', saveNodeTask);
+router.post('/node-tasks', getNodeTasks);
+router.delete('/node-task/:nodeId', deleteNodeTask);
 
 // 查询任务（放在最后以避免路径冲突）
 router.get('/:taskId', getTaskStatus);

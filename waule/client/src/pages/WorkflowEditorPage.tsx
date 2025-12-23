@@ -1518,14 +1518,34 @@ const WorkflowEditorInner = () => {
 
   // 监听节点发出的立即保存事件（用于任务创建后立即保存）
   useEffect(() => {
-    const handleImmediateSave = () => {
+    const handleImmediateSave = (event: Event) => {
       if (isReadOnlyRef.current) return;
-      console.log('[WorkflowEditorPage] 收到立即保存事件');
       // 清除防抖定时器
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
-      // 延迟100ms确保节点状态已更新到ref
+      // 从事件中获取需要更新的节点数据
+      const customEvent = event as CustomEvent;
+      const nodeUpdate = customEvent.detail;
+      if (nodeUpdate?.nodeId && nodeUpdate?.config) {
+        // 直接更新 nodesRef，确保数据同步
+        nodesRef.current = nodesRef.current.map(n => {
+          if (n.id === nodeUpdate.nodeId) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                config: {
+                  ...(n.data?.config || {}),
+                  ...nodeUpdate.config,
+                },
+              },
+            };
+          }
+          return n;
+        });
+      }
+      // 延迟保存确保其他状态也更新
       setTimeout(() => {
         saveWorkflow();
       }, 100);
@@ -2920,9 +2940,21 @@ const WorkflowEditorInner = () => {
     const defaultExpanded = nodeType === 'aiImage' || (nodeType as string).startsWith('aiVideo') || nodeType === 'midjourney';
 
     const defaultVideoConfig = nodeType.startsWith('aiVideo') ? getDefaultConfigForVideoNode(nodeType) : {};
-    const finalConfig = agentId ? { agentId } : defaultVideoConfig;
+    // 为不同节点类型设置默认 config
+    let finalConfig: Record<string, any> = {};
+    if (agentId) {
+      finalConfig = { agentId };
+    } else if (nodeType.startsWith('aiVideo')) {
+      finalConfig = defaultVideoConfig;
+    } else if (nodeType === 'smartStoryboard') {
+      finalConfig = { taskId: '', aspectRatio: '1:1', inputImages: [], userPrompt: '' };
+    } else if (nodeType === 'hdUpscale') {
+      finalConfig = { taskId: '', imageSize: '4K' };
+    } else if (nodeType === 'imageFusion') {
+      finalConfig = { taskId: '', imageSize: '4K' };
+    }
     if (nodeType.startsWith('aiVideo') && presetConfig) {
-      Object.assign(finalConfig as any, presetConfig);
+      Object.assign(finalConfig, presetConfig);
     }
 
     const newNode: Node = {

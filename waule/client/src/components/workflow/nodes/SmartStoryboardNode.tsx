@@ -54,6 +54,12 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
   const { setNodes, setEdges, getNode, getNodes } = useReactFlow();
 
+  // 使用 ref 存储函数引用，解决 useEffect 闭包问题
+  const handleSliceAndCreatePreviewsRef = useRef<((imageUrl: string) => Promise<void>) | null>(null);
+  const updateNodeDataRef = useRef<((updates: Partial<SmartStoryboardNodeData['config']>) => void) | null>(null);
+  const pollTaskStatusRef = useRef<((taskId: string) => void) | null>(null);
+  const getNodesRef = useRef<typeof getNodes>(getNodes);
+
   // 监听连接变化，获取输入图片
   const connectedEdges = useStore((state) =>
     state.edges.filter((edge) => edge.target === id)
@@ -105,23 +111,23 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     }
   }, [connectedEdges, getNodes]);
 
-  // 任务恢复逻辑
+  // 任务恢复逻辑（使用 ref 解决闭包问题）
   useEffect(() => {
     const initialTaskId = data.config.taskId;
 
     const recoverTask = async () => {
       if (!initialTaskId) return;
-
-      console.log('[SmartStoryboardNode] 恢复任务查询:', initialTaskId);
       try {
         const response = await apiClient.tasks.getTaskStatus(initialTaskId);
         const task = response.task;
 
         if (task.status === 'SUCCESS') {
           setIsGenerating(false);
+          setGeneratingStep(null);
           const imageUrl = task.resultUrl;
+          
           if (!imageUrl) {
-            updateNodeData({ taskId: '' });
+            updateNodeDataRef.current?.({ taskId: '' });
             return;
           }
 
@@ -132,36 +138,46 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           });
 
           const displayUrl = processedResult.displayUrl;
-          updateNodeData({
+          
+          updateNodeDataRef.current?.({
             generatedImageUrl: displayUrl,
             taskId: '',
           });
 
           // 检查是否已有预览节点
-          const existingNodes = getNodes();
+          const existingNodes = getNodesRef.current();
           const hasPreviewNodes = existingNodes.some(
             (n: any) => n.data?.sourceNodeId === id && n.type === 'imagePreview'
           );
 
-          if (!hasPreviewNodes) {
-            await handleSliceAndCreatePreviews(displayUrl);
+          if (!hasPreviewNodes && handleSliceAndCreatePreviewsRef.current) {
+            await handleSliceAndCreatePreviewsRef.current(displayUrl);
           }
+          
+          toast.success('分镜生成已完成！');
         } else if (task.status === 'PROCESSING' || task.status === 'PENDING') {
           setIsGenerating(true);
-          pollTaskStatus(initialTaskId);
+          setGeneratingStep('image');
+          setTimeout(() => {
+            pollTaskStatusRef.current?.(initialTaskId);
+          }, 100);
         } else if (task.status === 'FAILURE') {
           setIsGenerating(false);
-          updateNodeData({ taskId: '' });
+          setGeneratingStep(null);
+          updateNodeDataRef.current?.({ taskId: '' });
           toast.error(`生成失败: ${task.errorMessage || '未知错误'}`);
         }
       } catch (error: any) {
         setIsGenerating(false);
-        updateNodeData({ taskId: '' });
+        setGeneratingStep(null);
+        updateNodeDataRef.current?.({ taskId: '' });
         toast.error('任务恢复失败，请重新生成');
       }
     };
 
-    recoverTask();
+    // 延迟执行，确保 ref 已设置
+    const timer = setTimeout(recoverTask, 200);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -185,9 +201,11 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     );
   };
 
+  // 设置 ref
+  updateNodeDataRef.current = updateNodeData;
+  getNodesRef.current = getNodes;
+
   const handleGenerate = async () => {
-    console.log('[SmartStoryboardNode] handleGenerate called, inputImages:', inputImages.length, 'userPrompt:', userPrompt);
-    
     if (inputImages.length === 0) {
       toast.error('请先连接至少一张图片');
       return;
@@ -212,7 +230,6 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       const imagePrompt = '根据以下分镜描述和参考图片，生成3x3的九宫格分镜图，每个格子展示一个分镜场景，保持角色和风格一致，使用细黑边框分隔每个画面。';
 
       // ========== 第一步：调用文字模型生成分镜描述 ==========
-      console.log('[SmartStoryboardNode] 【第1步开始】调用文字模型生成分镜描述');
       
       const textResponse = await apiClient.ai.text.generate({
         modelId: TEXT_MODEL_ID,
@@ -220,8 +237,6 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         prompt: userPrompt,
         imageUrls: processedImages,
       });
-
-      console.log('[SmartStoryboardNode] 【第1步完成】文字模型响应:', JSON.stringify(textResponse, null, 2));
 
       if (!textResponse.success) {
         throw new Error(textResponse.message || '文字生成失败');
@@ -233,11 +248,8 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         throw new Error('文字生成返回为空');
       }
 
-      console.log('[SmartStoryboardNode] 【第1步成功】生成的分镜描述:', String(generatedText).substring(0, 500) + '...');
-
       // ========== 第二步：调用图片模型生成9宫格 ==========
       setGeneratingStep('image');
-      console.log('[SmartStoryboardNode] 第二步：调用图片模型生成9宫格');
 
       if (!selectedModel) {
         toast.error('图片模型未加载，请稍后重试');
@@ -265,9 +277,13 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       const taskId = response.taskId;
       updateNodeData({ taskId, userPrompt });
 
+      // 触发工作流保存，确保刷新页面后能恢复任务
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('workflow:save'));
+      }, 500);
+
       pollTaskStatus(taskId);
     } catch (error: any) {
-      console.error('[SmartStoryboardNode] 生成失败:', error);
       toast.error(error.message || '生成失败');
       setIsGenerating(false);
       setGeneratingStep(null);
@@ -336,16 +352,16 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     poll();
   };
 
+  // 设置 ref
+  pollTaskStatusRef.current = pollTaskStatus;
+
   const handleSliceAndCreatePreviews = async (imageUrl: string) => {
     try {
-      console.log('[SmartStoryboardNode] 开始切割图片:', imageUrl);
-      
       // 先将远程图片转换为base64以避免CORS问题
       let imageToSlice = imageUrl;
       if (!imageUrl.startsWith('data:')) {
         try {
           // 使用后端代理接口绕过CORS限制
-          console.log('[SmartStoryboardNode] 通过代理下载图片...');
           const proxyResponse = await apiClient.assets.proxyDownload(imageUrl);
           const blob = new Blob([proxyResponse], { type: 'image/png' });
           imageToSlice = await new Promise<string>((resolve, reject) => {
@@ -354,18 +370,15 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             reader.onerror = reject;
             reader.readAsDataURL(blob);
           });
-          console.log('[SmartStoryboardNode] 图片已通过代理转换为base64');
         } catch (fetchError) {
-          console.warn('[SmartStoryboardNode] 代理下载失败，尝试直接切割:', fetchError);
+          // 代理下载失败，尝试直接切割
         }
       }
       
       // 固定3x3九宫格
       const result = await sliceImageGrid(imageToSlice, 3, 3);
-      console.log('[SmartStoryboardNode] 切割完成，共', result.slices.length, '个片段');
 
       // 将 base64 图片上传到 OSS，获取 OSS URL
-      console.log('[SmartStoryboardNode] 开始上传切割图片到 OSS...');
       const ossUrls: string[] = [];
       for (let i = 0; i < result.slices.length; i++) {
         try {
@@ -375,29 +388,24 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           const uploadResult = await apiClient.assets.upload(file);
           if (uploadResult.success && uploadResult.data?.url) {
             ossUrls.push(uploadResult.data.url);
-            console.log(`[SmartStoryboardNode] 分镜 ${i + 1} 已上传:`, uploadResult.data.url);
           } else {
-            console.warn(`[SmartStoryboardNode] 分镜 ${i + 1} 上传失败，使用 base64`);
             ossUrls.push(base64);
           }
         } catch (uploadError) {
-          console.warn(`[SmartStoryboardNode] 分镜 ${i + 1} 上传异常，使用 base64:`, uploadError);
           ossUrls.push(result.slices[i]);
         }
       }
-      console.log('[SmartStoryboardNode] OSS 上传完成，成功数量:', ossUrls.filter(u => u.startsWith('http')).length);
-
       updateNodeData({ slicedImages: ossUrls });
 
       // 批量创建9个预览节点
       createAllPreviewNodes(ossUrls, aspectRatio);
-      
-      console.log('[SmartStoryboardNode] 已创建', ossUrls.length, '个预览节点');
     } catch (error: any) {
-      console.error('[SmartStoryboardNode] 切割失败:', error);
       toast.error('图片切割失败: ' + error.message);
     }
   };
+
+  // 设置 ref
+  handleSliceAndCreatePreviewsRef.current = handleSliceAndCreatePreviews;
 
   // 批量创建所有预览节点（一次性添加，避免状态覆盖）
   const createAllPreviewNodes = (slices: string[], ratio: string) => {

@@ -70,8 +70,9 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
 
   const lastEdgesRef = useRef<string>('');
 
+  // 积分预估（使用固定节点计费）
   const { credits, loading: creditsLoading, isFreeUsage, freeUsageRemaining } = useBillingEstimate({
-    aiModelId: selectedModel?.id,
+    nodeType: 'image_fusion',
     quantity: 1,
     resolution: imageSize,
   });
@@ -339,7 +340,7 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
         ratio: aspectRatio,
         referenceImages: processedImages.filter(Boolean),
         sourceNodeId: id,
-        metadata: { imageSize },
+        metadata: { imageSize, nodeType: 'image_fusion' },
       });
 
       if (!response.success) {
@@ -347,7 +348,21 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
       }
 
       const taskId = response.taskId;
+      const creditsCharged = response.creditsCharged || 0;
       updateNodeData({ taskId });
+
+      // 立即保存工作流，确保刷新页面后能恢复任务
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('workflow:save'));
+      }, 200);
+
+      // 刷新用户积分
+      if (creditsCharged > 0) {
+        const { useAuthStore } = await import('../../../store/authStore');
+        const { refreshUser } = useAuthStore.getState();
+        await refreshUser();
+        toast.success(`✨ 智能溶图已开始，消耗 ${creditsCharged} 积分`);
+      }
 
       pollTaskStatus(taskId);
     } catch (error: any) {

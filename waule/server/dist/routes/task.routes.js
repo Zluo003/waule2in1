@@ -16,6 +16,10 @@ router.post('/storyboard', task_controller_1.createStoryboardTask);
 router.get('/active', task_controller_1.getActiveTask);
 router.get('/pending-preview-nodes', task_controller_1.getPendingPreviewNodes);
 router.post('/:taskId/mark-preview-created', task_controller_1.markPreviewNodeCreated);
+// 节点任务管理（Redis）
+router.post('/node-task', task_controller_1.saveNodeTask);
+router.post('/node-tasks', task_controller_1.getNodeTasks);
+router.delete('/node-task/:nodeId', task_controller_1.deleteNodeTask);
 // 查询任务（放在最后以避免路径冲突）
 router.get('/:taskId', task_controller_1.getTaskStatus);
 router.get('/', task_controller_1.getUserTasks);

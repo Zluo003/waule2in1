@@ -39,4 +39,16 @@ export declare const createStoryboardTask: (req: Request, res: Response) => Prom
  * 标记预览节点已创建
  */
 export declare const markPreviewNodeCreated: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+/**
+ * 保存节点任务ID到Redis
+ */
+export declare const saveNodeTask: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+/**
+ * 获取节点的任务ID（批量）
+ */
+export declare const getNodeTasks: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
+/**
+ * 删除节点的任务ID
+ */
+export declare const deleteNodeTask: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 //# sourceMappingURL=task.controller.d.ts.map

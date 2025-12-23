@@ -1,7 +1,10 @@
 import { Request, Response } from 'express';
 import taskService from '../services/task.service';
-import { prisma } from '../index';
+import { prisma, redis } from '../index';
 import logger from '../utils/logger';
+
+// Redis key 前缀
+const NODE_TASK_PREFIX = 'node:task:';
 
 
 /**
@@ -673,6 +676,80 @@ export const markPreviewNodeCreated = async (req: Request, res: Response) => {
     res.json({ success: true });
   } catch (error: any) {
     logger.error('[TaskController] 标记预览节点失败:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * 保存节点任务ID到Redis
+ */
+export const saveNodeTask = async (req: Request, res: Response) => {
+  try {
+    const { nodeId, taskId } = req.body;
+    const userId = (req as any).user?.id;
+
+    if (!userId || !nodeId || !taskId) {
+      return res.status(400).json({ error: '缺少必要参数' });
+    }
+
+    const key = `${NODE_TASK_PREFIX}${userId}:${nodeId}`;
+    // 保存24小时，防止永久占用
+    await redis.set(key, taskId, 'EX', 86400);
+    logger.info(`[TaskController] 已保存节点任务到 Redis: key=${key}, taskId=${taskId}`);
+
+    res.json({ success: true });
+  } catch (error: any) {
+    logger.error('[TaskController] 保存节点任务失败:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * 获取节点的任务ID（批量）
+ */
+export const getNodeTasks = async (req: Request, res: Response) => {
+  try {
+    const { nodeIds } = req.body;
+    const userId = (req as any).user?.id;
+
+    if (!userId || !nodeIds || !Array.isArray(nodeIds)) {
+      return res.status(400).json({ error: '缺少必要参数' });
+    }
+
+    const result: Record<string, string> = {};
+    for (const nodeId of nodeIds) {
+      const key = `${NODE_TASK_PREFIX}${userId}:${nodeId}`;
+      const taskId = await redis.get(key);
+      if (taskId) {
+        result[nodeId] = taskId;
+      }
+    }
+
+    res.json({ success: true, tasks: result });
+  } catch (error: any) {
+    logger.error('[TaskController] 获取节点任务失败:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * 删除节点的任务ID
+ */
+export const deleteNodeTask = async (req: Request, res: Response) => {
+  try {
+    const { nodeId } = req.params;
+    const userId = (req as any).user?.id;
+
+    if (!userId || !nodeId) {
+      return res.status(400).json({ error: '缺少必要参数' });
+    }
+
+    const key = `${NODE_TASK_PREFIX}${userId}:${nodeId}`;
+    await redis.del(key);
+
+    res.json({ success: true });
+  } catch (error: any) {
+    logger.error('[TaskController] 删除节点任务失败:', error);
     res.status(500).json({ error: error.message });
   }
 };

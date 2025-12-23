@@ -117,21 +117,29 @@ export class BillingService {
    * 🚀 优化：计算积分并返回规则（避免重复查询）
    */
   private async calculateCreditsWithRule(params: CalculateCreditsParams): Promise<{ credits: number; rule: any | null }> {
+    console.log('[BillingService] calculateCreditsWithRule 参数:', JSON.stringify(params));
     let rule = null;
     try {
       rule = await this.getBillingRule(params);
+      console.log('[BillingService] getBillingRule 返回:', rule ? '找到规则' : 'null');
     } catch (error: any) {
-      logger.debug('[BillingService] 获取计费规则失败（可能表不存在）:', error.message);
+      console.log('[BillingService] 获取计费规则失败:', error.message);
     }
     
     if (!rule) {
+      console.log('[BillingService] 无计费规则，使用默认计费。duration:', params.duration, 'quantity:', params.quantity);
       // 默认计费逻辑
       if (params.duration && params.duration > 0) {
-        return { credits: params.duration * 10, rule: null };
+        const credits = params.duration * 10;
+        console.log(`[BillingService] 默认视频计费: ${params.duration}秒 x 10 = ${credits}积分`);
+        return { credits, rule: null };
       }
       if (params.quantity && params.quantity > 0) {
-        return { credits: params.quantity * 20, rule: null };
+        const credits = params.quantity * 20;
+        console.log(`[BillingService] 默认图片计费: ${params.quantity}张 x 20 = ${credits}积分`);
+        return { credits, rule: null };
       }
+      console.log('[BillingService] 无duration/quantity，返回0积分');
       return { credits: 0, rule: null };
     }
 

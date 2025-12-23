@@ -60,10 +60,12 @@ class TaskService {
      */
     async createTask(params) {
         logger_1.default.info(`[TaskService] 开始创建任务, userId=${params.userId}, modelId=${params.model?.id}, modelName=${params.model?.name}`);
-        // 1. 检查用户权限
+        // 1. 检查用户权限（如果有 nodeType，优先使用 nodeType 进行权限检查）
+        const nodeType = params.metadata?.nodeType;
         const permissionResult = await user_level_service_1.userLevelService.checkPermission({
             userId: params.userId,
-            aiModelId: params.model.id,
+            aiModelId: nodeType ? undefined : params.model.id,
+            nodeType: nodeType,
         });
         if (!permissionResult.allowed) {
             const modelName = params.model.name || '该模型';
@@ -93,7 +95,7 @@ class TaskService {
                 userId: params.userId,
                 operation: params.type === 'IMAGE' ? '图片生成' : '视频生成',
                 quantity: 1,
-                resolution: params.imageSize || params.metadata?.resolution,
+                resolution: params.imageSize || params.metadata?.imageSize || params.metadata?.resolution,
                 duration: params.metadata?.duration,
                 mode,
             };
@@ -105,7 +107,7 @@ class TaskService {
             else {
                 billingParams.aiModelId = params.model.id;
             }
-            logger_1.default.info(`[TaskService] 扣费参数:`, billingParams);
+            logger_1.default.info(`[TaskService] 扣费参数: ${JSON.stringify(billingParams)}`);
             try {
                 const usageRecord = await billingService.chargeUser(billingParams);
                 if (usageRecord) {

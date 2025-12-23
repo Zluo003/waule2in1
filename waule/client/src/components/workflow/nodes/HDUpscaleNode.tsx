@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { apiClient } from '../../../lib/api';
 import { processImageUrl } from '../../../utils/imageUtils';
 import { processTaskResult } from '../../../utils/taskResultHandler';
+import { useBillingEstimate } from '../../../hooks/useBillingEstimate';
 
 interface HDUpscaleNodeData {
   config: {
@@ -74,6 +75,13 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
            models.find((m: any) => m.modelId?.includes('gemini')) ||
            models[0];
   }, [data.models]);
+
+  // 积分预估（使用固定节点计费）
+  const { credits, loading: creditsLoading, isFreeUsage, freeUsageRemaining } = useBillingEstimate({
+    nodeType: 'hd_upscale',
+    quantity: 1,
+    resolution: imageSize,
+  });
 
   useEffect(() => {
     if (targetModel) {
@@ -244,7 +252,7 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
         ratio: detectedRatio,
         referenceImages: [processedImage],
         sourceNodeId: id,
-        metadata: { imageSize },
+        metadata: { imageSize, nodeType: 'hd_upscale' },
       });
 
       if (!response.success) {
@@ -252,7 +260,21 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
       }
 
       const taskId = response.taskId;
+      const creditsCharged = response.creditsCharged || 0;
       updateNodeData({ taskId });
+
+      // 立即保存工作流，确保刷新页面后能恢复任务
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('workflow:save'));
+      }, 200);
+
+      // 刷新用户积分
+      if (creditsCharged > 0) {
+        const { useAuthStore } = await import('../../../store/authStore');
+        const { refreshUser } = useAuthStore.getState();
+        await refreshUser();
+        toast.success(`✨ 高清放大已开始，消耗 ${creditsCharged} 积分`);
+      }
 
       pollTaskStatus(taskId);
     } catch (error: any) {
@@ -470,6 +492,17 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
             <>
               <span className="material-symbols-outlined text-sm">high_quality</span>
               <span>高清放大</span>
+              {!creditsLoading && (
+                isFreeUsage ? (
+                  <span className="ml-1 px-1.5 py-0.5 text-neutral-400 dark:text-neutral-500 rounded text-[9px]">
+                    免费，今日剩{Math.floor(freeUsageRemaining)}次
+                  </span>
+                ) : credits !== null && credits > 0 ? (
+                  <span className="ml-1 px-1.5 py-0.5 text-neutral-400 dark:text-neutral-500 text-[9px]">
+                    {credits}积分
+                  </span>
+                ) : null
+              )}
             </>
           )}
         </button>
