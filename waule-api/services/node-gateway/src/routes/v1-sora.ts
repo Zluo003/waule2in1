@@ -130,7 +130,7 @@ async function createCharacterViaFutureSoraApi(
         'Authorization': `Bearer ${config.apiKey}`,
         'Content-Type': 'application/json',
       },
-      timeout: 120000,
+      timeout: 300000, // 5分钟
     }
   );
   

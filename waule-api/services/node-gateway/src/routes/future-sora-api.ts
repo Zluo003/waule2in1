@@ -247,7 +247,7 @@ router.post('/characters', async (req: Request, res: Response) => {
           'Authorization': `Bearer ${config.apiKey}`,
           ...formData.getHeaders(),
         },
-        timeout: 120000,
+        timeout: 300000, // 5分钟
       }
     );
     

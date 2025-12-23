@@ -444,48 +444,22 @@ const SuperCanvasNode = ({ data, id, selected }: NodeProps<SuperCanvasNodeData>)
             // Mark as being processed before async operations
             processedSourceNodesRef.current.add(sourceNode.id);
 
-            
-
             try {
-                // Use proxy download to avoid CORS issues
-                const arrayBuffer = await apiClient.assets.proxyDownload(fullUrl);
-
-                // Detect MIME type from the array buffer
-                const bytes = new Uint8Array(arrayBuffer);
-                let mimeType = 'image/png'; // default
-
-                if (bytes.length >= 4) {
-                    // PNG: 89 50 4E 47
-                    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) {
-                        mimeType = 'image/png';
-                    }
-                    // JPEG: FF D8 FF
-                    else if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) {
-                        mimeType = 'image/jpeg';
-                    }
-                    // GIF: 47 49 46
-                    else if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) {
-                        mimeType = 'image/gif';
-                    }
-                    // WebP: 52 49 46 46 ... 57 45 42 50
-                    else if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
-                        if (bytes.length >= 12 && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
-                            mimeType = 'image/webp';
-                        }
-                    }
-                }
-
-                // Create blob from array buffer
-                const blob = new Blob([arrayBuffer], { type: mimeType });
-                const blobUrl = URL.createObjectURL(blob);
-
-                
-
-                // Load image from blob URL
-                const img = await fabric.Image.fromURL(blobUrl);
+                // 直接使用原生 Image 加载原始 URL
+                const img = await new Promise<fabric.Image>((resolve, reject) => {
+                    const htmlImg = new Image();
+                    htmlImg.crossOrigin = 'anonymous';
+                    htmlImg.onload = () => {
+                        const fabricImg = new fabric.Image(htmlImg);
+                        resolve(fabricImg);
+                    };
+                    htmlImg.onerror = () => {
+                        reject(new Error('图片加载失败: ' + fullUrl));
+                    };
+                    htmlImg.src = fullUrl;
+                });
 
                 if (!img) {
-                    URL.revokeObjectURL(blobUrl);
                     return;
                 }
 
@@ -539,12 +513,11 @@ const SuperCanvasNode = ({ data, id, selected }: NodeProps<SuperCanvasNodeData>)
                 }
 
                 canvas.requestRenderAll();
-                
-
-                // Clean up blob URL after a delay
-                setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 
             } catch (err) {
+                console.error('[SuperCanvasNode] 加载图片失败:', fullUrl, err);
+                // 加载失败时移除已处理标记，允许重试
+                processedSourceNodesRef.current.delete(sourceNode.id);
             }
         });
 
