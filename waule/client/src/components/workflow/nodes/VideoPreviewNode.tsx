@@ -303,13 +303,28 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
         className="!z-[10000] opacity-60 cursor-default"
       />
       <div className="relative bg-white dark:bg-[#18181b] backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden">
-      {/* 拖动遮罩 + 播放按钮 - 使用 pointer-events:none 让右键穿透到视频 */}
+      {/* 拖动遮罩 + 播放按钮 */}
       <div 
-        className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none"
+        className="absolute inset-0 z-10 cursor-move flex items-center justify-center"
+        onContextMenu={(e) => {
+          // 阻止遮罩层的右键菜单，让事件冒泡到视频元素
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onMouseDown={(e) => {
+          // 右键点击时，临时隐藏遮罩层让右键菜单显示在视频上
+          if (e.button === 2) {
+            const target = e.currentTarget as HTMLElement;
+            target.style.pointerEvents = 'none';
+            setTimeout(() => {
+              target.style.pointerEvents = '';
+            }, 100);
+          }
+        }}
       >
-        {/* 中央播放/暂停按钮 - pointer-events-auto 恢复点击 */}
+        {/* 中央播放/暂停按钮 - nodrag 确保可以点击 */}
         <button
-          className={`nodrag pointer-events-auto w-16 h-16 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all backdrop-blur-sm ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}
+          className={`nodrag w-16 h-16 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all backdrop-blur-sm ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}
           onClick={togglePlay}
         >
           <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: '"FILL" 1' }}>
