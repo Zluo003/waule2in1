@@ -55,7 +55,7 @@ async function proxyRequest(req: Request, res: Response) {
       method: req.method as Method,
       url: targetUrl, // URL 已包含查询参数 (req.originalUrl)
       headers,
-      timeout: 300000, // 5分钟超时（AI 任务可能很慢）
+      timeout: 600000, // 10分钟超时（AI 任务可能很慢）
       // 对于非 GET 请求，转发 body
       ...(req.method !== 'GET' && req.method !== 'HEAD' && { data: req.body }),
       validateStatus: () => true, // 不抛出 HTTP 错误，让我们处理
@@ -64,6 +64,9 @@ async function proxyRequest(req: Request, res: Response) {
     logger.info(`[Proxy] ${req.method} ${req.originalUrl} -> ${targetUrl}`);
     
     const response = await axios(axiosConfig);
+    
+    logger.info(`[Proxy] 响应状态: ${response.status}, 数据长度: ${JSON.stringify(response.data).length}`);
+    logger.info(`[Proxy] 响应数据: ${JSON.stringify(response.data).substring(0, 500)}`);
     
     // 复制响应头
     for (const [key, value] of Object.entries(response.headers)) {

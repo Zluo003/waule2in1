@@ -721,12 +721,22 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
                 const headRes = await fetch(imageUrl, { method: 'HEAD' });
                 const contentLength = headRes.headers.get('content-length');
                 if (contentLength && parseInt(contentLength) > MAX_IMAGE_SIZE_BYTES) {
-                  toast.error(`参考图片超过 ${MAX_IMAGE_SIZE_MB}MB 限制，请压缩后重试`);
+                  toast.error(`参考图片过大，不能超过 ${MAX_IMAGE_SIZE_MB}MB。请压缩图片或降低分辨率后重试。`);
                   setIsGenerating(false);
                   return;
                 }
               } catch {
                 // HEAD 请求失败，继续处理（某些服务器不支持 HEAD）
+              }
+            }
+            // 检查 base64 图片大小
+            if (imageUrl.startsWith('data:')) {
+              // base64 字符串大小约为实际文件大小的 1.37 倍
+              const base64Size = (imageUrl.length * 3) / 4;
+              if (base64Size > MAX_IMAGE_SIZE_BYTES) {
+                toast.error(`参考图片过大，不能超过 ${MAX_IMAGE_SIZE_MB}MB。请压缩图片或降低分辨率后重试。`);
+                setIsGenerating(false);
+                return;
               }
             }
             const processedUrl = await processImageUrl(imageUrl);

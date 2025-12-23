@@ -215,7 +215,7 @@ class TaskQueue {
 export const imageTaskQueue = new TaskQueue({
   maxConcurrent: 15,  // 图片生成并发较高
   maxQueueSize: 200,
-  taskTimeout: 3 * 60 * 1000, // 3 分钟
+  taskTimeout: 10 * 60 * 1000, // 10 分钟
 });
 
 export const videoTaskQueue = new TaskQueue({
@@ -227,7 +227,7 @@ export const videoTaskQueue = new TaskQueue({
 export const textTaskQueue = new TaskQueue({
   maxConcurrent: 20,  // 文本生成可以更高并发
   maxQueueSize: 300,
-  taskTimeout: 2 * 60 * 1000, // 2 分钟
+  taskTimeout: 10 * 60 * 1000, // 10 分钟
 });
 
 // 导出默认实例

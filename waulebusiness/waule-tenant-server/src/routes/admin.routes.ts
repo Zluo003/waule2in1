@@ -459,12 +459,14 @@ router.post('/api/test-connection', requireAuth, async (req: Request, res: Respo
     }
     
     // 测试连接 - 使用专用的 API Key 验证接口
+    const deviceId = getDeviceId();
     const response = await axios.post(
       `${platformServerUrl}/api/client/verify-api-key`,
       {},
       {
         headers: {
           'X-Tenant-API-Key': tenantApiKey,
+          'X-Device-Id': deviceId,
           'Content-Type': 'application/json',
         },
         timeout: 10000,
@@ -477,8 +479,8 @@ router.post('/api/test-connection', requireAuth, async (req: Request, res: Respo
       success: true,
       message: '连接成功！',
       tenant: {
-        name: data?.tenant?.name || data?.user?.tenant?.name || '未知企业',
-        credits: data?.tenant?.credits || data?.user?.tenant?.credits || 0,
+        name: data?.tenantName || data?.tenant?.name || data?.user?.tenant?.name || '未知企业',
+        credits: data?.credits ?? data?.tenant?.credits ?? data?.user?.tenant?.credits ?? 0,
       },
     });
   } catch (error: any) {
@@ -912,14 +914,13 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
               </div>
               <div class="form-group">
                 <label>企业 API Key *</label>
-                ${config.tenantApiKey ? `
-                <input type="text" id="tenantApiKeyDisplay" value="${config.tenantApiKey}" readonly style="background:#f5f5f5;cursor:not-allowed;color:#666;">
-                <div class="hint">API Key 已激活，如需更换请联系平台</div>
-                <input type="hidden" id="tenantApiKey" value="">
-                ` : `
-                <input type="text" id="tenantApiKey" name="api_key_${Date.now()}" value="" placeholder="wk_live_xxxxxxxx" required autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');">
-                <div class="hint">格式为 wk_live_xxx</div>
-                `}
+                <div style="display:flex;gap:8px;">
+                  <input type="text" id="tenantApiKey" name="api_key_${Date.now()}" value="${config.tenantApiKey ? '' : ''}" placeholder="${config.tenantApiKey ? config.tenantApiKey : 'wk_live_xxxxxxxx'}" ${config.tenantApiKey ? 'readonly style="background:rgba(255,255,255,0.05);cursor:not-allowed;color:#888;flex:1;"' : 'required autocomplete="new-password" readonly onfocus="this.removeAttribute(\'readonly\');" style="flex:1;"'}>
+                  <button type="button" id="apiKeyEditBtn" class="btn btn-secondary" onclick="toggleApiKeyEdit()" style="padding:8px 12px;white-space:nowrap;">
+                    <span id="apiKeyEditBtnText">${config.tenantApiKey ? '✏️ 编辑' : '✏️ 编辑'}</span>
+                  </button>
+                </div>
+                <div class="hint" id="apiKeyHint">${config.tenantApiKey ? 'API Key 已激活，点击编辑按钮可更换' : '格式为 wk_live_xxx'}</div>
               </div>
             </div>
             <div class="form-row">
@@ -1132,6 +1133,50 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
     
     // ==================== 配置相关 ====================
     
+    // API Key 编辑状态
+    let apiKeyEditMode = false;
+    const originalApiKeyPlaceholder = '${config.tenantApiKey || ''}';
+    
+    function toggleApiKeyEdit() {
+      const input = document.getElementById('tenantApiKey');
+      const btn = document.getElementById('apiKeyEditBtn');
+      const btnText = document.getElementById('apiKeyEditBtnText');
+      const hint = document.getElementById('apiKeyHint');
+      
+      if (!apiKeyEditMode) {
+        // 进入编辑模式
+        apiKeyEditMode = true;
+        input.readOnly = false;
+        input.style.background = 'rgba(0,0,0,0.3)';
+        input.style.cursor = 'text';
+        input.style.color = '#fff';
+        input.placeholder = 'wk_live_xxxxxxxx';
+        input.value = '';
+        input.focus();
+        btnText.textContent = '✅ 确定';
+        hint.textContent = '请输入新的 API Key，点击确定保存到表单';
+      } else {
+        // 退出编辑模式，保存到表单
+        apiKeyEditMode = false;
+        input.readOnly = true;
+        input.style.background = 'rgba(255,255,255,0.05)';
+        input.style.cursor = 'not-allowed';
+        input.style.color = '#888';
+        
+        if (input.value.trim()) {
+          // 有新值，显示脱敏
+          const val = input.value.trim();
+          input.placeholder = '***' + val.slice(-8);
+          hint.textContent = 'API Key 已更新，保存配置后生效';
+        } else {
+          // 没有输入，恢复原状
+          input.placeholder = originalApiKeyPlaceholder || 'wk_live_xxxxxxxx';
+          hint.textContent = originalApiKeyPlaceholder ? 'API Key 已激活，点击编辑按钮可更换' : '格式为 wk_live_xxx';
+        }
+        btnText.textContent = '✏️ 编辑';
+      }
+    }
+    
     // 显示提示
     function showAlert(type, message) {
       const alertBox = document.getElementById('alertBox');
@@ -1147,8 +1192,15 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
       const platformServerUrl = document.getElementById('platformServerUrl').value;
       const tenantApiKey = document.getElementById('tenantApiKey').value;
       
-      if (!platformServerUrl || !tenantApiKey) {
-        showAlert('error', '请先填写平台地址和 API Key');
+      // 平台地址必须填写；API Key 可以使用输入框的值，或者使用已保存的（后端会自动使用）
+      if (!platformServerUrl) {
+        showAlert('error', '请先填写平台地址');
+        return;
+      }
+      
+      // 如果没有输入新的 API Key，且也没有已保存的，才报错
+      if (!tenantApiKey && !originalApiKeyPlaceholder) {
+        showAlert('error', '请先填写 API Key');
         return;
       }
       

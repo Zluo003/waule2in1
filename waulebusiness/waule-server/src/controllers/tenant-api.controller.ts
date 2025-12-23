@@ -1971,6 +1971,25 @@ export const addAssetFromUrl = asyncHandler(async (req: Request, res: Response) 
   res.json({ success: true, data: asset });
 });
 
+// ==================== 节点提示词 ====================
+
+/**
+ * 根据节点类型获取提示词模板（租户用户）
+ */
+export const getNodePromptByType = asyncHandler(async (req: Request, res: Response) => {
+  const { nodeType } = req.params;
+
+  const nodePrompt = await prisma.nodePrompt.findFirst({
+    where: { nodeType, isActive: true },
+  });
+
+  if (!nodePrompt) {
+    return res.status(404).json({ success: false, message: '未找到该节点类型的提示词模板' });
+  }
+
+  res.json({ success: true, data: nodePrompt });
+});
+
 // ==================== AI 服务 ====================
 
 /**

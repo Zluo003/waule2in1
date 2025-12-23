@@ -164,6 +164,11 @@ router.put('/asset-libraries/:id', tenantApiController.updateAssetLibrary);
 // 删除资产库
 router.delete('/asset-libraries/:id', tenantApiController.deleteAssetLibrary);
 
+// ==================== 节点提示词 ====================
+
+// 获取节点提示词模板
+router.get('/node-prompts/type/:nodeType', tenantApiController.getNodePromptByType);
+
 // ==================== AI 服务 ====================
 
 // 获取 AI 模型列表

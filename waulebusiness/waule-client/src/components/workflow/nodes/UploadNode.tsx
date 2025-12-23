@@ -129,6 +129,14 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
           continue;
         }
 
+        // 检查文件大小（限制 10MB）
+        const MAX_FILE_SIZE_MB = 10;
+        const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          toast.error(`文件过大，不能超过 ${MAX_FILE_SIZE_MB}MB。请压缩文件后重试。`);
+          continue;
+        }
+
         // 上传文件
         const response = await apiClient.assets.upload(file, undefined, {
           onUploadProgress: (evt: any) => {

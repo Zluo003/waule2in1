@@ -200,6 +200,31 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       return;
     }
 
+    // 检查输入图片大小（限制 10MB）
+    const MAX_IMAGE_SIZE_MB = 10;
+    const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+    
+    for (const imageUrl of inputImages) {
+      try {
+        if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) {
+          const headRes = await fetch(imageUrl, { method: 'HEAD' });
+          const contentLength = headRes.headers.get('content-length');
+          if (contentLength && parseInt(contentLength) > MAX_IMAGE_SIZE_BYTES) {
+            toast.error(`输入图片过大，不能超过 ${MAX_IMAGE_SIZE_MB}MB。请压缩图片或降低分辨率后重试。`);
+            return;
+          }
+        } else if (imageUrl.startsWith('data:')) {
+          const base64Size = (imageUrl.length * 3) / 4;
+          if (base64Size > MAX_IMAGE_SIZE_BYTES) {
+            toast.error(`输入图片过大，不能超过 ${MAX_IMAGE_SIZE_MB}MB。请压缩图片或降低分辨率后重试。`);
+            return;
+          }
+        }
+      } catch {
+        // 检查失败，继续处理
+      }
+    }
+
     setIsGenerating(true);
     setGeneratingStep('text');
 
@@ -209,11 +234,27 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         inputImages.map(img => processImageUrl(img))
       );
 
-      // 使用默认提示词（后台配置功能暂不使用）
+      // 优先从后台获取提示词配置，没有则使用内置默认值
       let systemPrompt = '';
       let imagePrompt = '';
 
-      // 默认系统提示词
+      // 尝试从后台获取提示词配置
+      try {
+        const res = await apiClient.get('/tenant/node-prompts/type/storyboardMaster');
+        if (res.success && res.data) {
+          if (res.data.systemPrompt) {
+            systemPrompt = res.data.systemPrompt;
+          }
+          if (res.data.userPromptTemplate) {
+            imagePrompt = res.data.userPromptTemplate;
+          }
+          console.log('[SmartStoryboardNode] 使用后台配置的提示词');
+        }
+      } catch (e) {
+        console.log('[SmartStoryboardNode] 后台未配置提示词，使用内置默认值');
+      }
+
+      // 内置默认提示词（后台未配置时使用）
       if (!systemPrompt) {
         systemPrompt = '你是一个专业的分镜师，根据用户提供的图片和剧情简述，生成详细的9个分镜描述。每个分镜应包含场景、动作、镜头角度等信息。';
       }

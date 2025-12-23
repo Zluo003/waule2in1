@@ -53,12 +53,13 @@ api.interceptors.request.use(
       return Promise.reject(new Error('未配置企业服务端地址，请先在激活页面配置'));
     }
     
-    // 如果请求走网关，使用较短超时（避免网关不可用时等待太久）
+    // 如果请求走网关，检查超时设置
+    // 注意：不要覆盖已经设置的长超时（如 AI 生成请求需要较长时间）
     const isUsingGateway = tenantStorage.localServerUrl && 
                            config.baseURL?.includes(tenantStorage.localServerUrl);
-    if (isUsingGateway) {
-      // 网关请求使用 10 秒超时（覆盖默认值）
-      config.timeout = config.timeout && config.timeout < 30000 ? config.timeout : 10000;
+    if (isUsingGateway && !config.timeout) {
+      // 仅当未设置超时时，使用默认 30 秒
+      config.timeout = 30000;
     }
     
     // 获取租户状态
@@ -627,7 +628,7 @@ export const apiClient = {
         videoUrls?: string[];
       }) => {
         try {
-          return await api.post('/tenant/ai/text/generate', data, { timeout: 450000 }).then((res) => res.data);
+          return await api.post('/tenant/ai/text/generate', data, { timeout: 600000 }).then((res) => res.data);
         } catch (error: any) {
           const status = error?.response?.status;
           const code = error?.code;

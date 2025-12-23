@@ -313,6 +313,36 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
       return;
     }
 
+    // 检查参考图片大小（限制 10MB）
+    const MAX_IMAGE_SIZE_MB = 10;
+    const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+    const allImagesToCheck = [
+      ...characterImages,
+      ...sceneImages,
+      ...(styleImage ? [styleImage] : []),
+    ];
+    
+    for (const imageUrl of allImagesToCheck) {
+      try {
+        if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) {
+          const headRes = await fetch(imageUrl, { method: 'HEAD' });
+          const contentLength = headRes.headers.get('content-length');
+          if (contentLength && parseInt(contentLength) > MAX_IMAGE_SIZE_BYTES) {
+            toast.error(`参考图片过大，不能超过 ${MAX_IMAGE_SIZE_MB}MB。请压缩图片或降低分辨率后重试。`);
+            return;
+          }
+        } else if (imageUrl.startsWith('data:')) {
+          const base64Size = (imageUrl.length * 3) / 4;
+          if (base64Size > MAX_IMAGE_SIZE_BYTES) {
+            toast.error(`参考图片过大，不能超过 ${MAX_IMAGE_SIZE_MB}MB。请压缩图片或降低分辨率后重试。`);
+            return;
+          }
+        }
+      } catch {
+        // 检查失败，继续处理
+      }
+    }
+
     setIsGenerating(true);
 
     try {
