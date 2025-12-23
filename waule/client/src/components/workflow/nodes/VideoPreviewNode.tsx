@@ -303,13 +303,13 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
         className="!z-[10000] opacity-60 cursor-default"
       />
       <div className="relative bg-white dark:bg-[#18181b] backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden">
-      {/* 拖动遮罩 + 播放按钮 */}
+      {/* 拖动遮罩 + 播放按钮 - 使用 pointer-events:none 让右键穿透到视频 */}
       <div 
-        className="absolute inset-0 z-10 cursor-move flex items-center justify-center"
+        className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none"
       >
-        {/* 中央播放/暂停按钮 - nodrag 确保可以点击 */}
+        {/* 中央播放/暂停按钮 - pointer-events-auto 恢复点击 */}
         <button
-          className={`nodrag w-16 h-16 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all backdrop-blur-sm ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}
+          className={`nodrag pointer-events-auto w-16 h-16 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all backdrop-blur-sm ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'}`}
           onClick={togglePlay}
         >
           <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: '"FILL" 1' }}>
