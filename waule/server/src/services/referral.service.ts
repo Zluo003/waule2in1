@@ -655,7 +655,10 @@ export async function getReferralStats() {
     prisma.user.count(),
     prisma.user.count({ where: { referredById: { not: null } } }),
     prisma.referralCommission.aggregate({
-      where: { status: CommissionStatus.SETTLED },
+      where: { 
+        status: CommissionStatus.SETTLED,
+        type: CommissionType.RECHARGE_COMMISSION, // 只统计充值返利，不包括注册奖励积分
+      },
       _sum: { amount: true },
     }),
     prisma.withdrawalRequest.aggregate({
