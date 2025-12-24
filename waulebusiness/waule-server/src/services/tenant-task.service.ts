@@ -462,10 +462,12 @@ class TenantTaskService {
         if (!videoUrl || !audioUrl) {
           throw new Error('视频对口型需要视频和音频');
         }
+        // 视频和音频都需要上传到 OSS（局域网 URL 无法被大模型访问）
         const publicVideoUrl = await ensureAliyunOssUrl(videoUrl);
+        const publicAudioUrl = await ensureAliyunOssUrl(audioUrl);
         return await wanxService.generateVideoRetalk({
           videoUrl: publicVideoUrl!,
-          audioUrl,
+          audioUrl: publicAudioUrl!,
           refImageUrl: referenceImages[1] ? await ensureAliyunOssUrl(referenceImages[1]) : undefined,
         });
       } else if (modelId === 'video-style-transform') {
