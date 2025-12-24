@@ -36,6 +36,9 @@ const handleMulterError = (err: any, req: Request, res: Response, next: NextFunc
 // 确认本地下载完成，删除 OSS 临时文件
 router.post('/tasks/:taskId/confirm-local-download', authenticateTenantUserOrApiKey, tenantApiController.confirmLocalDownload);
 
+// 获取预签名上传 URL（支持用户token或API Key）
+router.post('/assets/presigned-url', authenticateTenantUserOrApiKey, tenantApiController.getPresignedUrl);
+
 // 所有其他路由都需要租户用户认证
 router.use(authenticateTenantUser);
 
@@ -111,8 +114,7 @@ router.put('/workflows/:workflowId', tenantApiController.updateWorkflow);
 // 获取资产列表
 router.get('/assets', tenantApiController.getAssets);
 
-// 获取预签名上传 URL
-router.post('/assets/presigned-url', tenantApiController.getPresignedUrl);
+// 注意: presigned-url 已移到上面使用 authenticateTenantUserOrApiKey 中间件
 
 // 确认上传
 router.post('/assets/confirm-upload', tenantApiController.confirmUpload);

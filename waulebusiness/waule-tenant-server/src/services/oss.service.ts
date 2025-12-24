@@ -52,7 +52,7 @@ export async function uploadFileToPlatformOss(filePath: string): Promise<UploadR
       { ext, contentType },
       {
         headers: {
-          'Authorization': `Bearer ${config.tenantApiKey}`,
+          'X-Tenant-API-Key': config.tenantApiKey,
           'Content-Type': 'application/json',
         },
         timeout: 30000,
