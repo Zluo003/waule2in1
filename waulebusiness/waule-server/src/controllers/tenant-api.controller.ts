@@ -447,6 +447,7 @@ export const getEpisode = asyncHandler(async (req: Request, res: Response) => {
       createdAt: episode.createdAt,
       updatedAt: episode.updatedAt,
       scriptJson: (episode as any).scriptJson, // 包含分镜脚本数据
+      configuredLibraryIds: (episode as any).configuredLibraryIds || [], // 配置的资产库ID
       isOwner,
       canEdit,
     },

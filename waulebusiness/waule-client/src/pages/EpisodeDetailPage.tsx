@@ -12,6 +12,7 @@ interface Episode {
   episodeNumber?: number
   canEdit?: boolean
   isOwner?: boolean
+  configuredLibraryIds?: string[]
 }
 
 interface Project {
@@ -273,17 +274,26 @@ export default function EpisodeDetailPageNew() {
     loadLibraries()
   }, [])
 
-  // 从本地存储加载已配置的资产库
+  // 从服务端剧集数据加载已配置的资产库（优先），本地存储作为备用
   useEffect(() => {
-    if (episodeId) {
-      const saved = localStorage.getItem(`episode_${episodeId}_libraries`)
-      if (saved) {
-        try {
-          setSelectedLibraryIds(JSON.parse(saved))
-        } catch {}
+    if (episode && episodeId) {
+      // 优先使用服务端的 configuredLibraryIds（协作者也能看到）
+      const serverIds = episode.configuredLibraryIds
+      if (Array.isArray(serverIds) && serverIds.length > 0) {
+        setSelectedLibraryIds(serverIds)
+        // 同步到本地存储
+        localStorage.setItem(`episode_${episodeId}_libraries`, JSON.stringify(serverIds))
+      } else {
+        // 回退到本地存储
+        const saved = localStorage.getItem(`episode_${episodeId}_libraries`)
+        if (saved) {
+          try {
+            setSelectedLibraryIds(JSON.parse(saved))
+          } catch {}
+        }
       }
     }
-  }, [episodeId])
+  }, [episode, episodeId])
 
   // 当选中的资产库变化时，加载可用资产列表（供选择）
   useEffect(() => {
