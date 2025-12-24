@@ -8,9 +8,15 @@ import { Router, Request, Response } from 'express';
 import axios, { AxiosRequestConfig, Method } from 'axios';
 import path from 'path';
 import fs from 'fs';
+import multer from 'multer';
+import FormData from 'form-data';
 import { getAppConfig } from '../services/database.service';
 import { uploadFileToPlatformOss } from '../services/oss.service';
 import logger from '../utils/logger';
+
+// 配置 multer 用于接收上传文件
+const uploadStorage = multer.memoryStorage();
+const uploadMiddleware = multer({ storage: uploadStorage, limits: { fileSize: 500 * 1024 * 1024 } });
 
 const router = Router();
 
@@ -215,6 +221,76 @@ async function proxyRequest(req: Request, res: Response) {
     });
   }
 }
+
+/**
+ * 处理资产库文件上传的代理
+ * 接收 multipart/form-data，转发到 waule-server
+ */
+router.post('/tenant/asset-libraries/:id/upload', uploadMiddleware.single('file'), async (req: Request, res: Response) => {
+  const config = getAppConfig();
+  
+  if (!config.platformServerUrl) {
+    return res.status(503).json({
+      success: false,
+      message: '企业服务端未配置平台地址',
+    });
+  }
+  
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: '未上传文件',
+    });
+  }
+  
+  try {
+    const targetUrl = `${config.platformServerUrl}${req.originalUrl}`;
+    logger.info(`[Proxy Upload] 转发文件上传: ${req.file.originalname} -> ${targetUrl}`);
+    
+    // 构建 FormData，确保 UTF-8 文件名正确编码
+    const formData = new FormData();
+    // 使用 Buffer.from 确保文件名是 UTF-8 编码
+    const filename = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+    formData.append('file', req.file.buffer, {
+      filename: filename,
+      contentType: req.file.mimetype,
+    });
+    
+    // 复制其他表单字段
+    for (const [key, value] of Object.entries(req.body)) {
+      if (key !== 'file') {
+        formData.append(key, value as string);
+      }
+    }
+    
+    // 复制认证头
+    const headers: Record<string, string> = {
+      ...formData.getHeaders(),
+    };
+    if (req.headers.authorization) {
+      headers['Authorization'] = req.headers.authorization as string;
+    }
+    if (config.tenantApiKey) {
+      headers['X-Tenant-API-Key'] = config.tenantApiKey;
+    }
+    
+    const response = await axios.post(targetUrl, formData, {
+      headers,
+      timeout: 300000, // 5分钟超时
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    });
+    
+    logger.info(`[Proxy Upload] 上传成功: ${response.status}`);
+    res.status(response.status).json(response.data);
+    
+  } catch (error: any) {
+    logger.error(`[Proxy Upload] 上传失败: ${error.message}`);
+    const status = error.response?.status || 500;
+    const data = error.response?.data || { success: false, message: error.message };
+    res.status(status).json(data);
+  }
+});
 
 // 代理所有 /api/* 请求（排除本地处理的路由）
 // 本地路由: /api/upload, /api/download, /api/files, /api/client-config

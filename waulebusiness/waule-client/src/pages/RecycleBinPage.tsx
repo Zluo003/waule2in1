@@ -145,7 +145,7 @@ const RecycleBinPage = () => {
     if (selectedIds.length === 0) return;
     if (!confirm(`确定要彻底删除选中的 ${selectedIds.length} 个资产吗？此操作不可恢复！`)) return;
     try {
-      await Promise.all(selectedIds.map((id) => apiClient.tenant.delete(`/assets/${id}/permanent`)));
+      await Promise.all(selectedIds.map((id) => apiClient.tenant.delete(`/assets/recycle/${id}/permanent`)));
       toast.success('批量彻底删除完成');
       clearSelection();
       await loadItems();

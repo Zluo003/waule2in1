@@ -174,7 +174,9 @@ const AssetLibraryPanel = ({ isOpen, onClose, onAssetSelect }: AssetLibraryPanel
   const panel = (
     <div className="fixed inset-0 z-[9999]">
       <style>
-        {`.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}`}
+        {`.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+@keyframes slideInFromRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.slide-in-right{animation:slideInFromRight 0.25s ease-out forwards}`}
       </style>
       <div
         className="bg-black/40 backdrop-blur-sm"
@@ -183,11 +185,9 @@ const AssetLibraryPanel = ({ isOpen, onClose, onAssetSelect }: AssetLibraryPanel
       />
       
       <div
-        className="bg-card-light dark:bg-card-dark shadow-2xl flex flex-col relative overflow-hidden"
-        style={{ position: 'fixed', top: 0, right: 0, height: '100vh', width: 500 }}
+        className="slide-in-right bg-white dark:bg-[#18181b] shadow-2xl flex flex-col relative overflow-hidden rounded-l-2xl"
+        style={{ position: 'fixed', top: 24, right: 0, bottom: 24, width: 500 }}
       >
-        {/* Gradient border on left */}
-        <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-purple-500/30 via-pink-500/50 to-cyan-500/30"></div>
         {/* 面板头部 */}
         <div className="flex items-center justify-between p-6">
           <div className="flex items-center gap-2">

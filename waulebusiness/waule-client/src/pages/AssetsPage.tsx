@@ -282,7 +282,7 @@ const LibraryModal: React.FC<LibraryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
       <div className={`bg-neutral-100 dark:bg-[#0a0a0a] border border-neutral-300 dark:border-neutral-800 rounded-2xl p-6 ${isEdit ? 'w-[800px]' : 'w-[640px]'} max-w-[95vw] shadow-lg max-h-[90vh] overflow-y-auto`}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
@@ -1011,7 +1011,7 @@ const AssetsPage = () => {
 
       {/* Sora角色库编辑模态框 */}
       {showSoraEditModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
           <div className="bg-white/90 dark:bg-black/70 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl p-6 w-[500px] max-w-[95vw] shadow-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-slate-800 dark:text-white">
