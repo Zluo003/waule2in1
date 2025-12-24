@@ -278,7 +278,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
       <div className="bg-white/90 dark:bg-black/70 backdrop-blur-xl border-2 border-slate-200 dark:border-white/10 rounded-2xl p-6 max-w-lg w-full shadow-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-800 dark:text-white">

@@ -4026,22 +4026,9 @@ export const confirmLocalDownload = asyncHandler(async (req: Request, res: Respo
           }
         }
         
-        // 删除参考素材（referenceImages）的 OSS 临时文件
-        const input = task.input as any;
-        if (input?.referenceImages && Array.isArray(input.referenceImages)) {
-          console.log(`[confirmLocalDownload] 处理参考素材: ${input.referenceImages.length} 个文件`);
-          for (const refUrl of input.referenceImages) {
-            // 只删除 OSS 临时文件，跳过 base64 和本地文件
-            if (refUrl && typeof refUrl === 'string' && refUrl.includes('aliyuncs.com')) {
-              try {
-                await deleteOssFile(refUrl);
-                console.log(`[confirmLocalDownload] ✅ 参考素材已删除: ${refUrl.substring(0, 80)}`);
-              } catch (err) {
-                console.warn(`[confirmLocalDownload] ⚠️ 删除参考素材失败: ${refUrl.substring(0, 50)}`, err);
-              }
-            }
-          }
-        }
+        // 注意：不删除参考素材（referenceImages），因为这些是用户上传的持久资源
+        // 用户可能会重试生成或更换模型，需要保留原始参考图片
+        // 只有任务结果文件（resultUrl）需要在本地下载后删除
       } else {
         console.log(`[confirmLocalDownload] ℹ️ 任务不存在，仅删除 OSS 文件`);
       }

@@ -4,6 +4,8 @@
 
 // 最大边长限制（用于压缩）
 const MAX_DIMENSION = 1920;
+// 文件大小限制（10MB）
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 /**
  * 压缩图片：最大边不超过指定尺寸
@@ -186,6 +188,99 @@ export const getImageDimensions = (url: string): Promise<{ width: number; height
     };
     img.onerror = reject;
     img.src = url;
+  });
+};
+
+/**
+ * 智能压缩图片（针对超过10MB的大图）
+ * 规则：
+ * 1. 如果最小边 > 2560，缩小至最小边 = 2560
+ * 2. 如果最小边 <= 2560 但文件 > 10MB，缩小至最小边 = 1440
+ * 3. 使用 quality=0.9 保证画质
+ */
+export const smartCompressImage = async (imageUrl: string): Promise<string> => {
+  // 获取图片大小
+  let fileSize = 0;
+  let blob: Blob | null = null;
+  
+  if (imageUrl.startsWith('data:')) {
+    // base64 格式，估算大小
+    fileSize = (imageUrl.length * 3) / 4;
+    const response = await fetch(imageUrl);
+    blob = await response.blob();
+  } else {
+    // URL 格式，尝试获取大小
+    try {
+      const response = await fetch(imageUrl);
+      blob = await response.blob();
+      fileSize = blob.size;
+    } catch (error) {
+      console.warn('[smartCompressImage] 无法获取图片，返回原图:', error);
+      return imageUrl;
+    }
+  }
+  
+  // 小于 10MB，无需压缩
+  if (fileSize <= MAX_FILE_SIZE) {
+    console.log(`[smartCompressImage] 图片大小 ${Math.round(fileSize / 1024 / 1024 * 100) / 100}MB，无需压缩`);
+    return imageUrl;
+  }
+  
+  console.log(`[smartCompressImage] 图片大小 ${Math.round(fileSize / 1024 / 1024 * 100) / 100}MB，开始压缩...`);
+  
+  // 获取图片尺寸
+  const dimensions = await getImageDimensions(imageUrl);
+  const { width, height } = dimensions;
+  const minSide = Math.min(width, height);
+  
+  let targetMinSide: number;
+  if (minSide > 2560) {
+    // 最小边大于2560，缩小到2560
+    targetMinSide = 2560;
+    console.log(`[smartCompressImage] 最小边 ${minSide}px > 2560px，缩小到 2560px`);
+  } else {
+    // 最小边<=2560但文件>10MB，缩小到1440
+    targetMinSide = 1440;
+    console.log(`[smartCompressImage] 最小边 ${minSide}px <= 2560px 但文件 > 10MB，缩小到 1440px`);
+  }
+  
+  // 计算缩放比例
+  const scale = targetMinSide / minSide;
+  const newWidth = Math.round(width * scale);
+  const newHeight = Math.round(height * scale);
+  
+  // 使用 canvas 压缩
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = newWidth;
+      canvas.height = newHeight;
+      
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Failed to get canvas context'));
+        return;
+      }
+      
+      ctx.drawImage(img, 0, 0, newWidth, newHeight);
+      
+      // 使用 JPEG 格式，quality=0.9
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.9);
+      const compressedSize = (compressedBase64.length * 3) / 4;
+      
+      console.log(`[smartCompressImage] 压缩完成: ${width}x${height} -> ${newWidth}x${newHeight}, 大小: ${Math.round(compressedSize / 1024 / 1024 * 100) / 100}MB`);
+      resolve(compressedBase64);
+    };
+    
+    img.onerror = () => {
+      console.warn('[smartCompressImage] 图片加载失败，返回原图');
+      resolve(imageUrl);
+    };
+    
+    img.src = imageUrl;
   });
 };
 

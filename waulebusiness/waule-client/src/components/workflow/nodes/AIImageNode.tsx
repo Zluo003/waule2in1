@@ -3,7 +3,7 @@ import { Position, NodeProps, useReactFlow, useStore, useNodes } from 'reactflow
 import { toast } from 'react-hot-toast';
 import { Loader2, Sparkles } from 'lucide-react';
 import { apiClient } from '../../../lib/api';
-import { processImageUrl } from '../../../utils/imageUtils';
+import { processImageUrl, smartCompressImage } from '../../../utils/imageUtils';
 import { processTaskResult } from '../../../utils/taskResultHandler';
 import CustomHandle from '../CustomHandle';
 import CustomSelect from './CustomSelect';
@@ -698,6 +698,53 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
     poll();
   };
 
+  // 从连接的节点获取新鲜的图片URL（每次生成都重新获取，避免使用已删除的OSS链接）
+  const getFreshReferenceImages = (): string[] => {
+    const freshImages: string[] = [];
+    const maxImages = getMaxReferenceImages();
+    
+    connectedEdges.forEach((edge: any) => {
+      if (freshImages.length >= maxImages) return;
+      const sourceNode = getNode(edge.source);
+      if (!sourceNode) return;
+      
+      const sourceData = sourceNode.data as any;
+      
+      // 资产选择器角色多图
+      if (sourceNode.type === 'assetSelector' && sourceData.config?.subjects && sourceData.config.subjects.length > 0) {
+        const first = sourceData.config.subjects[0].images?.[0];
+        if (first && !freshImages.includes(first)) {
+          freshImages.push(first);
+        }
+      }
+      
+      // 检查生成的图片节点
+      let imageUrl = sourceData.config?.generatedImageUrl || sourceData.imageUrl || '';
+      
+      // 检查资产选择器节点
+      if (!imageUrl && sourceData.config?.selectedAsset) {
+        const asset = sourceData.config.selectedAsset;
+        if (asset.type === 'IMAGE') {
+          imageUrl = asset.url;
+        }
+      }
+      
+      // 检查上传节点
+      if (!imageUrl && sourceData.config?.uploadedFiles && sourceData.config.uploadedFiles.length > 0) {
+        const uploadedFile = sourceData.config.uploadedFiles[0];
+        if (uploadedFile.type === 'IMAGE') {
+          imageUrl = uploadedFile.url;
+        }
+      }
+      
+      if (imageUrl && !freshImages.includes(imageUrl)) {
+        freshImages.push(imageUrl);
+      }
+    });
+    
+    return freshImages.slice(0, maxImages);
+  };
+
   // 生成图片（异步任务）
   const handleGenerate = async () => {
     if (!prompt.trim() || !selectedModel) return;
@@ -706,44 +753,25 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
     setGenerationProgress(0);
 
     try {
+      // 每次生成都从连接节点重新获取图片URL（避免使用已删除的OSS链接）
+      const freshImages = getFreshReferenceImages();
+      console.log('[AIImageNode] 获取新鲜图片URL:', freshImages);
+      
       // 处理参考图片（本地转base64，公网直接用）
-      // 限制单张图片最大 10MB
-      const MAX_IMAGE_SIZE_MB = 10;
-      const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+      // 超过10MB的图片自动等比压缩
       let processedReferenceImages: string[] = [];
 
-      if (referenceImages.length > 0) {
+      if (freshImages.length > 0) {
         try {
-          for (const imageUrl of referenceImages) {
-            // 检查图片大小（对于可获取的URL）
-            if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) {
-              try {
-                const headRes = await fetch(imageUrl, { method: 'HEAD' });
-                const contentLength = headRes.headers.get('content-length');
-                if (contentLength && parseInt(contentLength) > MAX_IMAGE_SIZE_BYTES) {
-                  toast.error(`参考图片过大，不能超过 ${MAX_IMAGE_SIZE_MB}MB。请压缩图片或降低分辨率后重试。`);
-                  setIsGenerating(false);
-                  return;
-                }
-              } catch {
-                // HEAD 请求失败，继续处理（某些服务器不支持 HEAD）
-              }
-            }
-            // 检查 base64 图片大小
-            if (imageUrl.startsWith('data:')) {
-              // base64 字符串大小约为实际文件大小的 1.37 倍
-              const base64Size = (imageUrl.length * 3) / 4;
-              if (base64Size > MAX_IMAGE_SIZE_BYTES) {
-                toast.error(`参考图片过大，不能超过 ${MAX_IMAGE_SIZE_MB}MB。请压缩图片或降低分辨率后重试。`);
-                setIsGenerating(false);
-                return;
-              }
-            }
-            const processedUrl = await processImageUrl(imageUrl);
+          for (const imageUrl of freshImages) {
+            // 先智能压缩（超过10MB自动压缩）
+            const compressedUrl = await smartCompressImage(imageUrl);
+            // 再处理URL（本地转base64等）
+            const processedUrl = await processImageUrl(compressedUrl);
             processedReferenceImages.push(processedUrl);
           }
         } catch (error) {
-          // 处理参考图失败
+          console.error('[AIImageNode] 处理参考图失败:', error);
         }
       }
 
