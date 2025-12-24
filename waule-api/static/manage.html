@@ -1117,10 +1117,22 @@
         let currentProvider='';
         let allDiscordAccounts=[];
         const GEMINI_API_BASE = '';
-        // 动态设置 GATEWAY_API_BASE：8000端口访问时指向9000，9000端口访问时使用同域
-        const GATEWAY_API_BASE = window.location.port === '8000' 
-          ? window.location.protocol + '//' + window.location.hostname + ':9000' 
-          : '';
+        // 动态设置 GATEWAY_API_BASE：aiadmin 域名或 8000 端口访问时指向 api 域名或 9000 端口
+        const GATEWAY_API_BASE = (function() {
+          const host = window.location.hostname;
+          const port = window.location.port;
+          const protocol = window.location.protocol;
+          // 通过 aiadmin 子域名访问时，指向 api 子域名
+          if (host.startsWith('aiadmin.')) {
+            return protocol + '//' + host.replace('aiadmin.', 'api.');
+          }
+          // 通过 8000 端口直接访问时，指向 9000 端口
+          if (port === '8000') {
+            return protocol + '//' + host + ':9000';
+          }
+          // 其他情况使用同域
+          return '';
+        })();
         const $=(id)=>document.getElementById(id),
         checkAuth=()=>{const t=localStorage.getItem('adminToken');return t||(location.href='/login',null),t},
         apiRequest=async(url,opts={})=>{const t=checkAuth();if(!t)return null;const r=await fetch(url,{...opts,headers:{...opts.headers,Authorization:`Bearer ${t}`,'Content-Type':'application/json'}});return r.status===401?(localStorage.removeItem('adminToken'),location.href='/login',null):r},

@@ -6,6 +6,9 @@ FROM node:20-slim AS node-builder
 
 WORKDIR /build
 
+# 使用国内镜像源
+RUN sed -i 's|deb.debian.org|mirrors.ustc.edu.cn|g' /etc/apt/sources.list.d/debian.sources
+
 # 安装构建依赖
 RUN apt-get update && apt-get install -y \
     python3 \
@@ -29,6 +32,9 @@ RUN npm rebuild better-sqlite3
 # ==================== Stage 2: 最终镜像 ====================
 FROM python:3.11-slim
 
+# 使用国内镜像源
+RUN sed -i 's|deb.debian.org|mirrors.ustc.edu.cn|g' /etc/apt/sources.list.d/debian.sources
+
 # 安装 Node.js 运行时和必要工具
 RUN apt-get update && apt-get install -y \
     curl \
@@ -37,8 +43,11 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 supervisor
-RUN pip install --no-cache-dir supervisor
+# 配置 pip 国内镜像
+RUN pip config set global.index-url https://mirrors.ustc.edu.cn/pypi/web/simple
+
+# 安装 PM2
+RUN npm install -g pm2
 
 WORKDIR /app
 
@@ -56,8 +65,8 @@ COPY services/sora-api/ /app/sora-api/
 COPY static/ /app/static/
 COPY config/ /app/sora-api/config/
 
-# ========== Supervisor 配置 ==========
-COPY supervisord.conf /etc/supervisor/supervisord.conf
+# ========== PM2 配置 ==========
+COPY ecosystem.config.js /app/ecosystem.config.js
 
 # ========== 创建数据目录 ==========
 RUN mkdir -p /app/data /tmp/sora-proxy
@@ -79,4 +88,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:9000/health || exit 1
 
 # ========== 启动 ==========
-CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+CMD ["pm2-runtime", "ecosystem.config.js"]
