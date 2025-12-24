@@ -1602,8 +1602,70 @@ export const getAssetLibraries = asyncHandler(async (req: Request, res: Response
         };
       });
 
-    // 合并自己的和共享的，自己的在前
-    res.json({ success: true, data: [...ownLibrariesWithFlag, ...sharedLibraries] });
+    // 3. 获取项目协作者可访问的资产库（该项目的剧集配置了这些资产库）
+    const projectCollabs = await prisma.tenantProjectCollaborator.findMany({
+      where: { tenantUserId: tenantUser.id },
+      select: { projectId: true },
+    });
+    
+    let projectAccessLibraries: any[] = [];
+    if (projectCollabs.length > 0) {
+      const projectIds = projectCollabs.map(c => c.projectId);
+      // 获取这些项目的剧集配置的资产库ID
+      const episodes = await prisma.tenantEpisode.findMany({
+        where: { projectId: { in: projectIds } },
+        select: { configuredLibraryIds: true },
+      });
+      
+      const configuredLibraryIds = new Set<string>();
+      episodes.forEach(ep => {
+        const ids = (ep as any).configuredLibraryIds;
+        if (Array.isArray(ids)) {
+          ids.forEach((id: string) => configuredLibraryIds.add(id));
+        }
+      });
+      
+      // 排除已经拥有的和已共享的
+      const ownIds = new Set(ownLibraries.map(l => l.id));
+      const sharedIds = new Set(sharedCollaborations.map(c => c.library.id));
+      const projectLibraryIds = [...configuredLibraryIds].filter(id => !ownIds.has(id) && !sharedIds.has(id));
+      
+      if (projectLibraryIds.length > 0) {
+        const projectLibs = await prisma.tenantAssetLibrary.findMany({
+          where: { 
+            id: { in: projectLibraryIds },
+            ...(category && category !== 'ALL' ? { category: category as any } : {}),
+          },
+          include: { _count: { select: { assets: true } } },
+        });
+        
+        // 获取这些库的所有者信息
+        const projOwnerIds = [...new Set(projectLibs.map(l => l.tenantUserId))];
+        const projOwners = await prisma.tenantUser.findMany({
+          where: { id: { in: projOwnerIds } },
+          select: { id: true, nickname: true, avatar: true },
+        });
+        const projOwnerMap = new Map(projOwners.map(o => [o.id, o]));
+        
+        projectAccessLibraries = projectLibs.map(lib => {
+          const owner = projOwnerMap.get(lib.tenantUserId);
+          return {
+            ...lib,
+            isOwner: false,
+            isShared: true,
+            shareInfo: {
+              canDownload: true,
+              sharedAt: new Date().toISOString(),
+              owner: owner ? { id: owner.id, nickname: owner.nickname, avatar: owner.avatar } : null,
+              viaProject: true,
+            },
+          };
+        });
+      }
+    }
+
+    // 合并自己的、共享的、项目可访问的，自己的在前
+    res.json({ success: true, data: [...ownLibrariesWithFlag, ...sharedLibraries, ...projectAccessLibraries] });
   } else {
     res.json({ success: true, data: ownLibrariesWithFlag });
   }
