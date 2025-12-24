@@ -456,8 +456,8 @@ class TenantTaskService {
       const meta: any = params.metadata || {};
       
       if (modelId === 'videoretalk') {
-        // 视频对口型
-        const videoUrl = referenceImages[0];
+        // 视频对口型 - 支持两种格式：referenceImages[0]=视频 或 metadata.videoUrl=视频
+        const videoUrl = referenceImages[0] || meta.videoUrl;
         const audioUrl = meta.audioUrl;
         if (!videoUrl || !audioUrl) {
           throw new Error('视频对口型需要视频和音频');

@@ -42,10 +42,9 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [audioDuration, setAudioDuration] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
-  const [progress, setProgress] = useState(0);
+  const progress = 0; // eslint-disable-line
   const [validationError, setValidationError] = useState<string | null>(null);
   const { setNodes, setEdges, getNode, getNodes, getEdges } = useReactFlow();
   const edges = useEdges();
@@ -143,15 +142,9 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
       // setDurationSec(a.duration || 0); // Removed
       setAudioDuration(a.duration || 0);
     };
-    const onUpdate = () => setProgress(a.duration ? (a.currentTime / a.duration) : 0);
-    const onEnded = () => setIsPlaying(false);
     a.addEventListener('loadedmetadata', onLoaded);
-    a.addEventListener('timeupdate', onUpdate);
-    a.addEventListener('ended', onEnded);
     return () => {
       a.removeEventListener('loadedmetadata', onLoaded);
-      a.removeEventListener('timeupdate', onUpdate);
-      a.removeEventListener('ended', onEnded);
     };
   }, [connectedInputs.audioUrl]);
 
@@ -269,25 +262,6 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
     };
     run();
   }, [connectedInputs.audioUrl, progress]);
-
-  const toggleAudio = () => {
-    const a = audioRef.current;
-    if (!a) return;
-    if (isPlaying) {
-      a.pause();
-      setIsPlaying(false);
-    } else {
-      a.play();
-      setIsPlaying(true);
-    }
-  };
-
-  const format = (s: number) => {
-    if (!s || !isFinite(s)) return '0:00';
-    const m = Math.floor(s / 60);
-    const ss = Math.floor(s % 60);
-    return `${m}:${ss.toString().padStart(2, '0')}`;
-  };
 
   // 用于防止并发创建相同URL的预览节点
   const creatingPreviewUrlsRef = useRef<Set<string>>(new Set());
@@ -635,17 +609,8 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
             <div className="space-y-1">
               <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">语音音频</label>
               {connectedInputs.audioUrl ? (
-                <div className="w-full bg-slate-100 dark:bg-[#000000] backdrop-blur-none border border-slate-200 dark:border-neutral-800 rounded-md overflow-hidden" style={{ height: 140 }}>
-                  <div className="flex items-center gap-2 p-2">
-                    <button onClick={toggleAudio} className="nodrag w-7 h-7 rounded-full bg-neutral-800 dark:bg-white  hover:shadow-lg flex items-center justify-center transition-all active:scale-95">
-                      <span className="material-symbols-outlined text-white text-sm">{isPlaying ? 'pause' : 'play_arrow'}</span>
-                    </button>
-                    <span className="text-[10px] text-slate-800 dark:text-white">{format(audioDuration)}</span>
-                  </div>
-                  <div className="px-2 pb-2">
-                    <canvas ref={canvasRef} width={280} height={70} className="w-full" />
-                  </div>
-                  <audio ref={audioRef} src={connectedInputs.audioUrl} className="hidden" />
+                <div className="w-full py-1">
+                  <audio ref={audioRef} src={connectedInputs.audioUrl} controls className="w-full nodrag invert dark:invert-0" style={{ height: 36 }} />
                   <video 
                     ref={videoRef} 
                     className="hidden" 

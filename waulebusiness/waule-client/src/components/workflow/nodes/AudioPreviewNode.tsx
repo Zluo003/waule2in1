@@ -339,8 +339,8 @@ const AudioPreviewNode = ({ data, id }: NodeProps<NodeData>) => {
       />
       
       {/* 音频容器 */}
-      <div className="relative bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border border-slate-200 dark:border-neutral-800 rounded-xl shadow-xl overflow-hidden py-4 px-3">
-        <audio ref={audioRef} controls src={computedSrc} className="w-full nodrag" />
+      <div className="relative py-2 px-1">
+        <audio ref={audioRef} controls src={computedSrc} className="w-full nodrag invert dark:invert-0" style={{ height: 36 }} />
 
         {/* 操作按钮（hover时显示） */}
         <div className="nodrag absolute bottom-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
