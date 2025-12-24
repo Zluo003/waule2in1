@@ -68,6 +68,8 @@ export const apiClient = {
 
     logout: () => apiClient.post('/auth/logout'),
     me: () => apiClient.get('/auth/me'),
+    changePassword: (data: { currentPassword: string; newPassword: string }) =>
+      apiClient.post('/auth/change-password', data),
   },
 
   // 管理员 API

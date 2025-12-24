@@ -15,6 +15,7 @@ const ModelConfigPage = lazy(() => import('./pages/ModelConfigPage'));
 const AgentsPage = lazy(() => import('./pages/AgentsPage'));
 const BillingManagementPage = lazy(() => import('./pages/BillingManagementPage'));
 const NodePromptsPage = lazy(() => import('./pages/NodePromptsPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 function App() {
   const { isAuthenticated, user, token, clearAuth, updateUser } = useAuthStore();
@@ -91,6 +92,7 @@ function App() {
           <Route path="agents" element={<AgentsPage />} />
           <Route path="billing" element={<BillingManagementPage />} />
           <Route path="node-prompts" element={<NodePromptsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
 
         {/* 404 */}

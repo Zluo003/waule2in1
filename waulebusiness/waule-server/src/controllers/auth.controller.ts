@@ -441,3 +441,55 @@ export const refreshToken = asyncHandler(async (req: Request, res: Response) => 
   });
 });
 
+/**
+ * 修改密码
+ */
+export const changePassword = asyncHandler(async (req: Request, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      errors: errors.array(),
+    });
+  }
+
+  const { currentPassword, newPassword } = req.body;
+  const user = req.user!;
+
+  // 获取用户完整信息（包含密码）
+  const fullUser = await prisma.user.findUnique({
+    where: { id: user.id },
+  });
+
+  if (!fullUser || !fullUser.password) {
+    throw new AppError('用户信息错误', 400);
+  }
+
+  // 验证当前密码
+  const isCurrentPasswordValid = await bcrypt.compare(currentPassword, fullUser.password);
+  if (!isCurrentPasswordValid) {
+    throw new AppError('当前密码错误', 401);
+  }
+
+  // 加密新密码
+  const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+
+  // 更新密码
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { password: hashedNewPassword },
+  });
+
+  // 删除所有会话，强制重新登录
+  await prisma.session.deleteMany({
+    where: { userId: user.id },
+  });
+
+  logger.info(`用户修改密码: ${user.username || user.id}`);
+
+  res.json({
+    success: true,
+    message: '密码修改成功，请重新登录',
+  });
+});
+

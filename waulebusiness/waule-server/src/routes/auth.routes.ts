@@ -234,5 +234,43 @@ router.post(
  */
 router.get('/totp/status', authenticateToken, authController.getTotpStatus);
 
+/**
+ * @swagger
+ * /auth/change-password:
+ *   post:
+ *     summary: 修改密码
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 密码修改成功
+ */
+router.post(
+  '/change-password',
+  authenticateToken,
+  [
+    body('currentPassword').notEmpty().withMessage('请输入当前密码'),
+    body('newPassword')
+      .isLength({ min: 6 })
+      .withMessage('新密码至少6位'),
+  ],
+  authController.changePassword
+);
+
 export default router;
 
