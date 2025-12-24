@@ -36,20 +36,42 @@ function getLocalIP() {
 
 // 启动后端服务
 function startServer() {
+  const fs = require('fs');
+  
   try {
     process.env.NODE_ENV = 'production';
     
     // 设置数据目录路径（数据库和配置文件）
-    // 使用用户主目录下的固定位置，确保数据持久化（便携版 exe 每次提取到不同临时目录）
-    const dataPath = app.isPackaged
-      ? path.join(os.homedir(), '.waule-enterprise-server', 'data')
-      : path.join(__dirname, '..', 'data');
+    // 优先使用程序安装目录，如果无权限则回退到用户目录
+    let dataPath;
+    if (app.isPackaged) {
+      const exeDir = path.dirname(process.execPath);
+      const installDataPath = path.join(exeDir, 'data');
+      
+      // 尝试在安装目录创建data文件夹
+      try {
+        if (!fs.existsSync(installDataPath)) {
+          fs.mkdirSync(installDataPath, { recursive: true });
+        }
+        // 测试写入权限
+        const testFile = path.join(installDataPath, '.write-test');
+        fs.writeFileSync(testFile, 'test');
+        fs.unlinkSync(testFile);
+        dataPath = installDataPath;
+        console.log('[Electron] 使用安装目录:', dataPath);
+      } catch (e) {
+        // 无权限，回退到用户目录
+        dataPath = path.join(os.homedir(), '.waule-enterprise-server', 'data');
+        console.log('[Electron] 安装目录无写入权限，使用用户目录:', dataPath);
+      }
+    } else {
+      dataPath = path.join(__dirname, '..', 'data');
+    }
     
     process.env.APP_DATA_PATH = dataPath;
     console.log('[Electron] 数据目录:', dataPath);
     
     // 确保目录存在
-    const fs = require('fs');
     if (!fs.existsSync(dataPath)) {
       fs.mkdirSync(dataPath, { recursive: true });
     }
