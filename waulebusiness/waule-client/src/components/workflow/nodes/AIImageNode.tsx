@@ -3,7 +3,8 @@ import { Position, NodeProps, useReactFlow, useStore, useNodes } from 'reactflow
 import { toast } from 'react-hot-toast';
 import { Loader2, Sparkles } from 'lucide-react';
 import { apiClient } from '../../../lib/api';
-import { processImageUrl, smartCompressImage } from '../../../utils/imageUtils';
+import { smartCompressImage, isLocalUrl } from '../../../utils/imageUtils';
+import { uploadLocalFileToOss, uploadBase64ToOss } from '../../../api/tenantLocalServer';
 import { processTaskResult } from '../../../utils/taskResultHandler';
 import CustomHandle from '../CustomHandle';
 import CustomSelect from './CustomSelect';
@@ -757,21 +758,61 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
       const freshImages = getFreshReferenceImages();
       console.log('[AIImageNode] 获取新鲜图片URL:', freshImages);
       
-      // 处理参考图片（本地转base64，公网直接用）
-      // 超过10MB的图片自动等比压缩
+      // 处理参考图片：
+      // 1. 本地URL → 上传到临时OSS → 提交OSS URL给AI模型
+      // 2. 公网URL → 直接使用
+      // 3. Base64 → 上传到临时OSS
       let processedReferenceImages: string[] = [];
 
       if (freshImages.length > 0) {
-        try {
-          for (const imageUrl of freshImages) {
-            // 先智能压缩（超过10MB自动压缩）
+        for (const imageUrl of freshImages) {
+          try {
+            // 1. 已经是OSS链接，直接使用（无法在浏览器端压缩，会CORS报错）
+            if (imageUrl.includes('aliyuncs.com') || imageUrl.includes('oss-cn-')) {
+              console.log('[AIImageNode] 已是OSS链接，直接使用:', imageUrl.substring(0, 60));
+              processedReferenceImages.push(imageUrl);
+              continue;
+            }
+            
+            // 2. 本地URL（tenant-server的链接）- 上传到临时OSS
+            if (isLocalUrl(imageUrl)) {
+              const urlObj = new URL(imageUrl);
+              const localPath = urlObj.pathname.replace(/^\/files\//, '');
+              console.log('[AIImageNode] 本地图片，上传到临时OSS:', localPath);
+              
+              const ossResult = await uploadLocalFileToOss(localPath);
+              if (ossResult.success && ossResult.ossUrl) {
+                console.log('[AIImageNode] 上传OSS成功:', ossResult.ossUrl.substring(0, 60));
+                processedReferenceImages.push(ossResult.ossUrl);
+              } else {
+                console.error('[AIImageNode] 上传OSS失败:', ossResult.error);
+                toast.error('参考图片上传失败，请检查网络连接');
+              }
+              continue;
+            }
+            
+            // 3. Base64数据 - 上传到临时OSS
+            if (imageUrl.startsWith('data:')) {
+              console.log('[AIImageNode] Base64图片，上传到临时OSS');
+              const ossResult = await uploadBase64ToOss(imageUrl);
+              if (ossResult.success && ossResult.ossUrl) {
+                console.log('[AIImageNode] 上传OSS成功:', ossResult.ossUrl.substring(0, 60));
+                processedReferenceImages.push(ossResult.ossUrl);
+              } else {
+                console.error('[AIImageNode] 上传OSS失败:', ossResult.error);
+              }
+              continue;
+            }
+            
+            // 4. 其他公网URL - 尝试压缩后直接使用
             const compressedUrl = await smartCompressImage(imageUrl);
-            // 再处理URL（本地转base64等）
-            const processedUrl = await processImageUrl(compressedUrl);
-            processedReferenceImages.push(processedUrl);
+            console.log('[AIImageNode] 公网URL处理后:', compressedUrl.substring(0, 60));
+            processedReferenceImages.push(compressedUrl);
+          } catch (error) {
+            console.error('[AIImageNode] 处理参考图失败:', error);
+            // 失败时尝试直接使用原URL
+            processedReferenceImages.push(imageUrl);
           }
-        } catch (error) {
-          console.error('[AIImageNode] 处理参考图失败:', error);
         }
       }
 

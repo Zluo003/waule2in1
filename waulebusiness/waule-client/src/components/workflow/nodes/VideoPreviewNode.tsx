@@ -69,8 +69,17 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
       try {
         const ctx = (data as any)?.workflowContext || {};
         const ep = ctx.episode;
+        // 优先从 nodeGroup 获取 scene 和 shot
+        let nodeGroup = ctx.nodeGroup;
+        if (!nodeGroup && ctx.nodeGroups) {
+          nodeGroup = ctx.nodeGroups.find((g: any) => g.nodeIds?.includes(id));
+        }
+        if (!nodeGroup && (window as any).__workflowContext?.nodeGroups) {
+          nodeGroup = (window as any).__workflowContext.nodeGroups.find((g: any) => g.nodeIds?.includes(id));
+        }
         const sp = new URLSearchParams(window.location.search);
-        const shot = Number(sp.get('shot')) || 1;
+        const scene = Number(nodeGroup?.scene) || Number(sp.get('scene')) || 1;
+        const shot = Number(nodeGroup?.shot) || Number(sp.get('shot')) || 1;
         const parts = location.pathname.split('/').filter(Boolean);
         const pIdx = parts.indexOf('projects');
         const eIdx = parts.indexOf('episodes');
@@ -82,7 +91,7 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
         const root: any = (res as any)?.data ?? res;
         const episodeObj: any = (root as any)?.data ?? root;
         const acts: any[] = Array.isArray(episodeObj?.scriptJson?.acts) ? episodeObj.scriptJson.acts : [];
-        const act = acts.find((a: any) => a.actIndex === 1);
+        const act = acts.find((a: any) => Number(a.actIndex) === scene);
         const shotItem = act?.shots?.find((s: any) => Number(s.shotIndex) === shot);
         const mediaList = Array.isArray(shotItem?.mediaList) ? shotItem.mediaList : [];
         const isInList = mediaList.some((m: any) => m?.nodeId === id);
@@ -413,9 +422,17 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
               const url = data.videoUrl;
               const ctx = data.workflowContext || {};
               const ep = ctx.episode;
-              // 从 URL 参数获取 shot
+              // 优先从 nodeGroup 获取 scene 和 shot
+              let nodeGroup = ctx.nodeGroup;
+              if (!nodeGroup && ctx.nodeGroups) {
+                nodeGroup = ctx.nodeGroups.find((g: any) => g.nodeIds?.includes(id));
+              }
+              if (!nodeGroup && (window as any).__workflowContext?.nodeGroups) {
+                nodeGroup = (window as any).__workflowContext.nodeGroups.find((g: any) => g.nodeIds?.includes(id));
+              }
               const sp = new URLSearchParams(window.location.search);
-              const shot = Number(sp.get('shot')) || 1;
+              const scene = Number(nodeGroup?.scene) || Number(sp.get('scene')) || 1;
+              const shot = Number(nodeGroup?.shot) || Number(sp.get('shot')) || 1;
               // 从 URL 路径获取 projectId 和 episodeId
               const parts = location.pathname.split('/').filter(Boolean);
               const pIdx = parts.indexOf('projects');
@@ -431,8 +448,8 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
               const episodeObj: any = (root as any)?.data ?? root;
               // 使用 acts 结构（与 EpisodeDetailPage 保持一致）
               let acts: any[] = Array.isArray(episodeObj?.scriptJson?.acts) ? [...episodeObj.scriptJson.acts] : [];
-              let act = acts.find((a: any) => a.actIndex === 1);
-              if (!act) { act = { actIndex: 1, shots: [] }; acts.push(act); }
+              let act = acts.find((a: any) => Number(a.actIndex) === scene);
+              if (!act) { act = { actIndex: scene, shots: [] }; acts.push(act); }
               act.shots = Array.isArray(act.shots) ? [...act.shots] : [];
               let shotItem = act.shots.find((s: any) => Number(s.shotIndex) === shot);
               if (!shotItem) { 

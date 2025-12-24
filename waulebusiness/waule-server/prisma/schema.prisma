@@ -819,18 +819,19 @@ model TenantProject {
 }
 
 model TenantEpisode {
-  id          String         @id @default(uuid())
-  projectId   String
-  title       String
-  description String?
-  order       Int            @default(0)
-  status      EpisodeStatus  @default(DRAFT)
-  thumbnail   String?
-  scriptJson  Json?          // 分镜脚本 JSON 数据
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  project     TenantProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  workflows   TenantWorkflow[]
+  id                   String         @id @default(uuid())
+  projectId            String
+  title                String
+  description          String?
+  order                Int            @default(0)
+  status               EpisodeStatus  @default(DRAFT)
+  thumbnail            String?
+  scriptJson           Json?          // 分镜脚本 JSON 数据
+  configuredLibraryIds String[]       @default([]) // 配置的资产库ID列表（用于自动共享给协作者）
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  project              TenantProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workflows            TenantWorkflow[]
 
   @@index([projectId])
   @@map("tenant_episodes")

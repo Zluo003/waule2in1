@@ -531,13 +531,45 @@ export const apiClient = {
     delete: (id: string) => apiClient.tenant.delete(`/asset-libraries/${id}`),
     getAssets: (id: string) => apiClient.tenant.get(`/asset-libraries/${id}/assets`),
     uploadAsset: async (libraryId: string, file: File, _customName?: string, config?: AxiosRequestConfig) => {
-      // 使用租户 API 上传到资产库
-      const formData = new FormData();
-      formData.append('file', file);
-      return apiClient.tenant.post(`/asset-libraries/${libraryId}/upload`, formData, {
-        ...config,
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // 商业版：先上传到 tenant-server 本地存储，再添加到资产库
+      // 这样资产文件存储在本地，不会上传到 OSS
+      const { useTenantStorageStore } = await import('../store/tenantStorageStore');
+      const storageConfig = useTenantStorageStore.getState().config;
+      
+      if (storageConfig.localServerUrl) {
+        // 1. 先上传到 tenant-server 本地存储
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        try {
+          const uploadResponse = await axios.post(`${storageConfig.localServerUrl}/api/upload`, formData, {
+            ...config,
+            timeout: 300000,
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          
+          const localUrl = uploadResponse.data.localUrl || uploadResponse.data.data?.url;
+          if (!localUrl) {
+            throw new Error('本地上传失败：未返回 URL');
+          }
+          
+          console.log('[资产库] 文件已上传到本地:', localUrl);
+          
+          // 2. 使用本地 URL 添加到资产库
+          const addResult = await apiClient.tenant.post(`/asset-libraries/${libraryId}/add-from-url`, {
+            url: localUrl,
+            name: _customName || file.name.replace(/\.[^/.]+$/, ''),
+          });
+          
+          return addResult;
+        } catch (error: any) {
+          console.error('[资产库] 本地上传失败:', error.message);
+          throw new Error('上传失败，请检查本地服务端是否运行');
+        }
+      }
+      
+      // 未配置本地服务端，提示用户配置
+      throw new Error('请先在设置中配置租户服务端地址');
     },
     addFromUrl: (libraryId: string, url: string, name?: string) =>
       apiClient.tenant.post(`/asset-libraries/${libraryId}/add-from-url`, { url, name }),

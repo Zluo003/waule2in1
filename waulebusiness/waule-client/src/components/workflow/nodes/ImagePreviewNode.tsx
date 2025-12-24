@@ -905,9 +905,20 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                 const url = data.imageUrl;
                 const ctx = data.workflowContext || {};
                 const ep = ctx.episode;
-                // 从 URL 参数获取 shot
+                // 优先从 nodeGroup 获取 scene 和 shot
+                // 如果 nodeGroup 为空，尝试从 nodeGroups 中查找当前节点所属的分组
+                let nodeGroup = ctx.nodeGroup;
+                if (!nodeGroup && ctx.nodeGroups) {
+                  nodeGroup = ctx.nodeGroups.find((g: any) => g.nodeIds?.includes(id));
+                }
+                // 如果还是找不到，尝试从全局 __workflowContext 获取
+                if (!nodeGroup && (window as any).__workflowContext?.nodeGroups) {
+                  nodeGroup = (window as any).__workflowContext.nodeGroups.find((g: any) => g.nodeIds?.includes(id));
+                }
                 const sp = new URLSearchParams(window.location.search);
-                const shot = Number(sp.get('shot')) || 1;
+                const scene = Number(nodeGroup?.scene) || Number(sp.get('scene')) || 1;
+                const shot = Number(nodeGroup?.shot) || Number(sp.get('shot')) || 1;
+                console.log('[ImagePreviewNode] 添加到分镜:', { nodeGroup, scene, shot, urlScene: sp.get('scene'), urlShot: sp.get('shot') });
                 // 从 URL 路径获取 projectId 和 episodeId
                 const parts = location.pathname.split('/').filter(Boolean);
                 const pIdx = parts.indexOf('projects');
@@ -923,8 +934,8 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                 const episodeObj: any = (root as any)?.data ?? root;
                 // 使用 acts 结构（与 EpisodeDetailPage 保持一致）
                 let acts: any[] = Array.isArray(episodeObj?.scriptJson?.acts) ? [...episodeObj.scriptJson.acts] : [];
-                let act = acts.find((a: any) => a.actIndex === 1);
-                if (!act) { act = { actIndex: 1, shots: [] }; acts.push(act); }
+                let act = acts.find((a: any) => Number(a.actIndex) === scene);
+                if (!act) { act = { actIndex: scene, shots: [] }; acts.push(act); }
                 act.shots = Array.isArray(act.shots) ? [...act.shots] : [];
                 let shotItem = act.shots.find((s: any) => Number(s.shotIndex) === shot);
                 if (!shotItem) { 

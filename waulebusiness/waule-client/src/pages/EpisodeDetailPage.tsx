@@ -58,11 +58,15 @@ export default function EpisodeDetailPageNew() {
   const navigate = useNavigate()
   const location = useLocation()
   
-  // 从 URL 读取初始分镜索引
-  const initialShotFromUrl = useMemo(() => {
+  // 从 URL 读取初始分镜索引（支持 scene + shot 参数）
+  const initialShotParams = useMemo(() => {
     const params = new URLSearchParams(location.search)
+    const scene = Number(params.get('scene'))
     const shot = Number(params.get('shot'))
-    return Number.isFinite(shot) && shot > 0 ? shot : null
+    return {
+      scene: Number.isFinite(scene) && scene > 0 ? scene : null,
+      shot: Number.isFinite(shot) && shot > 0 ? shot : null,
+    }
   }, [location.search])
   
   const [episode, setEpisode] = useState<Episode | null>(null)
@@ -212,12 +216,16 @@ export default function EpisodeDetailPageNew() {
         // 解析分镜数据 - 扁平化处理（移除幕的概念）
         const acts = (ep as any)?.scriptJson?.acts
         if (Array.isArray(acts) && acts.length > 0) {
-          // 将所有幕的镜头合并，重新编号
+          // 将所有幕的镜头合并，重新编号，同时记录原始 scene/shot 映射
           const allShots: ScriptShot[] = []
           let shotCounter = 1
+          const sceneToGlobalIndex: Record<string, number> = {} // scene-shot -> globalIndex
           acts.forEach((act: any) => {
+            const actIndex = Number(act.actIndex) || 1
             if (Array.isArray(act.shots)) {
               act.shots.forEach((shot: any) => {
+                const origShotIndex = Number(shot.shotIndex) || shotCounter
+                sceneToGlobalIndex[`${actIndex}-${origShotIndex}`] = shotCounter
                 allShots.push({ ...shot, shotIndex: shotCounter++ })
               })
             }
@@ -225,8 +233,14 @@ export default function EpisodeDetailPageNew() {
           setShots(allShots)
           lastSavedRef.current = JSON.stringify(allShots) // 记录初始数据
           if (allShots.length > 0) {
-            // 如果 URL 有 shot 参数且有效，使用它；否则默认第一个
-            const targetShot = initialShotFromUrl && initialShotFromUrl <= allShots.length ? initialShotFromUrl : 1
+            // 如果 URL 有 scene+shot 参数，计算全局索引；否则仅用 shot 或默认第一个
+            let targetShot = 1
+            if (initialShotParams.scene && initialShotParams.shot) {
+              const key = `${initialShotParams.scene}-${initialShotParams.shot}`
+              targetShot = sceneToGlobalIndex[key] || 1
+            } else if (initialShotParams.shot && initialShotParams.shot <= allShots.length) {
+              targetShot = initialShotParams.shot
+            }
             setCurrentShotIndex(targetShot)
           }
         }
@@ -413,10 +427,16 @@ export default function EpisodeDetailPageNew() {
   }
 
   // 保存资产库配置
-  const saveLibraryConfig = (ids: string[]) => {
+  const saveLibraryConfig = async (ids: string[]) => {
     setSelectedLibraryIds(ids)
     if (episodeId) {
       localStorage.setItem(`episode_${episodeId}_libraries`, JSON.stringify(ids))
+      // 同步到服务端（用于自动共享给项目协作者）
+      try {
+        await apiClient.episodes.update(projectId!, episodeId, { configuredLibraryIds: ids })
+      } catch (err) {
+        console.warn('[EpisodeDetail] 保存资产库配置到服务端失败:', err)
+      }
     }
     setShowConfigModal(false)
     toast.success('资产库配置已保存')

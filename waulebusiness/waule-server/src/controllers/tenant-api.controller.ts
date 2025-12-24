@@ -474,6 +474,10 @@ export const updateEpisode = asyncHandler(async (req: Request, res: Response) =>
   if (status !== undefined) updateData.status = status;
   if (thumbnail !== undefined) updateData.thumbnail = thumbnail;
   if (scriptJson !== undefined) updateData.scriptJson = scriptJson;
+  // 支持存储配置的资产库ID列表（用于自动共享给项目协作者）
+  if (req.body.configuredLibraryIds !== undefined) {
+    updateData.configuredLibraryIds = req.body.configuredLibraryIds;
+  }
 
   const episode = await prisma.tenantEpisode.update({
     where: { id: episodeId },
@@ -3701,6 +3705,44 @@ export const addProjectCollaborator = asyncHandler(async (req: Request, res: Res
     update: { permission },
   });
 
+  // 如果是 EDIT 权限，自动共享项目中所有剧集配置的资产库
+  if (permission === 'EDIT') {
+    try {
+      // 获取项目下所有剧集
+      const episodes = await prisma.tenantEpisode.findMany({
+        where: { projectId },
+        select: { configuredLibraryIds: true },
+      });
+
+      // 收集所有配置的资产库ID（去重）
+      const allLibraryIds = new Set<string>();
+      for (const ep of episodes) {
+        const ids = (ep as any).configuredLibraryIds;
+        if (Array.isArray(ids)) {
+          ids.forEach((id: string) => allLibraryIds.add(id));
+        }
+      }
+
+      // 为每个资产库添加协作者
+      for (const libraryId of allLibraryIds) {
+        // 检查资产库是否存在且属于项目所有者
+        const library = await prisma.tenantAssetLibrary.findFirst({
+          where: { id: libraryId, tenantUserId: tenantUser.id },
+        });
+        if (library) {
+          await prisma.tenantAssetLibraryCollaborator.upsert({
+            where: { libraryId_tenantUserId: { libraryId, tenantUserId: targetUserId } },
+            create: { libraryId, tenantUserId: targetUserId, canDownload: true },
+            update: { canDownload: true },
+          });
+        }
+      }
+      console.log(`[addProjectCollaborator] 已自动共享 ${allLibraryIds.size} 个资产库给协作者 ${targetUserId}`);
+    } catch (err) {
+      console.warn('[addProjectCollaborator] 自动共享资产库失败:', err);
+    }
+  }
+
   res.json({ success: true, data: collaborator });
 });
 
@@ -4026,9 +4068,24 @@ export const confirmLocalDownload = asyncHandler(async (req: Request, res: Respo
           }
         }
         
-        // 注意：不删除参考素材（referenceImages），因为这些是用户上传的持久资源
-        // 用户可能会重试生成或更换模型，需要保留原始参考图片
-        // 只有任务结果文件（resultUrl）需要在本地下载后删除
+        // 删除参考素材（referenceImages）的临时 OSS 文件
+        // 这些是提交任务时从本地上传到 OSS 的临时文件，任务完成后应删除
+        // 用户的原始文件仍保存在 tenant-server 本地，不受影响
+        const input = task.input as any;
+        if (input?.referenceImages && Array.isArray(input.referenceImages)) {
+          console.log(`[confirmLocalDownload] 处理参考素材: ${input.referenceImages.length} 个临时OSS文件`);
+          for (const refUrl of input.referenceImages) {
+            // 只删除 OSS 临时文件，跳过 base64 和本地文件
+            if (refUrl && typeof refUrl === 'string' && refUrl.includes('aliyuncs.com')) {
+              try {
+                await deleteOssFile(refUrl);
+                console.log(`[confirmLocalDownload] ✅ 临时OSS文件已删除: ${refUrl.substring(0, 80)}`);
+              } catch (err) {
+                console.warn(`[confirmLocalDownload] ⚠️ 删除临时OSS文件失败: ${refUrl.substring(0, 50)}`, err);
+              }
+            }
+          }
+        }
       } else {
         console.log(`[confirmLocalDownload] ℹ️ 任务不存在，仅删除 OSS 文件`);
       }

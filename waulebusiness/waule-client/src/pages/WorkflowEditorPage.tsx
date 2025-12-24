@@ -4041,8 +4041,8 @@ const WorkflowEditorInner = () => {
           <button
             onClick={() => {
               if (isEpisodeWorkflow && projectId && episodeId) {
-                // 如果是分镜工作流，返回时保持当前分镜视图
-                const shotQuery = isShotWorkflow && sceneParam && shotParam ? `?shot=${shotParam}` : '';
+                // 如果是分镜工作流，返回时保持当前分镜视图（传递 scene 和 shot 参数）
+                const shotQuery = isShotWorkflow && sceneParam && shotParam ? `?scene=${sceneParam}&shot=${shotParam}` : '';
                 navigate(`/projects/${projectId}/episodes/${episodeId}${shotQuery}`);
               } else {
                 navigate('/quick');
