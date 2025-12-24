@@ -30,7 +30,7 @@ const TenantAdminPage = () => {
 
   if (!user?.isAdmin) {
     return (
-      <div className="min-h-screen bg-[#030014] flex items-center justify-center">
+      <div className="h-full bg-[#030014] flex items-center justify-center">
         <div className="text-center">
           <span className="material-symbols-outlined text-6xl text-gray-400 mb-4">lock</span>
           <h2 className="text-xl font-bold text-white mb-2">无权限访问</h2>
@@ -41,7 +41,7 @@ const TenantAdminPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#030014]">
+    <div className="h-full bg-[#030014] overflow-y-auto">
       {/* 页面头部 */}
       <div className="bg-white/5 backdrop-blur-xl border-b border-white/10 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -142,7 +142,7 @@ const TenantAdminPage = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                     activeTab === tab.id
-                      ? 'bg-white/10 text-neutral-600 shadow-sm'
+                      ? 'bg-white/10 text-white shadow-sm'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
@@ -156,7 +156,7 @@ const TenantAdminPage = () => {
       </div>
 
       {/* Tab 内容 */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20">
         {activeTab === 'users' && <TenantUsersTab />}
         {activeTab === 'credits' && <TenantCreditsTab />}
         {activeTab === 'devices' && <TenantDevicesTab />}

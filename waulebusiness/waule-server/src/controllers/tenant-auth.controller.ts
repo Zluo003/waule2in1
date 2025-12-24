@@ -545,12 +545,13 @@ export const getUsageStats = asyncHandler(async (req: Request, res: Response) =>
 });
 
 /**
- * [管理员] 获取租户资产列表
- * 合并资产库资产和工作流生成的资产，去重优先显示资产库名称
+ * [管理员] 获取AI生成内容列表
+ * 只显示AI生成的内容（来自TenantTask），不包括用户上传的内容
+ * 用户删除不影响此列表，不管是否保存到资产库
  */
 export const getAssets = asyncHandler(async (req: Request, res: Response) => {
   const tenantUser = req.tenantUser!;
-  const { page = '1', limit = '20', type, userId, search } = req.query;
+  const { page = '1', limit = '20', type, search } = req.query;
   const pageNum = parseInt(page as string, 10);
   const limitNum = parseInt(limit as string, 10);
 
@@ -576,31 +577,9 @@ export const getAssets = asyncHandler(async (req: Request, res: Response) => {
       });
     }
     targetUserIds = matchingUsers.map(u => u.id);
-  } else if (userId) {
-    targetUserIds = [userId as string];
   }
 
-  // 1. 查询资产库中的资产（带库名）
-  const assetLibraryWhere: any = { tenantId: tenantUser.tenantId };
-  if (type && type !== 'all') {
-    assetLibraryWhere.type = (type as string).toUpperCase();
-  }
-  if (targetUserIds) {
-    assetLibraryWhere.tenantUserId = { in: targetUserIds };
-  }
-
-  const libraryAssets = await prisma.tenantAsset.findMany({
-    where: { ...assetLibraryWhere, libraryId: { not: null } },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      library: { select: { name: true } },
-    },
-  });
-
-  // 收集资产库中资产的 URL 用于去重
-  const libraryAssetUrls = new Set(libraryAssets.map(a => a.url));
-
-  // 2. 查询工作流生成的资产（从已完成任务中获取，排除已在资产库中的）
+  // 查询AI生成的内容（从已完成任务中获取）
   const taskWhere: any = {
     tenantId: tenantUser.tenantId,
     status: 'SUCCESS',
@@ -612,9 +591,15 @@ export const getAssets = asyncHandler(async (req: Request, res: Response) => {
     taskWhere.tenantUserId = { in: targetUserIds };
   }
 
+  // 获取总数
+  const total = await prisma.tenantTask.count({ where: taskWhere });
+
+  // 分页查询
   const completedTasks = await prisma.tenantTask.findMany({
     where: taskWhere,
     orderBy: { completedAt: 'desc' },
+    skip: (pageNum - 1) * limitNum,
+    take: limitNum,
     select: {
       id: true,
       tenantUserId: true,
@@ -623,11 +608,12 @@ export const getAssets = asyncHandler(async (req: Request, res: Response) => {
       completedAt: true,
       createdAt: true,
       sourceNodeId: true,
+      model: true,
     },
   });
 
   // 获取工作流和项目信息
-  const workflowSourceNodeIds = completedTasks
+  const sourceNodeIds = completedTasks
     .filter(t => t.sourceNodeId)
     .map(t => t.sourceNodeId!);
 
@@ -659,35 +645,24 @@ export const getAssets = asyncHandler(async (req: Request, res: Response) => {
     }
   }
 
-  // 处理工作流资产，排除已在资产库中的
-  const workflowAssets: any[] = [];
-  const projectAssetCounters = new Map<string, number>(); // 项目资产计数器
-  const addedUrls = new Set<string>(); // 用于去重
-
-  // 2a. 从 TenantTask 中获取资产
+  // 处理AI生成的资产
+  const aiGeneratedAssets: any[] = [];
+  
   for (const task of completedTasks) {
     const output = task.output as any;
     // 优先使用本地URL（已下载到本地的文件），否则使用原始resultUrl
     const assetUrl = (output?.localDownloaded && output?.localUrl) ? output.localUrl : output?.resultUrl;
     if (!assetUrl) continue;
-    
-    // 跳过已在资产库中的资产
-    if (libraryAssetUrls.has(assetUrl)) continue;
-    addedUrls.add(assetUrl);
 
     const projectName = task.sourceNodeId 
       ? (nodeToProjectMap.get(task.sourceNodeId) || '工作流')
       : '工作流';
-    
-    // 计数器
-    const counterKey = `${task.tenantUserId}-${projectName}-${task.type}`;
-    const count = (projectAssetCounters.get(counterKey) || 0) + 1;
-    projectAssetCounters.set(counterKey, count);
 
-    const typeLabel = task.type === 'IMAGE' ? '图片' : task.type === 'VIDEO' ? '视频' : '资产';
-    const displayName = `${projectName}-${typeLabel}${String(count).padStart(3, '0')}`;
+    const typeLabel = task.type === 'IMAGE' ? '图片' : task.type === 'VIDEO' ? '视频' : task.type === 'AUDIO' ? '音频' : '资产';
+    const modelName = task.model || 'AI';
+    const displayName = `${modelName}-${typeLabel}`;
 
-    workflowAssets.push({
+    aiGeneratedAssets.push({
       id: task.id,
       name: displayName,
       type: task.type.toLowerCase(),
@@ -696,100 +671,22 @@ export const getAssets = asyncHandler(async (req: Request, res: Response) => {
       size: null,
       userId: task.tenantUserId,
       createdAt: task.completedAt || task.createdAt,
-      libraryId: null,
-      source: 'workflow',
+      source: 'ai-generated',
       projectName,
+      model: task.model,
     });
   }
 
-  // 2b. 从工作流节点中提取 imagePreview/videoPreview 节点的资产（Midjourney 等直接存储在节点中的）
-  for (const wf of workflows) {
-    const projectName = projectMap.get(wf.projectId) || '未知项目';
-    const nodes = wf.nodes as any[];
-    if (!Array.isArray(nodes)) continue;
-
-    for (const node of nodes) {
-      // 只处理预览节点
-      if (node.type !== 'imagePreview' && node.type !== 'videoPreview') continue;
-      
-      const nodeData = node.data || {};
-      const url = nodeData.url || nodeData.imageUrl;
-      if (!url) continue;
-      
-      // 跳过已添加的和已在资产库中的
-      if (addedUrls.has(url) || libraryAssetUrls.has(url)) continue;
-      addedUrls.add(url);
-
-      // 过滤类型
-      const nodeType = node.type === 'imagePreview' ? 'image' : 'video';
-      if (type && type !== 'all' && nodeType !== (type as string).toLowerCase()) continue;
-
-      // 计数器
-      const counterKey = `workflow-${projectName}-${nodeType}`;
-      const count = (projectAssetCounters.get(counterKey) || 0) + 1;
-      projectAssetCounters.set(counterKey, count);
-
-      const typeLabel = nodeType === 'image' ? '图片' : '视频';
-      const displayName = `${projectName}-${typeLabel}${String(count).padStart(3, '0')}`;
-
-      // 尝试解析节点创建时间
-      let createdAt = new Date();
-      if (nodeData.midjourneyData?.taskId) {
-        // 从 taskId 中提取时间戳（如果有的话）
-      }
-
-      workflowAssets.push({
-        id: node.id,
-        name: displayName,
-        type: nodeType,
-        url: url,
-        thumbnailUrl: nodeType === 'image' ? url : undefined,
-        size: null,
-        userId: null, // 节点不一定有用户信息
-        createdAt: createdAt,
-        libraryId: null,
-        source: 'workflow-node',
-        projectName,
-      });
-    }
-  }
-
-  // 3. 合并资产列表
-  const allAssets = [
-    ...libraryAssets.map(asset => ({
-      id: asset.id,
-      name: asset.library ? `${asset.library.name}/${asset.name}` : asset.name,
-      type: asset.type.toLowerCase(),
-      url: asset.url,
-      thumbnailUrl: asset.type === 'IMAGE' ? asset.url : undefined,
-      size: asset.size,
-      userId: asset.tenantUserId,
-      createdAt: asset.createdAt,
-      libraryId: asset.libraryId,
-      source: 'library',
-      libraryName: asset.library?.name,
-    })),
-    ...workflowAssets,
-  ];
-
-  // 按创建时间排序
-  allAssets.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-  // 获取用户信息（过滤掉 null）
-  const userIds = [...new Set(allAssets.map(a => a.userId).filter((id): id is string => id != null))];
+  // 获取用户信息
+  const userIds = [...new Set(aiGeneratedAssets.map(a => a.userId).filter((id): id is string => id != null))];
   const users = userIds.length > 0 ? await prisma.tenantUser.findMany({
     where: { id: { in: userIds } },
     select: { id: true, username: true, nickname: true },
   }) : [];
   const userMap = new Map(users.map(u => [u.id, u]));
 
-  // 分页
-  const total = allAssets.length;
-  const skip = (pageNum - 1) * limitNum;
-  const pagedAssets = allAssets.slice(skip, skip + limitNum);
-
   // 格式化返回数据
-  const formattedAssets = pagedAssets.map(asset => {
+  const formattedAssets = aiGeneratedAssets.map(asset => {
     const user = userMap.get(asset.userId);
     return {
       ...asset,
