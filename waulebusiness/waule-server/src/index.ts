@@ -373,25 +373,35 @@ io.on('connection', (socket) => {
     }
     socket.join(`workflow:${workflowId}`);
     
-    // 🔧 直接使用 socket 认证时附加的用户信息
-    let userInfo: { id: string; nickname?: string; avatar?: string } | null = {
-      id: user.id,
-      nickname: user.nickname,
-      avatar: user.avatar,
-    };
+    // 🔧 从数据库获取最新的用户信息（确保头像等信息是最新的）
+    let userInfo: { id: string; nickname?: string; avatar?: string } | null = null;
     
-    // 如果没有 nickname/avatar，尝试从 Redis 缓存获取
-    if (!userInfo.nickname) {
-      const userCacheKey = `socket:user:${isTenantUser ? 'tenant:' : ''}${user.id}`;
-      try {
-        const cached = await redis.get(userCacheKey);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          userInfo = { id: parsed.id, nickname: parsed.nickname, avatar: parsed.avatar };
+    try {
+      if (isTenantUser) {
+        const tenantUser = await prisma.tenantUser.findUnique({
+          where: { id: user.id },
+          select: { id: true, nickname: true, avatar: true }
+        });
+        if (tenantUser) {
+          userInfo = { id: tenantUser.id, nickname: tenantUser.nickname || undefined, avatar: tenantUser.avatar || undefined };
         }
-      } catch {
-        // 缓存读取失败
+      } else {
+        const platformUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { id: true, nickname: true, avatar: true }
+        });
+        if (platformUser) {
+          userInfo = { id: platformUser.id, nickname: platformUser.nickname || undefined, avatar: platformUser.avatar || undefined };
+        }
       }
+    } catch {
+      // 数据库查询失败，回退到 JWT token 中的信息
+      userInfo = { id: user.id, nickname: user.nickname, avatar: user.avatar };
+    }
+    
+    // 如果数据库查询失败，使用 JWT token 中的信息
+    if (!userInfo) {
+      userInfo = { id: user.id, nickname: user.nickname, avatar: user.avatar };
     }
     
     if (userInfo) {

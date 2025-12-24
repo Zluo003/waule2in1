@@ -7,6 +7,7 @@
  * 3. 将本地文件临时上传到平台 OSS（用于 AI 处理）
  * 4. 提供静态文件服务
  * 5. 提供 Web 管理界面
+ * 6. WebSocket 代理（工作流实时协作）
  */
 import 'dotenv/config';
 import express from 'express';
@@ -15,6 +16,8 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import axios from 'axios';
+import { createServer } from 'http';
+import { createProxyServer } from 'http-proxy';
 import { getAppConfig, isAppConfigured } from './services/database.service';
 import { getDeviceId } from './utils/deviceId';
 import logger from './utils/logger';
@@ -141,9 +144,45 @@ function startServer() {
     res.status(500).json({ error: err.message || '服务器内部错误' });
   });
 
+  // 创建 HTTP 服务器
+  const server = createServer(app);
+  
+  // 创建 WebSocket 代理
+  const wsProxy = createProxyServer({
+    ws: true,
+    changeOrigin: true,
+  });
+  
+  // WebSocket 代理错误处理
+  wsProxy.on('error', (err, req, res) => {
+    console.error('[WebSocket Proxy] 错误:', err.message);
+  });
+  
+  // 处理 WebSocket 升级请求（socket.io）
+  server.on('upgrade', (req, socket, head) => {
+    const config = getAppConfig();
+    
+    // 只代理 socket.io 请求
+    if (req.url?.startsWith('/socket.io')) {
+      if (!config.platformServerUrl) {
+        console.error('[WebSocket Proxy] 未配置平台服务器地址');
+        socket.destroy();
+        return;
+      }
+      
+      console.log('[WebSocket Proxy] 代理 WebSocket 连接到:', config.platformServerUrl);
+      wsProxy.ws(req, socket, head, {
+        target: config.platformServerUrl,
+      });
+    } else {
+      socket.destroy();
+    }
+  });
+  
   // 启动服务
-  app.listen(port, '0.0.0.0', () => {
+  server.listen(port, '0.0.0.0', () => {
     console.log(`[Server] 服务已启动 - http://${localIP}:${port}`);
+    console.log(`[Server] WebSocket 代理已启用`);
     
     // 启动心跳上报（每30秒一次）
     startHeartbeat();

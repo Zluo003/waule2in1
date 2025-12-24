@@ -3,9 +3,18 @@ import { io, Socket } from 'socket.io-client';
 import { Node, Edge } from 'reactflow';
 import { useAuthStore } from '../store/authStore';
 import { useTenantAuthStore } from '../store/tenantAuthStore';
+import { useTenantStorageStore } from '../store/tenantStorageStore';
 
-// Socket.io 需要连接到服务器根地址（不是 /api）
-const API_URL = import.meta.env.VITE_API_URL || window.location.origin;
+// 获取 WebSocket 连接 URL
+// 商业版：优先使用 tenant-server（会代理到 waule-server）
+// 平台版：使用 VITE_API_URL
+function getSocketUrl(): string {
+  const tenantConfig = useTenantStorageStore.getState().config;
+  if (tenantConfig.localServerUrl) {
+    return tenantConfig.localServerUrl;
+  }
+  return import.meta.env.VITE_API_URL || window.location.origin;
+}
 
 // 在线用户信息
 interface OnlineUser {
@@ -78,10 +87,11 @@ export function useWorkflowSocket(options: WorkflowSocketOptions): WorkflowSocke
       return;
     }
 
-    console.log('[Socket] 正在连接...', { workflowId, isReadOnly });
+    const socketUrl = getSocketUrl();
+    console.log('[Socket] 正在连接...', { workflowId, isReadOnly, socketUrl });
 
     // 创建 Socket 连接
-    const socket = io(API_URL, {
+    const socket = io(socketUrl, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,

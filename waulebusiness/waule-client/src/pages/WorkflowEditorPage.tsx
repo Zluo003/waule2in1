@@ -1589,13 +1589,14 @@ const WorkflowEditorInner = () => {
     try {
       // 优化：清理节点数据，移除不必要的重复数据
       const optimizedNodes = nodesRef.current.map(node => {
-        const { data, ...restNode } = node;
+        const { data, draggable, connectable, deletable, ...restNode } = node;
         // 移除运行时数据和内部权限字段
-        const { workflowContext, _canEdit, _currentUserId, ...restData } = data || {};
+        const { workflowContext, _canEdit, _currentUserId, _isGrouped, _isSharedWorkflow, ...restData } = data || {};
 
         // 只保存必要的数据，去除：
         // 1. workflowContext（运行时数据，加载时重建）
-        // 2. _canEdit, _currentUserId（权限检查用的内部字段）
+        // 2. _canEdit, _currentUserId, _isGrouped, _isSharedWorkflow（权限检查用的内部字段）
+        // 3. draggable, connectable, deletable（运行时权限属性，加载时根据权限重新计算）
         // 注意：保留 models，因为节点可能需要它们
         return {
           ...restNode,
@@ -4127,7 +4128,7 @@ const WorkflowEditorInner = () => {
               {onlineUsers.slice(0, 8).map((user) => (
                 <div
                   key={user.id}
-                  className="w-9 h-9 rounded-full border-2 border-white dark:border-gray-800 bg-purple-200 dark:bg-purple-800 flex items-center justify-center overflow-hidden shadow-sm"
+                  className={`w-9 h-9 rounded-full border-2 flex items-center justify-center overflow-hidden shadow-sm ${user.avatar ? 'border-white dark:border-gray-800 bg-slate-100 dark:bg-slate-800' : 'border-slate-400 dark:border-slate-500 bg-transparent'}`}
                   title={user.nickname || '用户'}
                 >
                   {user.avatar ? (
@@ -4137,7 +4138,7 @@ const WorkflowEditorInner = () => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="material-symbols-outlined text-sm text-purple-600 dark:text-purple-300">person</span>
+                    <span className="material-symbols-outlined text-lg text-slate-800 dark:text-white">person</span>
                   )}
                 </div>
               ))}
