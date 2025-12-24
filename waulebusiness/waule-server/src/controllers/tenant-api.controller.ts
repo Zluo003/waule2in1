@@ -1736,22 +1736,45 @@ export const getAssetLibraryAssets = asyncHandler(async (req: Request, res: Resp
     return res.status(404).json({ success: false, message: '资产库不存在' });
   }
 
-  // 检查访问权限：是所有者或协作者
+  // 检查访问权限：是所有者、资产库协作者、或项目协作者（该项目的剧集配置了此资产库）
   const isOwner = library.tenantUserId === tenantUser.id;
   let isCollaborator = false;
   let canDownload = false;
+  let hasProjectAccess = false;
 
   if (!isOwner) {
+    // 1. 检查是否是资产库协作者
     const collaboration = await prisma.tenantAssetLibraryCollaborator.findUnique({
       where: { libraryId_tenantUserId: { libraryId: id, tenantUserId: tenantUser.id } },
     });
     
-    if (!collaboration && !tenantUser.isAdmin) {
-      return res.status(403).json({ success: false, message: '无权访问此资产库' });
+    if (collaboration) {
+      isCollaborator = true;
+      canDownload = collaboration.canDownload;
+    } else {
+      // 2. 检查是否是项目协作者，且该项目的剧集配置了此资产库
+      const projectCollabs = await prisma.tenantProjectCollaborator.findMany({
+        where: { tenantUserId: tenantUser.id },
+        select: { projectId: true },
+      });
+      
+      if (projectCollabs.length > 0) {
+        const projectIds = projectCollabs.map(c => c.projectId);
+        // 查找这些项目的剧集是否配置了此资产库
+        const episodeWithLibrary = await prisma.tenantEpisode.findFirst({
+          where: {
+            projectId: { in: projectIds },
+            configuredLibraryIds: { has: id },
+          },
+        });
+        hasProjectAccess = !!episodeWithLibrary;
+        canDownload = hasProjectAccess; // 项目协作者可下载
+      }
     }
     
-    isCollaborator = !!collaboration;
-    canDownload = collaboration?.canDownload ?? false;
+    if (!isCollaborator && !hasProjectAccess && !tenantUser.isAdmin) {
+      return res.status(403).json({ success: false, message: '无权访问此资产库' });
+    }
   } else {
     canDownload = true;  // 所有者默认可下载
   }
