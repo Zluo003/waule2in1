@@ -641,14 +641,14 @@ function App() {
               
               <div className="flex flex-wrap justify-center gap-4">
                 <a 
-                  href="/download/waule-enterprise-setup.exe"
+                  href="https://wauleupdate.oss-cn-beijing.aliyuncs.com/waulebusiness/Waule-Setup-1.0.0.exe"
                   className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-cyan-600 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-indigo-500/25 transition-all"
                 >
                   <Download className="w-5 h-5" />
                   Windows 版下载
                 </a>
                 <a 
-                  href="/download/waule-enterprise-server.exe"
+                  href="https://wauleupdate.oss-cn-beijing.aliyuncs.com/waulebusiness/WauleTenantServer-1.0.0-win-x64.exe"
                   className="inline-flex items-center gap-3 px-8 py-4 bg-white text-gray-900 border border-gray-200 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
                 >
                   <Server className="w-5 h-5" />
@@ -657,7 +657,7 @@ function App() {
               </div>
               
               <p className="mt-6 text-sm text-gray-500">
-                支持 Windows 10 及以上版本 · 免费试用 · 无需信用卡
+                支持 Windows 10 及以上版本 · 联络官方申请免费试用
               </p>
             </div>
           </motion.div>
