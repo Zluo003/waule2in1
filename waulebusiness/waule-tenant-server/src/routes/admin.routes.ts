@@ -504,6 +504,89 @@ router.post('/api/test-connection', requireAuth, async (req: Request, res: Respo
 });
 
 /**
+ * 获取平台连接状态 API
+ * GET /admin/api/connection-status
+ */
+router.get('/api/connection-status', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const config = getAllConfig();
+    
+    // 未配置
+    if (!config.isConfigured || !config.platformServerUrl || !config.tenantApiKey) {
+      return res.json({
+        success: true,
+        status: 'not_configured',
+        message: '未配置',
+      });
+    }
+    
+    // 验证连接
+    const deviceId = getDeviceId();
+    const response = await axios.post(
+      `${config.platformServerUrl}/api/client/verify-api-key`,
+      {},
+      {
+        headers: {
+          'X-Tenant-API-Key': config.tenantApiKey,
+          'X-Device-Id': deviceId,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      }
+    );
+    
+    if (response.data?.success) {
+      return res.json({
+        success: true,
+        status: 'connected',
+        message: '运行中',
+        tenant: response.data?.data?.tenantName || response.data?.data?.tenant?.name || '已连接',
+      });
+    } else {
+      return res.json({
+        success: true,
+        status: 'error',
+        message: 'API Key 验证失败',
+      });
+    }
+  } catch (error: any) {
+    const status = error.response?.status;
+    const data = error.response?.data;
+    
+    let errorStatus = 'error';
+    let errorMessage = '连接失败';
+    
+    if (status === 401) {
+      if (data?.deviceMismatch) {
+        errorStatus = 'device_mismatch';
+        errorMessage = '设备不匹配';
+      } else {
+        errorStatus = 'api_key_invalid';
+        errorMessage = 'API Key 无效';
+      }
+    } else if (status === 404) {
+      errorStatus = 'endpoint_not_found';
+      errorMessage = '接口不存在';
+    } else if (error.code === 'ECONNREFUSED') {
+      errorStatus = 'connection_refused';
+      errorMessage = '网络不通';
+    } else if (error.code === 'ENOTFOUND') {
+      errorStatus = 'dns_error';
+      errorMessage = '域名解析失败';
+    } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+      errorStatus = 'timeout';
+      errorMessage = '连接超时';
+    }
+    
+    return res.json({
+      success: true,
+      status: errorStatus,
+      message: errorMessage,
+    });
+  }
+});
+
+/**
  * 获取存储统计 API
  * GET /admin/api/storage-stats
  */
@@ -658,6 +741,7 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
     }
     .sidebar-header .status.ok { background: rgba(46,204,113,0.2); color: #2ecc71; }
     .sidebar-header .status.warn { background: rgba(241,196,15,0.2); color: #f1c40f; }
+    .sidebar-header .status.error { background: rgba(231,76,60,0.2); color: #e74c3c; }
     .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     
     /* Tab 导航 */
@@ -839,9 +923,9 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
     <div class="sidebar">
       <div class="sidebar-header">
         <h1>🖥️ 企业版服务端</h1>
-        <div class="status ${isConfigured ? 'ok' : 'warn'}">
+        <div id="connectionStatus" class="status warn">
           <span class="status-dot"></span>
-          ${isConfigured ? '运行中' : '未配置'}
+          <span id="statusText">检测中...</span>
         </div>
       </div>
       <div class="nav-tabs">
@@ -1280,10 +1364,39 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
       }
     }
     
-    // 页面加载时获取统计
+    // 检查平台连接状态
+    async function checkConnectionStatus() {
+      try {
+        const res = await fetch('/admin/api/connection-status');
+        const data = await res.json();
+        
+        const statusEl = document.getElementById('connectionStatus');
+        const textEl = document.getElementById('statusText');
+        
+        if (data.status === 'connected') {
+          statusEl.className = 'status ok';
+          textEl.textContent = data.message;
+        } else if (data.status === 'not_configured') {
+          statusEl.className = 'status warn';
+          textEl.textContent = data.message;
+        } else {
+          statusEl.className = 'status error';
+          textEl.textContent = data.message;
+        }
+      } catch (error) {
+        const statusEl = document.getElementById('connectionStatus');
+        const textEl = document.getElementById('statusText');
+        statusEl.className = 'status error';
+        textEl.textContent = '检测失败';
+      }
+    }
+    
+    // 页面加载时获取统计和检查连接状态
     loadStorageStats();
+    checkConnectionStatus();
     // 每30秒刷新一次
     setInterval(loadStorageStats, 30000);
+    setInterval(checkConnectionStatus, 30000);
     
     // 检测是否在浏览器中（非 Electron），隐藏标题栏
     if (!window.electronAPI?.isElectron) {

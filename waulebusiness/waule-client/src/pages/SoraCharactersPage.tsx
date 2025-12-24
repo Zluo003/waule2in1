@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import axios from 'axios';
 import { apiClient } from '../lib/api';
+import { useTenantStorageStore } from '../store/tenantStorageStore';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -87,13 +89,30 @@ const SoraCharactersPage: React.FC = () => {
     setEditingImageCharacter(character);
     setUploadingImage(true);
     try {
-      // 使用前端直传 OSS
-      const uploadResponse = await apiClient.assets.upload(file);
-      console.log('[SoraCharacters] 上传响应:', uploadResponse);
-      const imageUrl = uploadResponse?.data?.url || uploadResponse?.url || uploadResponse?.asset?.url;
+      let imageUrl: string | undefined;
+      
+      // 优先使用 tenant-server 本地存储
+      const storageConfig = useTenantStorageStore.getState().config;
+      if (storageConfig.localServerUrl) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const uploadResponse = await axios.post(`${storageConfig.localServerUrl}/api/upload`, formData, {
+          timeout: 300000,
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        
+        imageUrl = uploadResponse.data.localUrl || uploadResponse.data.data?.url;
+        console.log('[SoraCharacters] 已上传到本地存储:', imageUrl);
+      } else {
+        // 未配置本地服务端，回退到 OSS
+        const uploadResponse = await apiClient.assets.upload(file);
+        console.log('[SoraCharacters] 上传响应:', uploadResponse);
+        imageUrl = uploadResponse?.data?.url || uploadResponse?.url || uploadResponse?.asset?.url;
+      }
 
       if (!imageUrl) {
-        console.error('[SoraCharacters] 无法获取图片URL，响应:', uploadResponse);
+        console.error('[SoraCharacters] 无法获取图片URL');
         throw new Error('上传失败：无法获取图片地址');
       }
       console.log('[SoraCharacters] 图片URL:', imageUrl);

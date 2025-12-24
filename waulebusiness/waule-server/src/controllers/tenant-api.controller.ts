@@ -1898,59 +1898,40 @@ export const addAssetFromUrl = asyncHandler(async (req: Request, res: Response) 
     return res.status(404).json({ success: false, message: '资产库不存在' });
   }
 
-  const tenantInfo: TenantUploadInfo = {
-    tenantId: tenantUser.tenantId,
-    userId: tenantUser.id,
-  };
-
-  // 判断URL类型：base64 / 远程URL
+  // 判断URL类型：本地存储URL / base64 / 远程URL
   const isBase64 = url.startsWith('data:');
   const isExternalUrl = url.startsWith('http://') || url.startsWith('https://');
+  // 检测是否是 tenant-server 本地存储的 URL（包含 /files/ 路径）
+  const isLocalStorageUrl = isExternalUrl && url.includes('/files/');
   let fileUrl: string;
   let mimeType: string;
   let fileSize: number = 0;
   let originalName: string;
 
-  if (isBase64) {
-    // 处理base64数据
-    const matches = url.match(/^data:([^;]+);base64,(.+)$/);
-    if (!matches) {
-      return res.status(400).json({ success: false, message: 'Invalid base64 format' });
-    }
+  if (isLocalStorageUrl) {
+    // tenant-server 本地存储的 URL，直接使用，不上传到 OSS
+    fileUrl = url;
     
-    mimeType = matches[1];
-    const base64Data = matches[2];
-    const buffer = Buffer.from(base64Data, 'base64');
-    fileSize = buffer.length;
-    
-    const ext = getExtensionFromMimeType(mimeType);
-    originalName = `ai-generated${ext}`;
-    
-    // 上传到 OSS（使用租户路径）
-    fileUrl = await uploadBuffer(buffer, ext, tenantInfo);
-  } else if (isExternalUrl) {
-    // 下载远程文件
-    const response = await axios.get(url, {
-      responseType: 'arraybuffer',
-      timeout: 120000,
-      maxRedirects: 5,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-    });
-
-    mimeType = response.headers['content-type'] || 'application/octet-stream';
-    fileSize = Buffer.from(response.data).length;
-
     // 从URL提取文件名
     const urlObj = new URL(url);
     const pathParts = urlObj.pathname.split('/');
-    originalName = pathParts[pathParts.length - 1].split('?')[0] || `asset-${Date.now()}`;
-
-    const ext = path.extname(originalName) || getExtensionFromMimeType(mimeType);
+    originalName = decodeURIComponent(pathParts[pathParts.length - 1].split('?')[0]) || `asset-${Date.now()}`;
     
-    // 上传到 OSS（使用租户路径）
-    fileUrl = await uploadBuffer(Buffer.from(response.data), ext, tenantInfo);
+    // 根据扩展名推断 mimeType
+    const ext = path.extname(originalName).toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp',
+      '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime',
+      '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg',
+      '.pdf': 'application/pdf', '.txt': 'text/plain', '.json': 'application/json',
+    };
+    mimeType = mimeTypes[ext] || 'application/octet-stream';
+  } else if (isBase64) {
+    // 处理base64数据 - 这种情况也不应上传OSS，返回错误
+    return res.status(400).json({ success: false, message: '资产库不支持base64上传，请使用本地存储' });
+  } else if (isExternalUrl) {
+    // 非本地存储的远程URL，不允许直接添加到资产库
+    return res.status(400).json({ success: false, message: '资产库只支持本地存储URL，请先上传到本地服务端' });
   } else {
     return res.status(400).json({ success: false, message: '不支持的URL格式' });
   }

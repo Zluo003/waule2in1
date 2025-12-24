@@ -480,8 +480,8 @@ const EpisodesPage = () => {
         </div>
       ) : episodes.length === 0 ? (
         <div className="text-center py-20">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-tiffany-100 to-accent-100 dark:from-tiffany-500/10 dark:to-accent-500/10 rounded-3xl mb-6">
-            <span className="material-symbols-outlined text-5xl text-tiffany-500">movie</span>
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-neutral-100 dark:bg-neutral-800 rounded-full mb-6">
+            <span className="material-symbols-outlined text-5xl text-neutral-600 dark:text-neutral-400">movie</span>
           </div>
           <h2 className="text-xl font-semibold text-text-light-primary dark:text-text-dark-primary mb-2">
             还没有剧集

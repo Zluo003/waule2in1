@@ -843,8 +843,8 @@ const ProjectsPage = () => {
       ) : projects.length === 0 ? (
         // 完全没有项目时的空状态
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="h-24 w-24 rounded-full bg-tiffany-50 dark:bg-tiffany-500/10 flex items-center justify-center mb-6 shadow-tiffany">
-            <span className="material-symbols-outlined text-tiffany-600 dark:text-tiffany-400 text-5xl">folder_open</span>
+          <div className="h-24 w-24 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-6">
+            <span className="material-symbols-outlined text-neutral-600 dark:text-neutral-400 text-5xl">folder_open</span>
           </div>
           <h2 className="text-2xl font-bold text-text-light-primary dark:text-text-dark-primary mb-2">还没有项目</h2>
           <p className="text-text-light-secondary dark:text-text-dark-secondary mb-6">创建你的第一个AI短剧项目</p>
