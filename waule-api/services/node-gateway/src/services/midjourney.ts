@@ -411,7 +411,7 @@ class DiscordConnection extends EventEmitter {
     createMjTask(taskId, userId, this.config.accountId, prompt);
 
     const commandId = getConfig('mj_command_id') || process.env.DISCORD_IMAGINE_COMMAND_ID || '938956540159881230';
-    const versionId = getConfig('mj_version_id') || process.env.DISCORD_IMAGINE_VERSION_ID || '1166847114203123795';
+    const versionId = getConfig('mj_version_id') || process.env.DISCORD_IMAGINE_VERSION_ID || '1237876415471554623';
     log(`[${this.accountName}] 使用 commandId=${commandId}, versionId=${versionId}`);
 
     try {
@@ -436,10 +436,11 @@ class DiscordConnection extends EventEmitter {
       recordDiscordAccountUsage(this.config.accountId, true);
       return taskId;
     } catch (error: any) {
-      log(`[${this.accountName}] Imagine命令失败: ${error.message}`);
-      recordDiscordAccountUsage(this.config.accountId, false, error.message);
-      updateMjTask(taskId, { status: 'FAILURE', fail_reason: error.message });
-      throw new Error(`Imagine命令发送失败: ${error.message}`);
+      const errDetail = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+      log(`[${this.accountName}] Imagine命令失败: ${errDetail}`);
+      recordDiscordAccountUsage(this.config.accountId, false, errDetail);
+      updateMjTask(taskId, { status: 'FAILURE', fail_reason: errDetail });
+      throw new Error(`Imagine命令发送失败: ${errDetail}`);
     }
   }
 

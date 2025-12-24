@@ -29,17 +29,19 @@ const MEDIA_NODE_WIDTH = 400;
 const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>(data.config.uploadedFiles || []);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>(() => {
+    try {
+      return data.config.uploadedFiles || [];
+    } catch {
+      return [];
+    }
+  });
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [videoDimensions, setVideoDimensions] = useState<{ width: number; height: number } | null>(null);
   
   const [replaceIndex, setReplaceIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const audioCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [audioIsPlaying, setAudioIsPlaying] = useState(false);
-  const [audioDurationSec, setAudioDurationSec] = useState(0);
-  const [audioProgress, setAudioProgress] = useState(0);
   const [videoIsPlaying, setVideoIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { setNodes, getNode, setEdges, getEdges } = useReactFlow();
@@ -102,6 +104,21 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
     }
   };
 
+  // 修复文件名编码（处理可能的乱码问题）
+  const fixFilename = (name: string): string => {
+    try {
+      // 如果文件名看起来正常（包含中文等），直接返回
+      if (/[\u4e00-\u9fa5]/.test(name)) return name;
+      // 尝试修复UTF-8被错误解码为Latin-1的情况
+      const bytes = new Uint8Array([...name].map(c => c.charCodeAt(0)));
+      const fixed = new TextDecoder('utf-8').decode(bytes);
+      if (/[\u4e00-\u9fa5]/.test(fixed)) return fixed;
+      return name;
+    } catch {
+      return name;
+    }
+  };
+
   // 处理文件上传
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -159,7 +176,7 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
           newFiles.push({
             id: response.data.id,
             name: response.data.name,
-            originalName: response.data.originalName,
+            originalName: fixFilename(file.name), // 使用修复后的文件名
             type: derivedType,
             mimeType: response.data.mimeType,
             size: response.data.size,
@@ -293,7 +310,14 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
   useEffect(() => {
     if (uploadedFiles.length > 0) {
       const file = uploadedFiles[0];
-      const fileUrl = (file.url.startsWith('http') || file.url.startsWith('data:') ? file.url : `${API_URL}${file.url}`).replace('.oss-oss-', '.oss-');
+      if (!file || !file.url) return;
+      let fileUrl = '';
+      try {
+        fileUrl = (file.url.startsWith('http') || file.url.startsWith('data:') ? file.url : `${API_URL}${file.url}`).replace('.oss-oss-', '.oss-');
+      } catch (e) {
+        console.error('[UploadNode] Error in dimension effect:', e);
+        return;
+      }
       
       if (file.type === 'IMAGE') {
         const img = new Image();
@@ -324,85 +348,6 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
     }
   }, [uploadedFiles]);
 
-  // 音频播放控制
-  const toggleAudio = () => {
-    const a = audioRef.current;
-    if (!a) return;
-    if (audioIsPlaying) { a.pause(); setAudioIsPlaying(false); } else { a.play(); setAudioIsPlaying(true); }
-  };
-
-  useEffect(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    const onLoaded = () => setAudioDurationSec(a.duration || 0);
-    const onUpdate = () => setAudioProgress(a.duration ? (a.currentTime / a.duration) : 0);
-    const onEnded = () => setAudioIsPlaying(false);
-    a.addEventListener('loadedmetadata', onLoaded);
-    a.addEventListener('timeupdate', onUpdate);
-    a.addEventListener('ended', onEnded);
-    return () => {
-      a.removeEventListener('loadedmetadata', onLoaded);
-      a.removeEventListener('timeupdate', onUpdate);
-      a.removeEventListener('ended', onEnded);
-    };
-  }, [uploadedFiles]);
-
-  useEffect(() => {
-    const file = uploadedFiles[0];
-    if (!file || file.type !== 'AUDIO') return;
-    const raw = (file.url.startsWith('http') || file.url.startsWith('data:') ? file.url : `${API_URL}${file.url}`).replace('.oss-oss-', '.oss-');
-    const url = raw.includes('aliyuncs.com') ? raw : raw;
-    const c = audioCanvasRef.current as HTMLCanvasElement | null;
-    if (!c) return;
-    const draw = (vals: Float32Array) => {
-      const ctx = c.getContext('2d');
-      if (!ctx) return;
-      const w = c.width; const h = c.height;
-      ctx.clearRect(0, 0, w, h);
-      // Transparent background - no fill
-      const n = vals.length; const gap = 2; const bw = Math.max(1, Math.floor((w - (n - 1) * gap) / n));
-      
-      // Create left-to-right gradient for waveform
-      const gradient = ctx.createLinearGradient(0, 0, w, 0);
-      gradient.addColorStop(0, '#737373');    // purple-500
-      gradient.addColorStop(0.5, '#525252');  // fuchsia-500
-      gradient.addColorStop(1, '#404040');    // pink-500
-      
-      for (let i = 0; i < n; i++) {
-        const v = Math.min(1, Math.max(0, vals[i]));
-        const bh = Math.max(2, Math.floor(v * h));
-        const x = i * (bw + gap); const y = Math.floor((h - bh) / 2);
-        ctx.fillStyle = gradient; 
-        ctx.fillRect(x, y, bw, bh);
-      }
-      if (audioProgress > 0) { const px = Math.floor(w * audioProgress); ctx.fillStyle = '#ffffff88'; ctx.fillRect(px, 0, 2, h); }
-    };
-    const run = async () => {
-      try {
-        let buf: ArrayBuffer;
-        if (/https:\/\/.*aliyuncs\.com\//.test(url)) {
-          const resp = await apiClient.assets.proxyDownload(url);
-          buf = resp; // responseType: 'arraybuffer'
-        } else {
-          const res = await fetch(url, { mode: 'cors' });
-          buf = await res.arrayBuffer();
-        }
-        const AC: any = (window as any).AudioContext || (window as any).webkitAudioContext; const ac = new AC();
-        const audio = await ac.decodeAudioData(buf); const ch = audio.getChannelData(0);
-        const bars = 120; const step = Math.max(1, Math.floor(ch.length / bars)); const vals = new Float32Array(bars);
-        for (let i = 0; i < bars; i++) { let sum = 0; let cnt = 0; const start = i * step; const end = Math.min(ch.length, start + step); for (let j = start; j < end; j++) { sum += Math.abs(ch[j]); cnt++; } vals[i] = cnt ? sum / cnt : 0; }
-        draw(vals);
-      } catch {
-        const n = 120; const vals = new Float32Array(n); for (let i = 0; i < n; i++) vals[i] = (Math.sin(i / 5) + 1) / 2; draw(vals);
-      }
-    };
-    run();
-  }, [uploadedFiles, audioProgress]);
-
-  const formatAudio = (s: number) => {
-    if (!s || !isFinite(s)) return '0:00';
-    const m = Math.floor(s / 60); const ss = Math.floor(s % 60); return `${m}:${ss.toString().padStart(2, '0')}`;
-  };
 
   const supportedFormats = [
     { type: 'image', formats: ['PNG', 'JPG', 'JPEG'], icon: 'image', color: 'neutral' },
@@ -412,7 +357,17 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
   ];
 
   const file = uploadedFiles[0];
-  const fileUrl = file ? (file.url.startsWith('http') || file.url.startsWith('data:') ? file.url : `${API_URL}${file.url}`).replace('.oss-oss-', '.oss-') : '';
+  const fileUrl = (() => {
+    try {
+      if (!file || !file.url) return '';
+      const url = file.url;
+      const fullUrl = (url.startsWith('http') || url.startsWith('data:')) ? url : `${API_URL}${url}`;
+      return fullUrl.replace('.oss-oss-', '.oss-');
+    } catch (e) {
+      console.error('[UploadNode] Error constructing fileUrl:', e);
+      return '';
+    }
+  })();
 
   if (file && file.type === 'IMAGE' && imageDimensions) {
     return (
@@ -528,19 +483,16 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
           id={`${id}-source`}
           className="!w-3 !h-3 !border-2 !rounded-full !bg-white dark:!bg-black !border-slate-400 dark:!border-white hover:!scale-150 !transition-transform !cursor-crosshair !shadow-[0_0_5px_rgba(255,255,255,0.5)]"
         />
-        <div className="space-y-3 p-4">
+        <div className="p-4 space-y-3">
+          {/* 文件名标题 */}
           <div className="flex items-center gap-2">
-            <button onClick={toggleAudio} className="nodrag w-8 h-8 rounded-full bg-neutral-800 dark:bg-white hover:shadow-lg flex items-center justify-center transition-all shadow-md active:scale-95">
-              <span className="material-symbols-outlined text-white text-lg" style={{ fontVariationSettings: '"FILL" 1, "wght" 400' }}>{audioIsPlaying ? 'pause' : 'play_arrow'}</span>
-            </button>
-            <span className="text-xs text-slate-600 dark:text-slate-400">{formatAudio(audioDurationSec)}</span>
+            <span className="material-symbols-outlined text-slate-500 dark:text-neutral-400" style={{ fontSize: 18, fontVariationSettings: '"FILL" 0, "wght" 200' }}>audio_file</span>
+            <span className="text-sm text-slate-700 dark:text-neutral-200 truncate flex-1" title={file.originalName || file.name}>{file.originalName || file.name}</span>
           </div>
-          <div className="">
-            <canvas ref={audioCanvasRef} width={360} height={90} className="w-full" />
-          </div>
-          <audio ref={audioRef} src={fileUrl} className="hidden" />
-          {/* 操作按钮 - 右下角图标 */}
-          <div className="nodrag absolute bottom-2 right-2 flex gap-1.5 z-10">
+          {/* 音频播放器 - light模式反色为白色控件，dark模式保持原样 */}
+          <audio ref={audioRef} src={fileUrl} controls className="w-full nodrag invert dark:invert-0" style={{ height: 40 }} />
+          {/* 操作按钮 - 移到内容下方 */}
+          <div className="nodrag flex justify-end gap-1.5">
             <button
               onClick={handleReplaceFile}
               className="w-7 h-7 flex items-center justify-center bg-neutral-800 dark:bg-white hover:shadow-lg text-white dark:text-black rounded-full transition-all dark:backdrop-blur-none backdrop-blur-sm shadow-md active:scale-95"

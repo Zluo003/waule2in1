@@ -77,20 +77,26 @@ const AudioPreviewNode = ({ data, id }: NodeProps<NodeData>) => {
   const apiBase = useMemo(() => window.location.origin, []);
   const transformUrl = useTransformLocalServerUrl();
   const computedSrc = useMemo(() => {
-    const src = data.audioUrl || '';
-    if (src.startsWith('blob:')) {
-      const n = data.sourceNodeId ? getNode(data.sourceNodeId) as any : null;
-      const out = n?.data?.outputUrl || '';
-      if (out.startsWith('http')) return out;
-      if (out.startsWith('/')) return `${apiBase}${out}`;
+    try {
+      const src = data.audioUrl || '';
+      if (!src) return '';
+      if (src.startsWith('blob:')) {
+        const n = data.sourceNodeId ? getNode(data.sourceNodeId) as any : null;
+        const out = n?.data?.outputUrl || '';
+        if (out.startsWith('http')) return out;
+        if (out.startsWith('/')) return `${apiBase}${out}`;
+        return src;
+      }
+      // 先尝试转换本地服务器 URL
+      const transformed = transformUrl(src);
+      if (transformed !== src) return transformed;
+      if (src.startsWith('http')) return `${apiBase}/api/assets/proxy-stream?url=${encodeURIComponent(src)}`;
+      if (src.startsWith('/')) return `${apiBase}${src}`;
       return src;
+    } catch (e) {
+      console.error('[AudioPreviewNode] computedSrc error:', e);
+      return '';
     }
-    // 先尝试转换本地服务器 URL
-    const transformed = transformUrl(src);
-    if (transformed !== src) return transformed;
-    if (src.startsWith('http')) return `${apiBase}/api/assets/proxy-stream?url=${encodeURIComponent(src)}`;
-    if (src.startsWith('/')) return `${apiBase}${src}`;
-    return src;
   }, [data.audioUrl, data.sourceNodeId, apiBase, transformUrl]);
   useEffect(() => {
     const a = audioRef.current;

@@ -209,16 +209,30 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
   const creatingPreviewUrlsRef = useRef<Set<string>>(new Set());
 
   const createPreviewNode = useCallback((videoUrl: string) => {
+    console.log(`[AIVideoEditNode] createPreviewNode 被调用: videoUrl=${videoUrl?.substring(0, 50)}, nodeId=${id}`);
     const currentNode = getNode(id);
-    if (!currentNode) return;
-    if (!videoUrl) return;
+    if (!currentNode) {
+      console.error(`[AIVideoEditNode] createPreviewNode 失败: currentNode 不存在`);
+      return;
+    }
+    if (!videoUrl) {
+      console.error(`[AIVideoEditNode] createPreviewNode 失败: videoUrl 为空`);
+      return;
+    }
     // 防止并发创建
-    if (creatingPreviewUrlsRef.current.has(videoUrl)) return;
+    if (creatingPreviewUrlsRef.current.has(videoUrl)) {
+      console.warn(`[AIVideoEditNode] createPreviewNode 跳过: 正在创建相同URL`);
+      return;
+    }
     const allNodes = getNodes();
     const allEdges = getEdges();
     const connectedPreviewNodes = allNodes.filter((n: any) => n.type === 'videoPreview' && allEdges.some((e: any) => e.source === id && e.target === n.id));
     const exist = connectedPreviewNodes.find((n: any) => (n.data as any)?.videoUrl === videoUrl);
-    if (exist) return;
+    if (exist) {
+      console.warn(`[AIVideoEditNode] createPreviewNode 跳过: 已存在相同URL的预览节点`);
+      return;
+    }
+    console.log(`[AIVideoEditNode] 准备创建预览节点, 当前节点数: ${allNodes.length}`);
     creatingPreviewUrlsRef.current.add(videoUrl);
     const previewWidth = 400;
     const parseRatio = (r?: string, defH = 300) => {
@@ -243,8 +257,42 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
       position: { x: posX, y: posY },
       data: { videoUrl, width: previewWidth, ratio: '16:9', workflowContext: (currentNode as any).data.workflowContext, createdBy: (currentNode as any).data?.createdBy },
     } as any;
-    setNodes((nds) => [...nds, previewNode]);
+    
+    console.log(`[AIVideoEditNode] 创建预览节点: ${previewNode.id}, position: (${posX}, ${posY})`);
+    
+    setNodes((nds) => {
+      console.log(`[AIVideoEditNode] setNodes 被调用, 当前节点数: ${nds.length}`);
+      return [...nds, previewNode];
+    });
     setEdges((eds) => [...eds, { id: `edge-${id}-${previewNode.id}`, source: id, target: previewNode.id, type: 'aurora' }]);
+    
+    // 延迟检查节点是否真的被添加，如果没有则重试
+    setTimeout(() => {
+      const allNodesAfter = getNodes();
+      const previewNodeExists = allNodesAfter.find(n => n.id === previewNode.id);
+      console.log(`[AIVideoEditNode] 延迟检查 - 节点总数: ${allNodesAfter.length}, 预览节点存在: ${!!previewNodeExists}`);
+      if (!previewNodeExists) {
+        console.warn(`[AIVideoEditNode] 预览节点未被添加，可能被工作流保存覆盖，尝试重新创建...`);
+        // 移除正在创建的标记，允许重新创建
+        creatingPreviewUrlsRef.current.delete(videoUrl);
+        // 重新创建
+        setNodes((nds) => {
+          // 再次检查是否已存在
+          if (nds.find(n => n.id === previewNode.id)) {
+            return nds;
+          }
+          console.log(`[AIVideoEditNode] 重新添加预览节点`);
+          return [...nds, previewNode];
+        });
+        setEdges((eds) => {
+          if (eds.find(e => e.id === `edge-${id}-${previewNode.id}`)) {
+            return eds;
+          }
+          return [...eds, { id: `edge-${id}-${previewNode.id}`, source: id, target: previewNode.id, type: 'aurora' }];
+        });
+      }
+    }, 500);
+    
     setTimeout(() => creatingPreviewUrlsRef.current.delete(videoUrl), 100);
   }, [id, getNode, getNodes, getEdges, setNodes, setEdges]);
 
@@ -266,29 +314,51 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
         try {
           const response = await apiClient.tasks.getTaskStatus(initialTid);
           const task = response.task;
+          console.log(`[AIVideoEditNode] recover: status=${task.status}, resultUrl=${task.resultUrl?.substring(0, 50)}`);
           if (task.status === 'SUCCESS') {
             const url = task.resultUrl || task.previewNodeData?.url;
+            console.log(`[AIVideoEditNode] SUCCESS: url=${url?.substring(0, 50)}`);
             if (url) {
-              // 处理本地存储（如果启用）
-              const processedResult = await processTaskResult({
-                taskId: initialTid,
-                resultUrl: url,
-                type: 'VIDEO',
-              });
-              const displayUrl = processedResult.displayUrl;
-              
+                // 处理本地存储（如果启用）
+                const processedResult = await processTaskResult({
+                  taskId: initialTid,
+                  resultUrl: url,
+                  type: 'VIDEO',
+                });
+                const displayUrl = processedResult.displayUrl;
+                console.log(`[AIVideoEditNode] processedResult: displayUrl=${displayUrl?.substring(0, 50)}, isLocalStored=${processedResult.isLocalStored}`);
+                
               let suppressed = false;
               try {
                 const suppressedRaw = localStorage.getItem('suppressedPreviewTasks') || '[]';
                 const list: Array<{ sourceNodeId?: string; taskId?: string; messageId?: string }> = JSON.parse(suppressedRaw);
                 suppressed = list.some(s => (s.taskId && s.taskId === initialTid) || (s.sourceNodeId && s.sourceNodeId === id));
               } catch { }
+              console.log(`[AIVideoEditNode] suppressed=${suppressed}, nodeId=${id}`);
               if (!suppressed) {
-                createPreviewNode(displayUrl);
+                  console.log(`[AIVideoEditNode] 调用 createPreviewNode: ${displayUrl?.substring(0, 50)}`);
+                  createPreviewNode(displayUrl);
+              } else {
+                  console.warn(`[AIVideoEditNode] 预览节点被抑制: taskId=${initialTid}, nodeId=${id}`);
               }
-              setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, generatedVideoUrl: displayUrl, taskId: initialTid } } } : n));
+              setNodes((nds) => nds.map((n) => {
+                if (n.id !== id) return n;
+                return {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    config: {
+                      ...n.data.config,
+                        generatedVideoUrl: displayUrl,
+                      taskId: initialTid,
+                    },
+                  },
+                } as any;
+              }));
+              setIsGenerating(false);
+              toast.success('视频编辑完成');
+              return; // 停止轮询
             }
-            setIsGenerating(false);
             handled = true;
           } else if (task.status === 'PROCESSING' || task.status === 'PENDING') {
             setIsGenerating(true);
@@ -296,10 +366,28 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
             return;
           } else if (task.status === 'FAILURE') {
             setIsGenerating(false);
+            
+            // 刷新租户积分（失败后退款）
+            try {
+              const { refreshTenantCredits } = await import('../../../lib/api');
+              await refreshTenantCredits();
+            } catch {}
+            
+            toast.error(task.errorMessage || '视频编辑失败，积分已退还');
             setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, taskId: '' } } } : n));
+            return; // 停止轮询
+          } else {
+            // 未知状态，停止轮询
+            setIsGenerating(false);
+            toast.error(`未知任务状态: ${task.status}`);
+            setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, taskId: '' } } } : n));
+            return;
           }
-        } catch (e) {
+        } catch (e: any) {
           setIsGenerating(false);
+          toast.error('查询任务状态失败');
+          setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, taskId: '' } } } : n));
+          return; // 停止轮询
         }
       }
       if (!handled) {
@@ -315,8 +403,12 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
                   const list: Array<{ sourceNodeId?: string; taskId?: string; messageId?: string }> = JSON.parse(suppressedRaw);
                   suppressed = list.some(s => (s.taskId && s.taskId === t.id) || (s.sourceNodeId && s.sourceNodeId === id));
                 } catch { }
+                console.log(`[AIVideoEditNode] suppressed=${suppressed}, nodeId=${id}`);
                 if (!suppressed) {
-                  createPreviewNode(u);
+                    console.log(`[AIVideoEditNode] 调用 createPreviewNode: ${u?.substring(0, 50)}`);
+                    createPreviewNode(u);
+                } else {
+                    console.warn(`[AIVideoEditNode] 预览节点被抑制: taskId=${t.id}, nodeId=${id}`);
                 }
                 await apiClient.tasks.markPreviewNodeCreated(t.id);
               }
@@ -352,8 +444,10 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
         attempts++;
         const response = await apiClient.tasks.getTaskStatus(tid);
         const task = response.task;
+        console.log(`[AIVideoEditNode] pollTaskStatus: status=${task.status}, resultUrl=${task.resultUrl?.substring(0, 50)}`);
         if (task.status === 'SUCCESS') {
           const url = task.resultUrl || task.previewNodeData?.url;
+          console.log(`[AIVideoEditNode] SUCCESS: url=${url?.substring(0, 50)}`);
           if (url) {
               // 处理本地存储（如果启用）
               const processedResult = await processTaskResult({
@@ -362,6 +456,7 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
                 type: 'VIDEO',
               });
               const displayUrl = processedResult.displayUrl;
+              console.log(`[AIVideoEditNode] processedResult: displayUrl=${displayUrl?.substring(0, 50)}, isLocalStored=${processedResult.isLocalStored}`);
               
             let suppressed = false;
             try {
@@ -369,8 +464,12 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
               const list: Array<{ sourceNodeId?: string; taskId?: string; messageId?: string }> = JSON.parse(suppressedRaw);
               suppressed = list.some(s => (s.taskId && s.taskId === tid) || (s.sourceNodeId && s.sourceNodeId === id));
             } catch { }
+            console.log(`[AIVideoEditNode] suppressed=${suppressed}, nodeId=${id}`);
             if (!suppressed) {
+                console.log(`[AIVideoEditNode] 调用 createPreviewNode: ${displayUrl?.substring(0, 50)}`);
                 createPreviewNode(displayUrl);
+            } else {
+                console.warn(`[AIVideoEditNode] 预览节点被抑制: taskId=${tid}, nodeId=${id}`);
             }
             setNodes((nds) => nds.map((n) => {
               if (n.id !== id) return n;

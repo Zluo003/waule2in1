@@ -86,11 +86,13 @@ const AIVideoStyleNode = ({ data, selected, id }: NodeProps<AIVideoStyleNodeData
 
   const connectedInputs = useMemo(() => {
     const es = edges.filter((e) => e.target === id);
+    console.log(`[AIVideoStyleNode] 检测连接, 边数: ${es.length}`);
     let videoUrl: string | null = null;
     for (const e of es) {
       const src = getNode(e.source);
       if (!src) continue;
       const t = String(src.type || '');
+      console.log(`[AIVideoStyleNode] 源节点: type=${t}, hasVideoUrl=${!!(src.data as any)?.videoUrl}, hasConfigGeneratedVideoUrl=${!!(src.data as any)?.config?.generatedVideoUrl}`);
       if (t === 'upload') {
         const file = (src.data as any)?.config?.uploadedFiles?.[0];
         if (!file) continue;
@@ -176,8 +178,35 @@ const AIVideoStyleNode = ({ data, selected, id }: NodeProps<AIVideoStyleNodeData
       position: { x: posX, y: posY },
       data: { videoUrl, width: previewWidth, ratio: '16:9', workflowContext: (currentNode as any).data.workflowContext, createdBy: (currentNode as any).data?.createdBy },
     } as any;
-    setNodes((nds) => [...nds, previewNode]);
+    
+    console.log(`[AIVideoStyleNode] 创建预览节点: ${previewNode.id}`);
+    
+    setNodes((nds) => {
+      console.log(`[AIVideoStyleNode] setNodes 被调用, 当前节点数: ${nds.length}`);
+      return [...nds, previewNode];
+    });
     setEdges((eds) => [...eds, { id: `edge-${id}-${previewNode.id}`, source: id, target: previewNode.id, type: 'aurora' }]);
+    
+    // 延迟检查节点是否真的被添加，如果没有则重试
+    setTimeout(() => {
+      const allNodesAfter = getNodes();
+      const previewNodeExists = allNodesAfter.find(n => n.id === previewNode.id);
+      console.log(`[AIVideoStyleNode] 延迟检查 - 节点总数: ${allNodesAfter.length}, 预览节点存在: ${!!previewNodeExists}`);
+      if (!previewNodeExists) {
+        console.warn(`[AIVideoStyleNode] 预览节点未被添加，尝试重新创建...`);
+        creatingPreviewUrlsRef.current.delete(videoUrl);
+        setNodes((nds) => {
+          if (nds.find(n => n.id === previewNode.id)) return nds;
+          console.log(`[AIVideoStyleNode] 重新添加预览节点`);
+          return [...nds, previewNode];
+        });
+        setEdges((eds) => {
+          if (eds.find(e => e.id === `edge-${id}-${previewNode.id}`)) return eds;
+          return [...eds, { id: `edge-${id}-${previewNode.id}`, source: id, target: previewNode.id, type: 'aurora' }];
+        });
+      }
+    }, 500);
+    
     setTimeout(() => creatingPreviewUrlsRef.current.delete(videoUrl), 100);
   }, [id, getNode, getNodes, getEdges, setNodes, setEdges]);
 
@@ -345,16 +374,15 @@ const AIVideoStyleNode = ({ data, selected, id }: NodeProps<AIVideoStyleNodeData
       const response = await apiClient.tenant.post('/tasks/video-edit', {
         modelId,
         prompt: '',
-        referenceImages: [],
+        referenceImages: connectedInputs.videoUrl ? [connectedInputs.videoUrl] : [],
         sourceNodeId: id,
         generationType: '风格转换',
-        duration: videoDuration, // 传递时长用于计费
-        metadata: { videoUrl: connectedInputs.videoUrl, styleId, videoFps, duration: videoDuration },
+        duration: videoDuration,
+        metadata: { styleId, videoFps, duration: videoDuration },
       } as any);
       const tid = response.taskId;
       const creditsCharged = response.creditsCharged || 0;
       
-      // 刷新用户积分
       if (creditsCharged > 0) {
         try {
           const { refreshTenantCredits } = await import('../../../lib/api');
