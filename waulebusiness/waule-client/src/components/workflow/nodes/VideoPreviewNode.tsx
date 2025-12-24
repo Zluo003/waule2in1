@@ -50,7 +50,7 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
   const [showLibrarySelector, setShowLibrarySelector] = useState(false);
   const [libraries, setLibraries] = useState<AssetLibrary[]>([]);
   const [selectedLibraryId, setSelectedLibraryId] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'ROLE' | 'SCENE' | 'PROP' | 'OTHER'>('ALL');
+  const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'ROLE' | 'SCENE' | 'PROP' | 'AUDIO' | 'OTHER'>('ALL');
   const [assetName, setAssetName] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const { setNodes } = useReactFlow();
@@ -173,7 +173,7 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
 
   const loadLibraries = async () => {
     try {
-      const response = await apiClient.assetLibraries.getAll();
+      const response = await apiClient.assetLibraries.getAll({ includeShared: 'true' });
       setLibraries(response.data);
       if (response.data.length > 0) {
         setSelectedLibraryId(response.data[0].id);
@@ -583,8 +583,8 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
                 <label className="block text-sm font-medium text-slate-600 dark:text-text-dark-secondary mb-2">
                   库类型
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {(['ROLE', 'SCENE', 'PROP', 'OTHER'] as const).map(cat => (
+                <div className="flex gap-1.5">
+                  {(['ROLE', 'SCENE', 'PROP', 'AUDIO', 'OTHER'] as const).map(cat => (
                     <button
                       key={cat}
                       type="button"
@@ -593,15 +593,15 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
                         const filtered = libraries.filter((l) => (l.category || 'OTHER') === cat);
                         setSelectedLibraryId(filtered.length > 0 ? filtered[0].id : '');
                       }}
-                      className={`px-3 py-2 rounded-lg border transition-all text-left ${selectedCategory === cat ? 'border-neutral-500 bg-neutral-500/10 dark:bg-neutral-500/20' : 'border-slate-200 dark:border-border-dark hover:border-neutral-400 dark:hover:border-neutral-500'
+                      className={`flex-1 px-1.5 py-1.5 rounded-lg border transition-all ${selectedCategory === cat ? 'border-neutral-500 bg-neutral-500/10 dark:bg-neutral-500/20' : 'border-slate-200 dark:border-border-dark hover:border-neutral-400 dark:hover:border-neutral-500'
                         }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-slate-600 dark:text-text-dark-secondary">
-                          {cat === 'ROLE' ? 'person' : cat === 'SCENE' ? 'landscape' : cat === 'PROP' ? 'inventory_2' : 'widgets'}
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="material-symbols-outlined text-sm text-slate-600 dark:text-text-dark-secondary">
+                          {cat === 'ROLE' ? 'person' : cat === 'SCENE' ? 'landscape' : cat === 'PROP' ? 'inventory_2' : cat === 'AUDIO' ? 'music_note' : 'widgets'}
                         </span>
-                        <span className="font-medium text-slate-900 dark:text-text-dark-primary">
-                          {cat === 'ROLE' ? '角色库' : cat === 'SCENE' ? '场景库' : cat === 'PROP' ? '道具库' : '分镜资产'}
+                        <span className="text-xs text-slate-900 dark:text-text-dark-primary">
+                          {cat === 'ROLE' ? '角色' : cat === 'SCENE' ? '场景' : cat === 'PROP' ? '道具' : cat === 'AUDIO' ? '音频' : '其他'}
                         </span>
                       </div>
                     </button>

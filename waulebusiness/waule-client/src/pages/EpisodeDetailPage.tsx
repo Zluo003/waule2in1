@@ -87,6 +87,7 @@ export default function EpisodeDetailPageNew() {
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [availableLibraries, setAvailableLibraries] = useState<AssetLibrary[]>([])
   const [selectedLibraryIds, setSelectedLibraryIds] = useState<string[]>([])
+  const [refreshing, setRefreshing] = useState(false)
   const [allRoles, setAllRoles] = useState<RoleAsset[]>([])
   const [allScenes, setAllScenes] = useState<any[]>([])
   const [allProps, setAllProps] = useState<any[]>([])
@@ -205,6 +206,38 @@ export default function EpisodeDetailPageNew() {
 
   // 只读模式
   const canEdit = episode?.canEdit ?? true
+
+  // 刷新数据函数
+  const refreshData = async () => {
+    if (!projectId || !episodeId) return
+    setRefreshing(true)
+    try {
+      const res = await apiClient.episodes.getById(projectId, episodeId)
+      const ep = (res as any)?.data ?? res
+      setEpisode(ep)
+      
+      // 解析分镜数据 - 扁平化处理（移除幕的概念）
+      const acts = (ep as any)?.scriptJson?.acts
+      if (Array.isArray(acts) && acts.length > 0) {
+        const allShots: ScriptShot[] = []
+        let shotCounter = 1
+        acts.forEach((act: any) => {
+          if (Array.isArray(act.shots)) {
+            act.shots.forEach((shot: any) => {
+              allShots.push({ ...shot, shotIndex: shotCounter++ })
+            })
+          }
+        })
+        setShots(allShots)
+        lastSavedRef.current = JSON.stringify(allShots)
+      }
+      toast.success('刷新成功')
+    } catch {
+      toast.error('刷新失败')
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   // 加载剧集数据
   useEffect(() => {
@@ -1180,7 +1213,18 @@ export default function EpisodeDetailPageNew() {
         </div>
         <div className="flex items-center gap-2">
           {saving && <span className="text-xs text-text-light-secondary dark:text-text-dark-secondary">保存中...</span>}
-          {/* 第一组：配置资产库 */}
+          {/* 刷新按钮 */}
+          <div className="group relative">
+            <button 
+              onClick={refreshData}
+              disabled={refreshing}
+              className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-white/70 border border-slate-400 dark:border-white/30 hover:bg-neutral-200 dark:hover:bg-neutral-700 hover:scale-105 transition-all flex items-center justify-center disabled:opacity-50"
+            >
+              <span className={`material-symbols-outlined text-lg ${refreshing ? 'animate-spin' : ''}`}>refresh</span>
+            </button>
+            <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs text-white bg-slate-800 dark:bg-slate-700 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[9999]">刷新</span>
+          </div>
+          {/* 配置资产库 */}
           <div className="group relative">
             <button 
               onClick={() => setShowConfigModal(true)}
