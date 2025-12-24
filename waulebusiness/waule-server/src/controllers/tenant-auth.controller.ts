@@ -608,7 +608,7 @@ export const getAssets = asyncHandler(async (req: Request, res: Response) => {
       completedAt: true,
       createdAt: true,
       sourceNodeId: true,
-      model: true,
+      modelId: true,
     },
   });
 
@@ -659,7 +659,7 @@ export const getAssets = asyncHandler(async (req: Request, res: Response) => {
       : '工作流';
 
     const typeLabel = task.type === 'IMAGE' ? '图片' : task.type === 'VIDEO' ? '视频' : task.type === 'AUDIO' ? '音频' : '资产';
-    const modelName = task.model || 'AI';
+    const modelName = task.modelId || 'AI';
     const displayName = `${modelName}-${typeLabel}`;
 
     aiGeneratedAssets.push({
@@ -673,7 +673,7 @@ export const getAssets = asyncHandler(async (req: Request, res: Response) => {
       createdAt: task.completedAt || task.createdAt,
       source: 'ai-generated',
       projectName,
-      model: task.model,
+      model: task.modelId,
     });
   }
 
