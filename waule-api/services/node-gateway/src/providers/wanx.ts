@@ -241,7 +241,7 @@ export async function generateVideo(options: WanxVideoOptions): Promise<{
   }
 }
 
-// 视频换人（说话人替换）
+// 视频对口型（音频驱动口型）
 export async function generateVideoRetalk(options: WanxVideoRetalkOptions): Promise<{
   url: string;
 }> {
@@ -249,7 +249,7 @@ export async function generateVideoRetalk(options: WanxVideoRetalkOptions): Prom
   const { key: API_KEY, keyId } = getApiKey('alibaba', 'DASHSCOPE_API_KEY');
   const baseUrl = useIntl ? DASHSCOPE_INTL_API_URL : DASHSCOPE_API_URL;
   
-  log('Wanx', `视频换人: videoUrl=${videoUrl?.substring(0, 50)}`);
+  log('Wanx', `视频对口型: videoUrl=${videoUrl?.substring(0, 50)}`);
   
   const requestBody: any = {
     model: 'videoretalk',
@@ -281,18 +281,18 @@ export async function generateVideoRetalk(options: WanxVideoRetalkOptions): Prom
     const taskId = createResponse.data.output?.task_id;
     if (!taskId) throw new Error('No task_id in videoretalk response');
     
-    log('Wanx', `视频换人任务已创建: ${taskId}`);
+    log('Wanx', `视频对口型任务已创建: ${taskId}`);
     
     const resultUrl = await pollTask(taskId, baseUrl, API_KEY, 'video');
     
     recordKeyUsage(keyId, true);
     // 直接使用阿里云返回的 URL，不再上传 OSS
-    log('Wanx', `视频换人成功: ${resultUrl.substring(0, 80)}...`);
+    log('Wanx', `视频对口型成功: ${resultUrl.substring(0, 80)}...`);
     return { url: resultUrl };
     
   } catch (error: any) {
     recordKeyUsage(keyId, false, error.message);
-    log('Wanx', `视频换人失败: ${error.message}`);
+    log('Wanx', `视频对口型失败: ${error.message}`);
     throw new Error(`Wanx videoretalk failed: ${error.response?.data?.message || error.message}`);
   }
 }

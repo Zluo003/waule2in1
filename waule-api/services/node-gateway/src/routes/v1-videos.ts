@@ -97,7 +97,7 @@ router.post('/generations', async (req: Request, res: Response) => {
       });
       result = { url: stylizeResult.url, duration: 0 };
     } else if (modelLower.includes('videoretalk')) {
-      // 视频换人
+      // 视频对口型
       const retalkResult = await wanx.generateVideoRetalk({
         videoUrl: replace_video_url || '',
         audioUrl: req.body.audio_url || '',

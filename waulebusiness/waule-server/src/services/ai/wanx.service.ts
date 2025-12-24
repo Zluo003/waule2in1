@@ -152,7 +152,7 @@ export async function generateVideoFromText(options: WanxVideoGenerateOptions): 
 }
 
 /**
- * 视频换人（说话人替换）
+ * 视频对口型（音频驱动口型）
  * 注意：此功能需要 waule-api 端支持专用路由
  */
 export async function generateVideoRetalk(options: VideoRetalkOptions): Promise<string> {
@@ -161,7 +161,7 @@ export async function generateVideoRetalk(options: VideoRetalkOptions): Promise<
   // 获取服务器配置
   const finalServerConfig = serverConfig || await getServerConfigByModelId('videoretalk');
 
-  console.log('[Wanx] 视频换人请求:', {
+  console.log('[Wanx] 视频对口型请求:', {
     videoUrl: videoUrl?.substring(0, 50),
     audioUrl: audioUrl?.substring(0, 50),
     hasRefImage: !!refImageUrl,
@@ -183,11 +183,11 @@ export async function generateVideoRetalk(options: VideoRetalkOptions): Promise<
     }
 
     const resultUrl = result.data[0].url;
-    console.log('[Wanx] 视频换人成功:', resultUrl);
+    console.log('[Wanx] 视频对口型成功:', resultUrl);
     return resultUrl;
   } catch (error: any) {
-    console.error('[Wanx] 视频换人失败:', error.response?.data || error.message);
-    throw new Error(`视频换人失败: ${error.response?.data?.error?.message || error.message}`);
+    console.error('[Wanx] 视频对口型失败:', error.response?.data || error.message);
+    throw new Error(`视频对口型失败: ${error.response?.data?.error?.message || error.message}`);
   }
 }
 

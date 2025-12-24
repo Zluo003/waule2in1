@@ -6,10 +6,111 @@
  */
 import { Router, Request, Response } from 'express';
 import axios, { AxiosRequestConfig, Method } from 'axios';
+import path from 'path';
+import fs from 'fs';
 import { getAppConfig } from '../services/database.service';
+import { uploadFileToPlatformOss } from '../services/oss.service';
 import logger from '../utils/logger';
 
 const router = Router();
+
+/**
+ * 检查是否为本地/局域网 URL
+ */
+function isLocalUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname;
+    // 检查是否为局域网 IP 或 localhost
+    return hostname === 'localhost' ||
+           hostname === '127.0.0.1' ||
+           /^(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/.test(hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 将本地 URL 转换为 OSS URL
+ * 从本地文件系统读取文件并上传到平台 OSS
+ */
+async function convertLocalUrlToOss(localUrl: string): Promise<string> {
+  if (!isLocalUrl(localUrl)) {
+    return localUrl; // 不是本地 URL，直接返回
+  }
+  
+  try {
+    const parsed = new URL(localUrl);
+    // 提取文件路径: /files/uploads/default/... -> uploads/default/...
+    const urlPath = parsed.pathname.replace(/^\/files\//, '');
+    const config = getAppConfig();
+    const fullPath = path.join(config.storagePath, urlPath);
+    
+    logger.info(`[Proxy] 检测到本地URL: ${localUrl}`);
+    logger.info(`[Proxy] 本地文件路径: ${fullPath}`);
+    
+    if (!fs.existsSync(fullPath)) {
+      logger.warn(`[Proxy] 本地文件不存在: ${fullPath}`);
+      return localUrl; // 文件不存在，返回原 URL
+    }
+    
+    // 上传到平台 OSS
+    const result = await uploadFileToPlatformOss(fullPath);
+    if (result.success && result.ossUrl) {
+      logger.info(`[Proxy] 本地文件已上传到OSS: ${result.ossUrl}`);
+      return result.ossUrl;
+    } else {
+      logger.error(`[Proxy] 上传OSS失败: ${result.error}`);
+      return localUrl;
+    }
+  } catch (error: any) {
+    logger.error(`[Proxy] 转换本地URL失败: ${error.message}`);
+    return localUrl;
+  }
+}
+
+/**
+ * 处理任务提交请求，将本地 URL 转换为 OSS URL
+ */
+async function processTaskBody(body: any): Promise<any> {
+  if (!body || typeof body !== 'object') return body;
+  
+  const processed = { ...body };
+  
+  // 处理 referenceImages 数组
+  if (Array.isArray(processed.referenceImages)) {
+    processed.referenceImages = await Promise.all(
+      processed.referenceImages.map((url: string) => convertLocalUrlToOss(url))
+    );
+  }
+  
+  // 处理 metadata 中的 URL
+  if (processed.metadata && typeof processed.metadata === 'object') {
+    const meta = { ...processed.metadata };
+    if (meta.videoUrl) {
+      meta.videoUrl = await convertLocalUrlToOss(meta.videoUrl);
+    }
+    if (meta.audioUrl) {
+      meta.audioUrl = await convertLocalUrlToOss(meta.audioUrl);
+    }
+    if (meta.imageUrl) {
+      meta.imageUrl = await convertLocalUrlToOss(meta.imageUrl);
+    }
+    processed.metadata = meta;
+  }
+  
+  return processed;
+}
+
+/**
+ * 判断是否为需要处理本地URL的任务提交请求
+ */
+function isTaskSubmitRequest(method: string, url: string): boolean {
+  if (method !== 'POST') return false;
+  // 匹配任务提交相关的路由
+  return /\/tenant\/tasks\/(video-edit|video|image|storyboard)/.test(url);
+}
 
 /**
  * 通用代理中间件
@@ -51,13 +152,21 @@ async function proxyRequest(req: Request, res: Response) {
       headers['X-Tenant-API-Key'] = config.tenantApiKey;
     }
     
+    // 处理请求体：对任务提交请求，将本地URL转换为OSS URL
+    let requestBody = req.body;
+    if (isTaskSubmitRequest(req.method, req.originalUrl) && req.body) {
+      logger.info(`[Proxy] 检测到任务提交请求，处理本地URL...`);
+      requestBody = await processTaskBody(req.body);
+      logger.info(`[Proxy] 处理后的请求体: ${JSON.stringify(requestBody).substring(0, 500)}`);
+    }
+    
     const axiosConfig: AxiosRequestConfig = {
       method: req.method as Method,
       url: targetUrl, // URL 已包含查询参数 (req.originalUrl)
       headers,
       timeout: 600000, // 10分钟超时（AI 任务可能很慢）
       // 对于非 GET 请求，转发 body
-      ...(req.method !== 'GET' && req.method !== 'HEAD' && { data: req.body }),
+      ...(req.method !== 'GET' && req.method !== 'HEAD' && { data: requestBody }),
       validateStatus: () => true, // 不抛出 HTTP 错误，让我们处理
     };
     
