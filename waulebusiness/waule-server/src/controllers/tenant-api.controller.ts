@@ -4455,15 +4455,38 @@ export const getRoles = asyncHandler(async (req: Request, res: Response) => {
     return res.status(404).json({ message: '资产库不存在' });
   }
 
-  // 检查权限：所有者或协作者
+  // 检查权限：所有者、资产库协作者、或项目协作者（该项目的剧集配置了此资产库）
   const isOwner = library.tenantUserId === tenantUser.id;
-  if (!isOwner && !tenantUser.isAdmin) {
+  let hasAccess = isOwner || tenantUser.isAdmin;
+  
+  if (!hasAccess) {
+    // 1. 检查是否是资产库协作者
     const collaboration = await prisma.tenantAssetLibraryCollaborator.findUnique({
       where: { libraryId_tenantUserId: { libraryId: id, tenantUserId: tenantUser.id } },
     });
-    if (!collaboration) {
-      return res.status(403).json({ success: false, message: '无权访问此资产库' });
+    if (collaboration) {
+      hasAccess = true;
+    } else {
+      // 2. 检查是否是项目协作者，且该项目的剧集配置了此资产库
+      const projectCollabs = await prisma.tenantProjectCollaborator.findMany({
+        where: { tenantUserId: tenantUser.id },
+        select: { projectId: true },
+      });
+      if (projectCollabs.length > 0) {
+        const projectIds = projectCollabs.map(c => c.projectId);
+        const episodeWithLibrary = await prisma.tenantEpisode.findFirst({
+          where: {
+            projectId: { in: projectIds },
+            configuredLibraryIds: { has: id },
+          },
+        });
+        hasAccess = !!episodeWithLibrary;
+      }
     }
+  }
+  
+  if (!hasAccess) {
+    return res.status(403).json({ success: false, message: '无权访问此资产库' });
   }
 
   const assets = await prisma.tenantAsset.findMany({
