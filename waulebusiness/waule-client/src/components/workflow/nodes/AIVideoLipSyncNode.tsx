@@ -6,7 +6,6 @@ import CustomSelect from './CustomSelect';
 import { toast } from 'sonner';
 import { apiClient } from '../../../lib/api';
 import { useBillingEstimate } from '../../../hooks/useBillingEstimate';
-import { processTaskResult } from '../../../utils/taskResultHandler';
 
 interface AIModel {
   id: string;
@@ -40,11 +39,8 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [videoExtension, setVideoExtension] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [audioDuration, setAudioDuration] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
-  const progress = 0; // eslint-disable-line
   const [validationError, setValidationError] = useState<string | null>(null);
   const { setNodes, setEdges, getNode, getNodes, getEdges } = useReactFlow();
   const edges = useEdges();
@@ -137,11 +133,8 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
     const a = audioRef.current;
     if (!a || !connectedInputs.audioUrl) return;
     a.src = connectedInputs.audioUrl;
-    a.load(); // Force reload
-    const onLoaded = () => {
-      // setDurationSec(a.duration || 0); // Removed
-      setAudioDuration(a.duration || 0);
-    };
+    a.load();
+    const onLoaded = () => setAudioDuration(a.duration || 0);
     a.addEventListener('loadedmetadata', onLoaded);
     return () => {
       a.removeEventListener('loadedmetadata', onLoaded);
@@ -166,7 +159,7 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
         const height = tempVideo.videoHeight;
         if (width > 2048 || height > 2048) {
           setValidationError(`视频分辨率 ${width}x${height} 超出限制（单边最大 2048）`);
-          toast.error(`视频分辨率 ${width}x${height} 超出限制，已自动断开`);
+          toast.error(`视频分辨率超出限制（当前 ${width}x${height}，最大 2048），连接已断开`);
           // 断开视频连线
           setEdges(eds => eds.filter(e => {
             if (e.target !== id) return true;
@@ -188,96 +181,15 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
     tempVideo.load();
   }, [connectedInputs.videoUrl, isVideoRetalkModel, id, nodes, setEdges]);
 
-  useEffect(() => {
-    const u = connectedInputs.audioUrl;
-    const c = canvasRef.current as HTMLCanvasElement | null;
-    if (!u || !c) return;
-    const draw = (vals: Float32Array) => {
-      const ctx = c.getContext('2d');
-      if (!ctx) return;
-      const w = c.width;
-      const h = c.height;
-      ctx.clearRect(0, 0, w, h);
-      const bg = '#1a1033';
-      const bar = '#7a0fe8';
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, w, h);
-      const n = vals.length;
-      const gap = 2;
-      const bw = Math.max(1, Math.floor((w - (n - 1) * gap) / n));
-      for (let i = 0; i < n; i++) {
-        const v = Math.min(1, Math.max(0, vals[i]));
-        const bh = Math.max(2, Math.floor(v * h));
-        const x = i * (bw + gap);
-        const y = Math.floor((h - bh) / 2);
-        ctx.fillStyle = bar;
-        ctx.fillRect(x, y, bw, bh);
-      }
-      if (progress > 0) {
-        const px = Math.floor(w * progress);
-        ctx.fillStyle = '#ffffff88';
-        ctx.fillRect(px, 0, 2, h);
-      }
-    };
-    const run = async () => {
-      try {
-        // 如果是 OSS 地址，通过后端代理避免 CORS 问题
-        let audioUrl = u;
-        if (u.includes('aliyuncs.com')) {
-          // 通过后端代理获取音频文件
-          const API_URL = import.meta.env.VITE_API_URL || '';
-          audioUrl = `${API_URL}/proxy/audio?url=${encodeURIComponent(u)}`;
-        }
-        
-        const res = await fetch(audioUrl, { 
-          mode: u.includes('aliyuncs.com') ? 'cors' : 'cors',
-          credentials: u.includes('aliyuncs.com') ? 'include' : 'omit'
-        });
-        const buf = await res.arrayBuffer();
-        const AC: any = (window as any).AudioContext || (window as any).webkitAudioContext;
-        const ac = new AC();
-        const audio = await ac.decodeAudioData(buf);
-        const ch = audio.getChannelData(0);
-        const bars = 120;
-        const step = Math.max(1, Math.floor(ch.length / bars));
-        const vals = new Float32Array(bars);
-        for (let i = 0; i < bars; i++) {
-          let sum = 0;
-          let cnt = 0;
-          const start = i * step;
-          const end = Math.min(ch.length, start + step);
-          for (let j = start; j < end; j++) {
-            sum += Math.abs(ch[j]);
-            cnt++;
-          }
-          vals[i] = cnt ? sum / cnt : 0;
-        }
-        draw(vals);
-      } catch {
-        const n = 120;
-        const vals = new Float32Array(n);
-        for (let i = 0; i < n; i++) vals[i] = (Math.sin(i / 5) + 1) / 2;
-        draw(vals);
-      }
-    };
-    run();
-  }, [connectedInputs.audioUrl, progress]);
-
-  // 用于防止并发创建相同URL的预览节点
-  const creatingPreviewUrlsRef = useRef<Set<string>>(new Set());
-
   const createPreviewNode = useCallback((videoUrl: string) => {
     const currentNode = getNode(id);
     if (!currentNode || !videoUrl) return;
     const normUrl = (videoUrl.startsWith('http') || videoUrl.startsWith('data:')) ? videoUrl : `${API_URL}${videoUrl}`;
-    // 防止并发创建
-    if (creatingPreviewUrlsRef.current.has(normUrl)) return;
     const allNodes = getNodes();
     const allEdges = getEdges();
     const connectedPreviewNodes = allNodes.filter((n: any) => n.type === 'videoPreview' && allEdges.some((e: any) => e.source === id && e.target === n.id));
     const exist = connectedPreviewNodes.find((n: any) => (n.data as any)?.videoUrl === normUrl);
     if (exist) return;
-    creatingPreviewUrlsRef.current.add(normUrl);
     const previewWidth = 400;
     const parseRatio = (r?: string, defH = 300) => {
       if (!r || !/^[0-9]+\s*:\s*[0-9]+$/.test(r)) return defH;
@@ -298,19 +210,15 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
     const previewNode = { id: `preview-${id}-${Date.now()}`, type: 'videoPreview', position: { x: posX, y: posY }, data: { videoUrl: normUrl, ratio: '16:9', workflowContext: (currentNode as any).data.workflowContext, createdBy: (currentNode as any).data?.createdBy } } as any;
     setNodes((nds) => [...nds, previewNode]);
     setEdges((eds) => [...eds, { id: `edge-${id}-${previewNode.id}`, source: id, target: previewNode.id, type: 'aurora' }]);
-    setTimeout(() => creatingPreviewUrlsRef.current.delete(normUrl), 100);
   }, [id, getNode, getNodes, getEdges, setNodes, setEdges]);
 
-  // 移除监听 generatedVideoUrl 变化创建预览节点的逻辑
-  // 统一在 recover 和 pollTaskStatus 中处理
-  // useEffect(() => {
-  //   const url = (data as any)?.config?.generatedVideoUrl;
-  //   if (url) createPreviewNode(url);
-  // }, [(data as any)?.config?.generatedVideoUrl]);
+  useEffect(() => {
+    const url = (data as any)?.config?.generatedVideoUrl;
+    if (url) createPreviewNode(url);
+  }, [(data as any)?.config?.generatedVideoUrl]);
 
   useEffect(() => {
     const initialTid = data.config.taskId || (() => { try { return localStorage.getItem(storageKey) || ''; } catch { return ''; } })();
-    const existingVideoUrl = (data as any)?.config?.generatedVideoUrl;
     const recover = async () => {
       let handled = false;
       if (initialTid) {
@@ -335,16 +243,10 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
           }
           
           if (task.status === 'SUCCESS' || task.status === 'COMPLETED' || task.status === 'DONE') {
+            // ... success logic ...
+            // (keep existing logic)
             const url = task.resultUrl || task.previewNodeData?.url;
             if (url) {
-              // 处理本地存储（如果启用）
-              const processedResult = await processTaskResult({
-                taskId: initialTid,
-                resultUrl: url,
-                type: 'VIDEO',
-              });
-              const displayUrl = processedResult.displayUrl;
-              
               let suppressed = false;
               try {
                 const suppressedRaw = localStorage.getItem('suppressedPreviewTasks') || '[]';
@@ -352,10 +254,11 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
                 suppressed = list.some(s => (s.taskId && s.taskId === initialTid) || (s.sourceNodeId && s.sourceNodeId === id));
               } catch { }
               if (!suppressed) {
-                createPreviewNode(displayUrl);
+                createPreviewNode(url);
               }
-              setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, generatedVideoUrl: displayUrl, taskId: initialTid } } } : n));
+              setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, generatedVideoUrl: url, taskId: initialTid } } } : n));
             }
+            // ...
             setIsGenerating(false);
             try { localStorage.removeItem(storageKey); } catch { }
             handled = true;
@@ -396,22 +299,6 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
             }
           }
         } catch { }
-        
-        // 如果没有taskId但有已生成的视频URL，检查是否需要恢复预览节点
-        if (existingVideoUrl) {
-          const allNodes = getNodes();
-          const allEdges = getEdges();
-          const connectedPreviewNodes = allNodes.filter(node => {
-            return node.type === 'videoPreview' && allEdges.some(edge =>
-              edge.source === id && edge.target === node.id
-            );
-          });
-          const existingNode = connectedPreviewNodes.find(node => node.data.videoUrl === existingVideoUrl);
-          if (!existingNode) {
-            console.log('[AIVideoLipSyncNode] 检测到已生成的视频URL但无预览节点，创建预览节点');
-            createPreviewNode(existingVideoUrl);
-          }
-        }
       }
     };
     recover();
@@ -419,7 +306,7 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
 
   const pollTaskStatus = async (tid: string) => {
     let attempts = 0;
-    const maxAttempts = 120; // 最多10分钟 (120 * 5秒)
+    const maxAttempts = 600;
     let lastProgress = -1;
     let sameProgressCount = 0;
     const maxSameProgressCount = 60; // 进度60次不变则认为任务卡死（5秒×60=5分钟）- 视频对口型通常需要几分钟
@@ -437,7 +324,7 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
             sameProgressCount++;
             if (sameProgressCount >= maxSameProgressCount) {
               setIsGenerating(false);
-              toast.error('任务超时或已失效，请重试');
+              toast.error('任务进度停滞，请刷新页面或重新尝试');
               setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, taskId: '' } } } : n));
               try { localStorage.removeItem(storageKey); } catch { }
               return;
@@ -449,21 +336,16 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
         }
 
         if (task.status === 'SUCCESS' || task.status === 'COMPLETED' || task.status === 'DONE') {
+          // ... success logic ...
           const url = task.resultUrl || task.previewNodeData?.url;
           if (url) {
-            // 处理本地存储（如果启用）
-            const processedResult = await processTaskResult({
-              taskId: tid,
-              resultUrl: url,
-              type: 'VIDEO',
-            });
-            const displayUrl = processedResult.displayUrl;
-            
-            createPreviewNode(displayUrl);
-            setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, generatedVideoUrl: displayUrl, taskId: tid } } } : n));
+             // ... logic ...
+             createPreviewNode(url);
+             setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, generatedVideoUrl: url, taskId: tid } } } : n));
           }
+          // ...
           setIsGenerating(false);
-          toast.success('对口型完成');
+          toast.success('🎬 对口型完成，快去看看效果吧！');
           try { localStorage.removeItem(storageKey); } catch { }
           return; // 停止轮询
         } else if (task.status === 'PROCESSING' || task.status === 'PENDING') {
@@ -472,7 +354,7 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
           } else {
              // ... timeout logic ...
              setIsGenerating(false);
-             toast.error('任务超时');
+             toast.error('任务仍在处理中，请刷新页面查看结果');
              setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, taskId: '' } } } : n));
              try { localStorage.removeItem(storageKey); } catch { }
              return;
@@ -488,7 +370,7 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
             await refreshTenantCredits();
           } catch {}
 
-          toast.error(task.errorMessage || '对口型失败，积分已退还');
+          toast.error(task.errorMessage || '处理遇到问题，积分已自动退还');
           setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, taskId: '' } } } : n));
           try { localStorage.removeItem(storageKey); } catch { }
           return; // 停止轮询
@@ -496,14 +378,14 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
           // 处理未知状态
           console.warn('[LipSync] Unknown status:', task.status);
           setIsGenerating(false);
-          toast.error(`未知状态: ${task.status}`);
+          toast.error('任务状态异常，请稍后重试');
           setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, taskId: '' } } } : n));
           try { localStorage.removeItem(storageKey); } catch { }
           return;
         }
       } catch (e: any) {
         setIsGenerating(false);
-        toast.error('查询任务状态失败');
+        toast.error('网络波动，请刷新页面查看结果');
         setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, taskId: '' } } } : n));
         try { localStorage.removeItem(storageKey); } catch { }
         return; // 停止轮询
@@ -514,7 +396,7 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
 
   const handleGenerate = async () => {
     if (!canGenerate) {
-      toast.error('请连接1个视频与1个音频；图片可选');
+      toast.error('请先连接 1 个视频和 1 个音频（图片可选）~');
       return;
     }
     setIsGenerating(true);
@@ -532,17 +414,17 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
       const tid = response.taskId;
       const creditsCharged = response.creditsCharged || 0;
 
-      // 刷新用户积分
+      // 刷新租户积分
       if (creditsCharged > 0) {
         try {
           const { refreshTenantCredits } = await import('../../../lib/api');
           await refreshTenantCredits();
-          toast.success(`任务已提交（已扣除 ${creditsCharged} 积分）`);
+          toast.success(`对口型处理已启动，消耗 ${creditsCharged} 积分`);
         } catch {
-          toast.success('任务已提交');
+          toast.success('对口型处理已启动');
         }
       } else {
-        toast.success('任务已提交');
+        toast.success('对口型处理已启动');
       }
 
       setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, taskId: tid } } } : n));
@@ -550,13 +432,14 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
       await pollTaskStatus(tid);
     } catch (e: any) {
       setIsGenerating(false);
-      toast.error(e?.response?.data?.error || e.message);
+      const errorDetail = e?.response?.data?.error || e.message || '未知原因';
+      toast.error(`启动失败：${errorDetail}，请稍后重试`);
       try { localStorage.removeItem(storageKey); } catch { }
     }
   };
 
   return (
-    <div className={`relative bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-neutral-700 ring-black/5 dark:ring-neutral-700 ring-black/5'}`} style={{ width: 320 }}>
+    <div className={`relative bg-white dark:bg-[#18181b] backdrop-blur-xl border rounded-2xl shadow-xl transition-all ring-1 ${selected ? 'border-neutral-400 shadow-neutral-400/50' : 'border-white/60 dark:border-white/10 ring-white/5 dark:ring-white/5 ring-black/5'}`} style={{ width: 320 }}>
       {/* 创建者头像徽章 */}
       <NodeCreatorBadge createdBy={(data as any).createdBy} isSharedWorkflow={(data as any)._isSharedWorkflow} />
       <CustomHandle type="target" position={Position.Left} id={`${id}-target`} className="!w-3 !h-3 !border-2 !rounded-full !bg-white dark:!bg-black !border-slate-400 dark:!border-white hover:!scale-150 !transition-transform !cursor-crosshair !shadow-[0_0_5px_rgba(255,255,255,0.5)]" />
@@ -571,7 +454,7 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
         {isExpanded ? (
           <div className="space-y-3">
             <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">视频编辑模型</label>
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">视频编辑模型</label>
               <CustomSelect
                 value={modelId}
                 onChange={(v) => { setModelId(v); setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, config: { ...n.data.config, modelId: v, modelName: editingModels.find(m => m.id === v)?.name } } } : n)); }}
@@ -586,45 +469,34 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">原始视频</label>
-                <div className="bg-slate-100 dark:bg-[#000000] backdrop-blur-none border border-slate-200 dark:border-neutral-800 rounded-md overflow-hidden flex items-center justify-center" style={{ width: '100%', height: 100 }}>
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">原始视频</label>
+                <div className="bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md overflow-hidden flex items-center justify-center" style={{ width: '100%', height: 100 }}>
                   {connectedInputs.videoUrl ? (
                     <video key={connectedInputs.videoUrl} src={connectedInputs.videoUrl} controls muted playsInline className="object-cover" style={{ width: '100%', height: '100%' }} draggable={false} />
                   ) : (
-                    <span className="text-slate-400 dark:text-neutral-500 text-[10px]">未连接</span>
+                    <span className="text-slate-400 dark:text-white/30 text-[10px]">未连接</span>
                   )}
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">参考图（选）</label>
-                <div className="bg-slate-100 dark:bg-[#000000] backdrop-blur-none border border-slate-200 dark:border-neutral-800 rounded-md overflow-hidden flex items-center justify-center" style={{ width: '100%', height: 100 }}>
+                <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">参考图（选）</label>
+                <div className="bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md overflow-hidden flex items-center justify-center" style={{ width: '100%', height: 100 }}>
                   {connectedInputs.imageUrl ? (
                     <img key={connectedInputs.imageUrl} src={connectedInputs.imageUrl} alt="" className="object-cover" style={{ width: '100%', height: '100%' }} draggable={false} />
                   ) : (
-                    <span className="text-slate-400 dark:text-neutral-500 text-[10px]">未连接</span>
+                    <span className="text-slate-400 dark:text-white/30 text-[10px]">未连接</span>
                   )}
                 </div>
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">语音音频</label>
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">语音音频</label>
               {connectedInputs.audioUrl ? (
-                <div className="w-full py-1">
-                  <audio ref={audioRef} src={connectedInputs.audioUrl} controls className="w-full nodrag invert dark:invert-0" style={{ height: 36 }} />
-                  <video 
-                    ref={videoRef} 
-                    className="hidden" 
-                    muted
-                    onLoadedMetadata={(e) => {
-                      const v = e.currentTarget;
-                      if (v.duration && v.duration !== Infinity) {
-                        setVideoDuration(v.duration);
-                      }
-                    }}
-                  />
+                <div className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md overflow-hidden p-2">
+                  <audio ref={audioRef} src={connectedInputs.audioUrl} controls className="nodrag w-full h-8" style={{ minHeight: 32 }} />
                 </div>
               ) : (
-                <div className="w-full h-16 bg-slate-100 dark:bg-[#000000] backdrop-blur-none border border-slate-200 dark:border-neutral-800 rounded-md flex items-center justify-center text-slate-400 dark:text-neutral-500 text-[10px]">未连接</div>
+                <div className="w-full h-16 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-md flex items-center justify-center text-slate-400 dark:text-white/30 text-[10px]">未连接</div>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -632,7 +504,7 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
               <span className="text-[10px] text-slate-600 dark:text-white">音频更长时扩展视频</span>
             </div>
             
-            <button onClick={handleGenerate} disabled={isGenerating || (data as any)._canEdit === false} className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 ${isGenerating || (data as any)._canEdit === false ? 'bg-neutral-400 dark:bg-neutral-700 text-white dark:text-neutral-300 cursor-not-allowed border-transparent dark:border-neutral-700' : 'bg-neutral-800 dark:bg-white text-white dark:text-black shadow-md hover:shadow-lg border-transparent dark:border-neutral-700'}`}>
+            <button onClick={handleGenerate} disabled={isGenerating || (data as any)._canEdit === false} className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all active:scale-95 flex items-center justify-center gap-2 ${isGenerating ? 'bg-neutral-800 dark:bg-white text-white dark:text-black cursor-not-allowed border-transparent' : 'bg-neutral-800 dark:bg-white text-white dark:text-black text-white shadow-md hover:shadow-lg border-transparent dark:border-white/10'}`}>
               {isGenerating ? (
                 <>
                   <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
@@ -644,11 +516,11 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
                   <span>开始对口型</span>
                   {!creditsLoading && (
                     credits !== null && credits > 0 ? (
-                      <span className="ml-1 text-[9px] opacity-70">
+                      <span className="ml-1 px-1.5 py-0.5 text-neutral-400 dark:text-neutral-500 text-[9px]">
                         {credits}积分
                       </span>
                     ) : billingDuration === 0 ? (
-                      <span className="ml-1 text-[9px] opacity-70">
+                      <span className="ml-1 px-1.5 py-0.5 text-neutral-400 dark:text-neutral-500 text-[9px]">
                         10积分/秒
                       </span>
                     ) : null
@@ -658,7 +530,7 @@ const AIVideoLipSyncNode = ({ data, selected, id }: NodeProps<NodeData>) => {
             </button>
           </div>
         ) : (
-          <div className="py-2 px-2"><p className="text-xs text-neutral-500 dark:text-neutral-400 text-center italic">双击展开配置</p></div>
+          <div className="py-2 px-2"><p className="text-xs text-neutral-400 text-center italic">双击展开配置</p></div>
         )}
       </div>
       <CustomHandle type="source" position={Position.Right} id={`${id}-source`} className="!w-3 !h-3 !border-2 !rounded-full !bg-white dark:!bg-black !border-slate-400 dark:!border-white hover:!scale-150 !transition-transform !cursor-crosshair !shadow-[0_0_5px_rgba(255,255,255,0.5)]" />
