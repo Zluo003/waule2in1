@@ -393,14 +393,43 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
             toast.success(`角色创建成功: ${character.customName}`);
           } catch (saveError: any) {
             console.error('保存角色失败:', saveError);
-            // 即使保存失败也显示结果
+            const errMsg = saveError.response?.data?.error || saveError.message || '';
+
+            // 如果是"名称已存在"错误，说明角色已保存成功，尝试获取已存在的角色
+            if (errMsg.includes('已存在') || saveError.response?.status === 400) {
+              try {
+                const existing = await apiClient.soraCharacters.getByCustomName(customName || characterName);
+                if (existing?.character) {
+                  setCreatedCharacter({
+                    id: existing.character.id,
+                    customName: existing.character.customName,
+                    characterName: existing.character.characterName,
+                    avatarUrl: existing.character.avatarUrl,
+                  });
+                  updateNodeData({
+                    customName: existing.character.customName,
+                    characterName: existing.character.characterName,
+                    avatarUrl: existing.character.avatarUrl,
+                    taskId: '',
+                  });
+                  toast.success(`角色创建成功: ${existing.character.customName}`);
+                  setTaskId('');
+                  setTimeout(() => setGenerationProgress(0), 1000);
+                  return;
+                }
+              } catch {
+                // 获取失败，继续显示错误
+              }
+            }
+
+            // 其他错误，显示结果但提示保存失败
             setCreatedCharacter({
               id: '',
               customName: customName || characterName,
               characterName,
               avatarUrl,
             });
-            toast.error(`角色创建成功但保存失败: ${saveError.message}`);
+            toast.error(`角色创建成功但保存失败: ${errMsg}`);
           }
 
           setTaskId('');
