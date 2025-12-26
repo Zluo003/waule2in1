@@ -179,14 +179,7 @@ router.get('/ai/models', tenantApiController.getAIModels);
 // 文本生成
 router.post('/ai/text/generate', tenantApiController.generateText);
 
-// 图片生成
-router.post('/ai/image/generate', tenantApiController.generateImage);
-
-// 视频生成
-router.post('/ai/video/generate', tenantApiController.generateVideo);
-
 // 音频相关
-router.post('/ai/audio/synthesize', tenantApiController.synthesizeAudio);
 router.get('/ai/audio/voices', tenantApiController.getVoices);
 router.post('/ai/audio/voices', tenantApiController.addVoice);
 router.get('/ai/audio/voice/presets', tenantApiController.getVoicePresets);
@@ -194,9 +187,8 @@ router.post('/ai/audio/voice/create', tenantApiController.createVoice);
 router.get('/ai/audio/voice/status', tenantApiController.getVoiceStatus);
 router.post('/ai/audio/voice/design', tenantApiController.designVoice);
 
-// 商业视频和视频超清
+// 商业视频
 router.post('/ai/commercial-video', tenantApiController.commercialVideo);
-router.post('/ai/video-upscale', tenantApiController.videoUpscale);
 
 // ==================== 任务管理 ====================
 

@@ -91,11 +91,27 @@ class TenantTaskService {
       throw new Error('租户不存在');
     }
 
-    if (tenant.credits < creditCost) {
+    // 检查积分（支持全局积分和个人积分模式）
+    if (tenant.creditMode === 'personal') {
+      const user = await prisma.tenantUser.findUnique({
+        where: { id: params.tenantUserId },
+        select: { personalCredits: true },
+      });
+      if (!user || user.personalCredits < creditCost) {
+        throw new Error('个人积分不足');
+      }
+    } else if (tenant.credits < creditCost) {
       throw new Error('租户积分不足');
     }
 
-    // 扣除租户积分
+    // 扣除积分（支持全局积分和个人积分模式）
+    if (tenant.creditMode === 'personal') {
+      await prisma.tenantUser.update({
+        where: { id: params.tenantUserId },
+        data: { personalCredits: { decrement: creditCost } },
+      });
+    }
+    // 无论哪种模式，都扣除租户积分
     await prisma.tenant.update({
       where: { id: params.tenantId },
       data: { credits: { decrement: creditCost } },
@@ -257,10 +273,22 @@ class TenantTaskService {
         },
       });
 
-      // 退还积分
+      // 退还积分（支持全局积分和个人积分模式）
       try {
         const task = await prisma.tenantTask.findUnique({ where: { id: taskId } });
         if (task && task.creditsCost > 0) {
+          const tenant = await prisma.tenant.findUnique({
+            where: { id: task.tenantId },
+            select: { creditMode: true },
+          });
+          // 个人积分模式：同时退还用户个人积分
+          if (tenant?.creditMode === 'personal') {
+            await prisma.tenantUser.update({
+              where: { id: task.tenantUserId },
+              data: { personalCredits: { increment: task.creditsCost } },
+            });
+          }
+          // 无论哪种模式，都退还租户积分
           await prisma.tenant.update({
             where: { id: task.tenantId },
             data: { credits: { increment: task.creditsCost } },

@@ -32,7 +32,12 @@ async function deductTenantCredits(
 
     if (!tenant) return false;
 
-    // 个人积分模式：从用户个人积分扣除
+    // 检查租户积分是否足够
+    if (tenant.credits < amount) {
+      return false;
+    }
+
+    // 个人积分模式：同时扣除用户个人积分和租户积分
     if (tenant.creditMode === 'personal' && userId !== 'system') {
       const user = await tx.tenantUser.findUnique({
         where: { id: userId },
@@ -41,20 +46,18 @@ async function deductTenantCredits(
       if (!user || user.personalCredits < amount) {
         return false; // 个人积分不足
       }
+      // 扣除用户个人积分
       await tx.tenantUser.update({
         where: { id: userId },
         data: { personalCredits: { decrement: amount } },
       });
-    } else {
-      // 全局积分模式：从租户积分扣除
-      if (tenant.credits < amount) {
-        return false;
-      }
-      await tx.tenant.update({
-        where: { id: tenantId },
-        data: { credits: { decrement: amount } },
-      });
     }
+
+    // 无论哪种模式，都扣除租户积分
+    await tx.tenant.update({
+      where: { id: tenantId },
+      data: { credits: { decrement: amount } },
+    });
 
     // 记录使用
     await tx.tenantUsageRecord.create({
@@ -73,7 +76,7 @@ async function deductTenantCredits(
       data: {
         tenantId,
         amount: -amount,
-        balance: tenant.creditMode === 'personal' ? tenant.credits : tenant.credits - amount,
+        balance: tenant.credits - amount,
         type: 'USAGE',
         description: description || operation,
       },
@@ -97,15 +100,22 @@ async function refundTenantCredits(
 ): Promise<boolean> {
   try {
     await prisma.$transaction(async (tx) => {
-      // 获取当前余额
       const tenant = await tx.tenant.findUnique({
         where: { id: tenantId },
-        select: { credits: true },
+        select: { credits: true, creditMode: true },
       });
 
       if (!tenant) return false;
 
-      // 退还积分
+      // 个人积分模式：同时退还用户个人积分
+      if (tenant.creditMode === 'personal' && userId !== 'system') {
+        await tx.tenantUser.update({
+          where: { id: userId },
+          data: { personalCredits: { increment: amount } },
+        });
+      }
+
+      // 无论哪种模式，都退还租户积分
       await tx.tenant.update({
         where: { id: tenantId },
         data: { credits: { increment: amount } },
@@ -2169,7 +2179,7 @@ export const generateText = asyncHandler(async (req: Request, res: Response) => 
   }
 
   // 检查积分
-  const hasCredits = await checkTenantCredits(tenantUser.tenantId, creditCost);
+  const hasCredits = await checkTenantCredits(tenantUser.tenantId, creditCost, tenantUser.id);
   if (!hasCredits) {
     return res.status(402).json({ success: false, message: '积分不足' });
   }
@@ -2211,99 +2221,6 @@ export const generateText = asyncHandler(async (req: Request, res: Response) => 
       message: error.message || '文本生成失败',
     });
   }
-});
-
-export const generateImage = asyncHandler(async (req: Request, res: Response) => {
-  const tenantUser = req.tenantUser!;
-  const { modelId, prompt, ratio, referenceImages } = req.body;
-
-  // 检查积分
-  const creditCost = 10; // 图片生成每次 10 积分
-  const hasCredits = await checkTenantCredits(tenantUser.tenantId, creditCost);
-  if (!hasCredits) {
-    return res.status(402).json({ success: false, message: '积分不足' });
-  }
-
-  // TODO: 调用实际的 AI 图片生成服务
-
-  // 扣除积分
-  await deductTenantCredits(
-    tenantUser.tenantId,
-    creditCost,
-    'IMAGE_GENERATE',
-    tenantUser.id,
-    `图片生成 - ${modelId}`
-  );
-
-  res.json({
-    success: true,
-    data: {
-      imageUrl: 'https://example.com/generated-image.png',
-      usage: { credits: creditCost },
-    },
-  });
-});
-
-export const generateVideo = asyncHandler(async (req: Request, res: Response) => {
-  const tenantUser = req.tenantUser!;
-  const { modelId, prompt, ratio, duration, referenceImages } = req.body;
-
-  // 检查积分
-  const creditCost = 50; // 视频生成每次 50 积分
-  const hasCredits = await checkTenantCredits(tenantUser.tenantId, creditCost);
-  if (!hasCredits) {
-    return res.status(402).json({ success: false, message: '积分不足' });
-  }
-
-  // TODO: 调用实际的 AI 视频生成服务
-
-  // 扣除积分
-  await deductTenantCredits(
-    tenantUser.tenantId,
-    creditCost,
-    'VIDEO_GENERATE',
-    tenantUser.id,
-    `视频生成 - ${modelId}`
-  );
-
-  res.json({
-    success: true,
-    data: {
-      videoUrl: 'https://example.com/generated-video.mp4',
-      usage: { credits: creditCost },
-    },
-  });
-});
-
-export const synthesizeAudio = asyncHandler(async (req: Request, res: Response) => {
-  const tenantUser = req.tenantUser!;
-  const { modelId, voiceId, text } = req.body;
-
-  // 检查积分
-  const creditCost = 5; // 语音合成每次 5 积分
-  const hasCredits = await checkTenantCredits(tenantUser.tenantId, creditCost);
-  if (!hasCredits) {
-    return res.status(402).json({ success: false, message: '积分不足' });
-  }
-
-  // TODO: 调用实际的语音合成服务
-
-  // 扣除积分
-  await deductTenantCredits(
-    tenantUser.tenantId,
-    creditCost,
-    'AUDIO_SYNTHESIZE',
-    tenantUser.id,
-    `语音合成 - ${modelId}`
-  );
-
-  res.json({
-    success: true,
-    data: {
-      audioUrl: 'https://example.com/synthesized-audio.mp3',
-      usage: { credits: creditCost },
-    },
-  });
 });
 
 /**
@@ -2395,7 +2312,7 @@ export const commercialVideo = asyncHandler(async (req: Request, res: Response) 
 
   // 检查积分
   const creditCost = 100; // 商业视频每次 100 积分
-  const hasCredits = await checkTenantCredits(tenantUser.tenantId, creditCost);
+  const hasCredits = await checkTenantCredits(tenantUser.tenantId, creditCost, tenantUser.id);
   if (!hasCredits) {
     return res.status(402).json({ success: false, message: '积分不足' });
   }
@@ -2518,38 +2435,6 @@ async function processCommercialVideoTask(
     }
   }
 }
-
-/**
- * 视频超清
- */
-export const videoUpscale = asyncHandler(async (req: Request, res: Response) => {
-  const tenantUser = req.tenantUser!;
-  const { video_url, upscale_resolution, apiKey, apiUrl } = req.body;
-
-  // 检查积分
-  const creditCost = 30; // 视频超清每次 30 积分
-  const hasCredits = await checkTenantCredits(tenantUser.tenantId, creditCost);
-  if (!hasCredits) {
-    return res.status(402).json({ success: false, message: '积分不足' });
-  }
-
-  // TODO: 调用实际的视频超清服务
-
-  // 扣除积分
-  await deductTenantCredits(
-    tenantUser.tenantId,
-    creditCost,
-    'VIDEO_UPSCALE',
-    tenantUser.id,
-    '视频超清'
-  );
-
-  res.json({
-    success: true,
-    taskId: `task_${Date.now()}`,
-    creditsCharged: creditCost,
-  });
-});
 
 // ==================== 任务管理 ====================
 
@@ -3012,8 +2897,9 @@ export const executeAgentRole = asyncHandler(async (req: Request, res: Response)
     console.log(`[AgentChat] 使用回退价格: pricePerUse=${model.pricePerUse}, cost=${cost}`);
   }
   console.log(`[AgentChat] 最终扣费: ${cost} 积分`);
-  
-  if (Number(tenant.credits) < cost) {
+
+  const hasEnoughCredits = await checkTenantCredits(tenantUser.tenantId, cost, tenantUser.id);
+  if (!hasEnoughCredits) {
     return res.status(400).json({ success: false, message: '积分不足' });
   }
 
@@ -3098,22 +2984,14 @@ export const executeAgentRole = asyncHandler(async (req: Request, res: Response)
     return res.status(500).json({ success: false, message: `文本生成失败: ${err?.message || '未知错误'}` });
   }
 
-  // 扣除积分
-  await prisma.tenant.update({
-    where: { id: tenantUser.tenantId },
-    data: { credits: { decrement: cost } },
-  });
-
-  // 记录积分流水
-  await prisma.tenantCreditLog.create({
-    data: {
-      tenantId: tenantUser.tenantId,
-      type: 'CONSUME',
-      amount: cost,
-      balance: Number(tenant.credits) - cost,
-      description: `智能体角色执行: ${role.name} (${model.name})`,
-    },
-  });
+  // 扣除积分（支持全局积分和个人积分模式）
+  await deductTenantCredits(
+    tenantUser.tenantId,
+    cost,
+    '智能体角色执行',
+    tenantUser.id,
+    `智能体角色执行: ${role.name} (${model.name})`
+  );
 
   res.json({ success: true, data: { text, model: model.name } });
 });
@@ -3176,8 +3054,9 @@ export const createStoryboardTask = asyncHandler(async (req: Request, res: Respo
   if (cost === 0) {
     cost = Number(model.pricePerUse || 1); // 回退到模型默认价格，最低1积分
   }
-  
-  if (Number(tenant.credits) < cost) {
+
+  const hasEnoughCredits2 = await checkTenantCredits(tenantUser.tenantId, cost, tenantUser.id);
+  if (!hasEnoughCredits2) {
     return res.status(400).json({ success: false, message: '积分不足' });
   }
 
@@ -3275,22 +3154,14 @@ export const createStoryboardTask = asyncHandler(async (req: Request, res: Respo
       data: { status: 'SUCCESS', output: { text, scriptJson: json }, completedAt: new Date() },
     });
 
-    // 扣除积分
-    await prisma.tenant.update({
-      where: { id: tenantUser.tenantId },
-      data: { credits: { decrement: cost } },
-    });
-
-    // 记录积分流水
-    await prisma.tenantCreditLog.create({
-      data: {
-        tenantId: tenantUser.tenantId,
-        type: 'CONSUME',
-        amount: cost,
-        balance: Number(tenant.credits) - cost,
-        description: `分镜脚本生成 (任务: ${task.id.substring(0, 8)}...)`,
-      },
-    });
+    // 扣除积分（支持全局积分和个人积分模式）
+    await deductTenantCredits(
+      tenantUser.tenantId,
+      cost,
+      '分镜脚本生成',
+      tenantUser.id,
+      `分镜脚本生成 (任务: ${task.id.substring(0, 8)}...)`
+    );
 
     res.json({ success: true, taskId: task.id, status: 'SUCCESS', scriptJson: json });
   } catch (err: any) {
