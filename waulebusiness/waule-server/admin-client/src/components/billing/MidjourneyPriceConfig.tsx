@@ -11,6 +11,7 @@ const MidjourneyPriceConfig = ({ prices, onChange }: Props) => {
     { value: 'upscale', label: '升分辨率 (Upscale)' },
     { value: 'variation', label: '变换 (Variation)' },
     { value: 'reroll', label: '重新生成 (Reroll)' },
+    { value: 'blend', label: '智能溶图 (Blend)' },
   ];
 
   const modes = [

@@ -88,7 +88,11 @@ const BillingRuleEditor = ({ rule, isCreating, existingRules = [], onSave, onCan
       const nodeMap: Record<string, string> = {
         'super_resolution': '智能超清',
         'ad_composition': '广告成片',
-        'sora_character': 'Sora角色生成'
+        'sora_character': 'Sora角色生成',
+        'smart_storyboard': '智能分镜',
+        'hd_upscale': '高清放大',
+        'blend': '智能溶图',
+        'super_canvas': '自由画布'
       };
       if (nodeMap[formData.nodeType]) newName = `${nodeMap[formData.nodeType]} 计费规则`;
     } else if (targetType === 'module' && formData.moduleType) {
@@ -397,6 +401,10 @@ const BillingRuleEditor = ({ rule, isCreating, existingRules = [], onSave, onCan
                     <option value="super_resolution">智能超清</option>
                     <option value="ad_composition">广告成片</option>
                     <option value="sora_character">Sora角色生成</option>
+                    <option value="smart_storyboard">智能分镜</option>
+                    <option value="hd_upscale">高清放大</option>
+                    <option value="blend">智能溶图</option>
+                    <option value="super_canvas">自由画布</option>
                   </select>
                 )}
 

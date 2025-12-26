@@ -315,6 +315,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         imageSize: '4K', // 固定4K分辨率
         referenceImages: processedImages,
         sourceNodeId: id,
+        metadata: { nodeType: 'smart_storyboard' },
       });
 
       if (!response.success) {

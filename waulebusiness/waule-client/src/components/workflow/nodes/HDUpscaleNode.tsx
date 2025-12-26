@@ -246,6 +246,7 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
         imageSize: imageSize,
         referenceImages: [processedImage],
         sourceNodeId: id,
+        metadata: { nodeType: 'hd_upscale' },
       });
 
       if (!response.success) {

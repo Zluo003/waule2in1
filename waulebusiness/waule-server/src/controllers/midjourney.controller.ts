@@ -452,7 +452,21 @@ export const blend = async (req: Request, res: Response) => {
     }
 
     const mjMode = mode || 'relax';
-    const creditCost = mjMode === 'fast' ? 20 : 10;
+
+    // 从计费规则获取价格
+    let creditCost = mjMode === 'fast' ? 20 : 10; // 默认值
+    try {
+      const { credits } = await billingService.estimateCredits({
+        moduleType: 'midjourney',
+        operationType: 'blend',
+        mode: mjMode,
+      });
+      if (credits > 0) {
+        creditCost = credits;
+      }
+    } catch (e) {
+      // 使用默认值
+    }
     let creditsCharged = 0;
 
     if (isTenantUser) {
