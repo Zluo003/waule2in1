@@ -6,7 +6,7 @@ import { userLevelService } from '../services/user-level.service';
 import { billingService } from '../services/billing.service';
 
 /**
- * 租户用户计费辅助函数
+ * 租户用户计费辅助函数（支持全局积分和个人积分模式）
  */
 async function chargeTenantCredits(
   tenantId: string,
@@ -16,14 +16,33 @@ async function chargeTenantCredits(
 ): Promise<boolean> {
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { credits: true },
+    select: { credits: true, creditMode: true },
   });
 
-  if (!tenant || Number(tenant.credits) < amount) {
-    return false;
+  if (!tenant) return false;
+
+  // 检查积分是否足够
+  if (tenant.creditMode === 'personal') {
+    const user = await prisma.tenantUser.findUnique({
+      where: { id: tenantUserId },
+      select: { personalCredits: true },
+    });
+    if (!user || user.personalCredits < amount) {
+      return false; // 个人积分不足
+    }
+  } else if (Number(tenant.credits) < amount) {
+    return false; // 租户积分不足
   }
 
-  // 扣除积分
+  // 个人积分模式：扣除用户个人积分
+  if (tenant.creditMode === 'personal') {
+    await prisma.tenantUser.update({
+      where: { id: tenantUserId },
+      data: { personalCredits: { decrement: amount } },
+    });
+  }
+
+  // 无论哪种模式，都扣除租户积分
   await prisma.tenant.update({
     where: { id: tenantId },
     data: { credits: { decrement: amount } },
