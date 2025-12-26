@@ -351,38 +351,65 @@ class WauleApiClient {
 export const wauleApiClient = new WauleApiClient();
 
 /**
- * 根据模型 ID 获取服务器配置
+ * 根据模型 ID 或 provider 获取服务器配置
  * 用于从数据库查询模型关联的 WauleApiServer
  */
-export async function getServerConfigByModelId(modelId: string): Promise<ServerConfig | undefined> {
+export async function getServerConfigByModelId(modelIdOrProvider: string): Promise<ServerConfig | undefined> {
   const { PrismaClient } = await import('@prisma/client');
   const prisma = new PrismaClient();
-  
+
   try {
-    const model = await prisma.aIModel.findFirst({
-      where: { modelId },
+    // 特殊处理 Midjourney：从设置中获取 serverId
+    if (modelIdOrProvider.toLowerCase() === 'midjourney') {
+      const setting = await prisma.setting.findUnique({
+        where: { key: 'midjourney_server_id' },
+      });
+      if (setting?.value) {
+        const server = await prisma.wauleApiServer.findUnique({
+          where: { id: setting.value },
+        });
+        if (server) {
+          return {
+            url: server.url,
+            authToken: server.authToken,
+          };
+        }
+      }
+    }
+
+    // 先按 modelId 查询
+    let model = await prisma.aIModel.findFirst({
+      where: { modelId: modelIdOrProvider },
       include: { wauleApiServer: true },
     });
-    
+
+    // 如果没找到，按 provider 查询（支持 midjourney 等特殊模块）
+    if (!model) {
+      model = await prisma.aIModel.findFirst({
+        where: { provider: { equals: modelIdOrProvider, mode: 'insensitive' } },
+        include: { wauleApiServer: true },
+      });
+    }
+
     if (model?.wauleApiServer) {
       return {
         url: model.wauleApiServer.url,
         authToken: model.wauleApiServer.authToken,
       };
     }
-    
+
     // 如果模型没有指定服务器，尝试获取默认服务器
     const defaultServer = await prisma.wauleApiServer.findFirst({
       where: { isDefault: true, isActive: true },
     });
-    
+
     if (defaultServer) {
       return {
         url: defaultServer.url,
         authToken: defaultServer.authToken,
       };
     }
-    
+
     return undefined;
   } finally {
     await prisma.$disconnect();

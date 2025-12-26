@@ -71,6 +71,7 @@ const ModelConfigPage = () => {
   
   // Midjourney 设置
   const [mjFastEnabled, setMjFastEnabled] = useState(true)
+  const [mjServerId, setMjServerId] = useState('')
   const [mjSettingsLoading, setMjSettingsLoading] = useState(false)
 
   // Waule API 服务器管理
@@ -339,6 +340,7 @@ const ModelConfigPage = () => {
       try {
         const res = await apiClient.get('/admin/settings/midjourney')
         setMjFastEnabled(res.settings?.fastEnabled ?? true)
+        setMjServerId(res.settings?.serverId || '')
       } catch (error) {
         console.error('获取 Midjourney 设置失败:', error)
       }
@@ -421,13 +423,14 @@ const ModelConfigPage = () => {
     </div>
   )
 
-  // 更新 Midjourney Fast 模式设置
-  const updateMjFastEnabled = async (enabled: boolean) => {
+  // 更新 Midjourney 设置
+  const updateMjSettings = async (settings: { fastEnabled?: boolean; serverId?: string }) => {
     try {
       setMjSettingsLoading(true)
-      await apiClient.put('/admin/settings/midjourney', { fastEnabled: enabled })
-      setMjFastEnabled(enabled)
-      toast.success(enabled ? 'Fast 模式已启用' : 'Fast 模式已禁用')
+      await apiClient.put('/admin/settings/midjourney', settings)
+      if (settings.fastEnabled !== undefined) setMjFastEnabled(settings.fastEnabled)
+      if (settings.serverId !== undefined) setMjServerId(settings.serverId)
+      toast.success('Midjourney 设置已更新')
     } catch (error) {
       console.error('更新 Midjourney 设置失败:', error)
       toast.error('更新设置失败')
@@ -1886,27 +1889,43 @@ const ModelConfigPage = () => {
 
       {/* Midjourney 设置 */}
       <div className="mb-6 bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-xl p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm font-bold text-slate-900 dark:text-white">Midjourney Fast 模式</div>
-            <div className="text-xs text-slate-500 dark:text-gray-500 mt-1">
-              当 Fast 模式额度用完时，可以在此禁用。禁用后用户只能使用 Relax 模式。
+        <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">Midjourney 设置</div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-700 dark:text-gray-300">Fast 模式</div>
+              <div className="text-xs text-slate-500 dark:text-gray-500 mt-1">
+                当 Fast 模式额度用完时，可以在此禁用。禁用后用户只能使用 Relax 模式。
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => updateMjSettings({ fastEnabled: !mjFastEnabled })}
+              disabled={mjSettingsLoading}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                mjFastEnabled ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'
+              } ${mjSettingsLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  mjFastEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => updateMjFastEnabled(!mjFastEnabled)}
-            disabled={mjSettingsLoading}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              mjFastEnabled ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'
-            } ${mjSettingsLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                mjFastEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
+          <div>
+            <label className="block text-sm text-slate-700 dark:text-gray-300 mb-2">Waule API 服务器</label>
+            <select
+              value={mjServerId}
+              onChange={e => updateMjSettings({ serverId: e.target.value })}
+              disabled={mjSettingsLoading}
+              className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white"
+            >
+              <option value="">使用默认服务器</option>
+              {wauleServers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.url}){s.isDefault ? ' [默认]' : ''}</option>)}
+            </select>
+            {wauleServers.length === 0 && <div className="text-xs text-amber-500 mt-1">请先在上方添加 Waule API 服务器</div>}
+          </div>
         </div>
       </div>
 
