@@ -619,3 +619,139 @@ export const uploadReferenceImage = async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+/**
+ * 保存 Midjourney 结果到本地（租户版）
+ * 1. 创建 TenantTask 记录
+ * 2. 调用 tenant-server 下载图片到本地
+ * 3. 下载成功后删除 OSS 文件
+ */
+export const saveMidjourneyResult = async (req: Request, res: Response) => {
+  try {
+    const tenantUser = (req as any).tenantUser;
+    if (!tenantUser) {
+      return res.status(401).json({ error: '仅租户用户可用' });
+    }
+
+    const { mjTaskId, imageUrl, prompt, action, nodeId } = req.body;
+
+    if (!mjTaskId || !imageUrl) {
+      return res.status(400).json({ error: '缺少 mjTaskId 或 imageUrl' });
+    }
+
+    console.log(`[Midjourney] 保存结果: mjTaskId=${mjTaskId}, imageUrl=${imageUrl?.substring(0, 80)}...`);
+
+    // 检查是否已经保存过（避免重复）
+    const existingTask = await prisma.tenantTask.findFirst({
+      where: {
+        tenantId: tenantUser.tenantId,
+        input: { path: ['mjTaskId'], equals: mjTaskId },
+      },
+    });
+
+    if (existingTask) {
+      console.log(`[Midjourney] 任务已存在: ${existingTask.id}`);
+      return res.json({
+        success: true,
+        taskId: existingTask.id,
+        message: '任务已存在',
+        output: existingTask.output,
+      });
+    }
+
+    // 创建 TenantTask 记录
+    const task = await prisma.tenantTask.create({
+      data: {
+        tenantId: tenantUser.tenantId,
+        tenantUserId: tenantUser.id,
+        type: 'IMAGE',
+        modelId: 'midjourney',
+        status: 'SUCCESS',
+        sourceNodeId: nodeId,
+        input: {
+          mjTaskId,
+          prompt,
+          action,
+        },
+        output: {
+          resultUrl: imageUrl,
+          type: 'imagePreview',
+        },
+        creditsCost: 0, // 已在 imagine/action 时扣费
+        completedAt: new Date(),
+      },
+    });
+
+    console.log(`[Midjourney] 创建任务记录: ${task.id}`);
+
+    // 获取租户存储配置
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantUser.tenantId },
+      select: { storageConfig: true },
+    });
+
+    const storageConfig = tenant?.storageConfig as any;
+    const localServerUrl = storageConfig?.localServerUrl;
+
+    // 如果配置了本地服务器，自动下载到本地并删除 OSS
+    if (localServerUrl && imageUrl.includes('aliyuncs.com')) {
+      console.log(`[Midjourney] 调用 tenant-server 下载: ${localServerUrl}`);
+
+      try {
+        // 1. 调用 tenant-server 下载图片
+        const downloadResponse = await axios.post(
+          `${localServerUrl}/api/download/result`,
+          {
+            taskId: task.id,
+            ossUrl: imageUrl,
+            type: 'IMAGE',
+            userId: tenantUser.id,
+          },
+          { timeout: 60000 }
+        );
+
+        if (downloadResponse.data.success) {
+          const localUrl = downloadResponse.data.localUrl;
+          console.log(`[Midjourney] 下载成功: ${localUrl}`);
+
+          // 2. 更新任务记录
+          await prisma.tenantTask.update({
+            where: { id: task.id },
+            data: {
+              output: {
+                resultUrl: localUrl,
+                ossUrl: imageUrl,
+                type: 'imagePreview',
+                localDownloaded: true,
+              },
+            },
+          });
+
+          // 3. 删除 OSS 文件
+          const { deleteOssFile } = await import('../utils/oss');
+          await deleteOssFile(imageUrl);
+          console.log(`[Midjourney] OSS 文件已删除`);
+
+          return res.json({
+            success: true,
+            taskId: task.id,
+            localUrl,
+            ossDeleted: true,
+          });
+        }
+      } catch (downloadError: any) {
+        console.error(`[Midjourney] 下载失败: ${downloadError.message}`);
+        // 下载失败不影响返回，前端可以稍后重试
+      }
+    }
+
+    res.json({
+      success: true,
+      taskId: task.id,
+      output: task.output,
+    });
+  } catch (error: any) {
+    console.error('❌ [Midjourney] 保存结果失败:', error);
+    res.status(500).json({ error: error.message });
+  }
+};

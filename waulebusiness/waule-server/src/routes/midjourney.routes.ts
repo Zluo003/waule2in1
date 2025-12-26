@@ -7,6 +7,7 @@ import {
   blend,
   describe,
   uploadReferenceImage,
+  saveMidjourneyResult,
 } from '../controllers/midjourney.controller';
 import { getMidjourneySettings } from '../controllers/settings.controller';
 import { authenticateTenantUser } from '../middleware/tenant-auth';
@@ -68,6 +69,13 @@ router.post('/upload-reference', uploadReferenceImage);
  * @desc    获取 Midjourney 设置（Fast 模式是否可用等）
  */
 router.get('/settings', getMidjourneySettings);
+
+/**
+ * @route   POST /api/midjourney/save-result
+ * @desc    保存 Midjourney 结果到本地（自动下载到 tenant-server 并删除 OSS）
+ * @body    { mjTaskId: string, imageUrl: string, prompt?: string, action?: string, nodeId?: string }
+ */
+router.post('/save-result', saveMidjourneyResult);
 
 export default router;
 
