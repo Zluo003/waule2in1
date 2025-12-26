@@ -456,7 +456,7 @@ export const blend = async (req: Request, res: Response) => {
     // 从计费规则获取价格
     let creditCost = mjMode === 'fast' ? 20 : 10; // 默认值
     try {
-      const { credits } = await billingService.estimateCredits({
+      const credits = await billingService.estimateCredits({
         moduleType: 'midjourney',
         operationType: 'blend',
         mode: mjMode,
