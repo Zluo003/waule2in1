@@ -6,8 +6,64 @@ import { apiClient } from '../../../lib/api';
 import CustomHandle from '../CustomHandle';
 import { useBillingEstimate } from '../../../hooks/useBillingEstimate';
 import { processTaskResult } from '../../../utils/taskResultHandler';
+import { isLocalStorageEnabled, getLocalServerUrl } from '../../../store/tenantStorageStore';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
+
+// 从视频截取首帧并上传
+async function captureVideoFirstFrame(videoUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.muted = true;
+    video.preload = 'metadata';
+
+    video.onloadeddata = () => {
+      video.currentTime = 0.1; // 截取0.1秒处的帧
+    };
+
+    video.onseeked = async () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('无法创建canvas上下文'));
+          return;
+        }
+        ctx.drawImage(video, 0, 0);
+        const base64 = canvas.toDataURL('image/jpeg', 0.9);
+
+        // 上传到本地存储或返回base64
+        if (isLocalStorageEnabled()) {
+          const localServerUrl = getLocalServerUrl();
+          if (localServerUrl) {
+            const blob = await (await fetch(base64)).blob();
+            const formData = new FormData();
+            formData.append('file', blob, `avatar-${Date.now()}.jpg`);
+            formData.append('userId', 'sora-character');
+            const response = await fetch(`${localServerUrl}/api/upload`, {
+              method: 'POST',
+              body: formData,
+            });
+            const result = await response.json();
+            if (result.localUrl) {
+              resolve(result.localUrl);
+              return;
+            }
+          }
+        }
+        resolve(base64);
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    video.onerror = () => reject(new Error('视频加载失败'));
+    video.src = videoUrl.startsWith('http') || videoUrl.startsWith('data:') ? videoUrl : API_URL + videoUrl;
+  });
+}
 
 interface AIModel {
   id: string;
@@ -273,8 +329,19 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
           console.log('[SoraCharacterNode] 任务完成，metadata:', metadata);
           console.log('[SoraCharacterNode] characterName:', characterName, 'avatarUrl:', avatarUrl);
 
+          // 如果没有头像URL，从视频截取首帧
+          if (!avatarUrl && videoInputInfo?.url) {
+            console.log('[SoraCharacterNode] 没有头像URL，从视频截取首帧...');
+            try {
+              avatarUrl = await captureVideoFirstFrame(videoInputInfo.url);
+              console.log('[SoraCharacterNode] 首帧截取成功:', avatarUrl.substring(0, 60));
+            } catch (err) {
+              console.error('[SoraCharacterNode] 首帧截取失败:', err);
+            }
+          }
+
           // 处理本地存储（如果启用）
-          if (avatarUrl) {
+          if (avatarUrl && !avatarUrl.startsWith('data:')) {
             const processedResult = await processTaskResult({
               taskId: taskId,
               resultUrl: avatarUrl,
