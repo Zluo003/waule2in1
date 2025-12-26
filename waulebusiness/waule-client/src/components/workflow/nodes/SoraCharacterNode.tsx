@@ -1,5 +1,5 @@
 import NodeCreatorBadge from '../NodeCreatorBadge';
-import { memo, useState, useEffect, useMemo, useCallback } from 'react';
+import { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Position, NodeProps, useReactFlow, useEdges, useNodes } from 'reactflow';
 import { toast } from 'sonner';
 import { apiClient } from '../../../lib/api';
@@ -304,6 +304,12 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
   // 检查是否有视频输入
   const hasVideoInput = !!videoInputInfo;
 
+  // 使用 ref 保存最新的 videoInputInfo，避免闭包问题
+  const videoInputInfoRef = useRef(videoInputInfo);
+  useEffect(() => {
+    videoInputInfoRef.current = videoInputInfo;
+  }, [videoInputInfo]);
+
   // 轮询任务状态
   const pollTaskStatus = async (taskId: string) => {
     const maxAttempts = 600;
@@ -330,10 +336,10 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
           console.log('[SoraCharacterNode] characterName:', characterName, 'avatarUrl:', avatarUrl);
 
           // 如果没有头像URL，从视频截取首帧
-          if (!avatarUrl && videoInputInfo?.url) {
+          if (!avatarUrl && videoInputInfoRef.current?.url) {
             console.log('[SoraCharacterNode] 没有头像URL，从视频截取首帧...');
             try {
-              avatarUrl = await captureVideoFirstFrame(videoInputInfo.url);
+              avatarUrl = await captureVideoFirstFrame(videoInputInfoRef.current.url);
               console.log('[SoraCharacterNode] 首帧截取成功:', avatarUrl.substring(0, 60));
             } catch (err) {
               console.error('[SoraCharacterNode] 首帧截取失败:', err);
@@ -363,7 +369,7 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
               customName: customName || characterName,
               characterName,
               avatarUrl,
-              sourceVideoUrl: videoInputInfo?.url || undefined,
+              sourceVideoUrl: videoInputInfoRef.current?.url || undefined,
             });
 
             const character = result.character;
