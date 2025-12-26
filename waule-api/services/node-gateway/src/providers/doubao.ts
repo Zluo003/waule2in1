@@ -244,7 +244,7 @@ export async function generateVideo(options: DoubaoVideoOptions): Promise<{
           'Authorization': `Bearer ${API_KEY}`,
           'Content-Type': 'application/json',
         },
-        timeout: 30000,
+        timeout: 120000, // 2分钟超时
       }
     );
     
@@ -266,7 +266,7 @@ export async function generateVideo(options: DoubaoVideoOptions): Promise<{
           headers: {
             'Authorization': `Bearer ${API_KEY}`,
           },
-          timeout: 30000,
+          timeout: 60000, // 1分钟超时
         }
       );
       
