@@ -67,15 +67,17 @@ class TenantTaskService {
     try {
       // 使用计费规则计算积分
       // 注意：imageSize 是图片分辨率参数（如 2K/4K），metadata.resolution 是视频分辨率（如 720p/1080p）
+      // 固定节点计费（如 sora_character）：只传 nodeType，不传 aiModelId，避免被模型规则覆盖
+      const isFixedNodeBilling = params.metadata?.nodeType === 'sora_character';
       creditCost = await billingService.calculateCredits({
-        aiModelId: params.modelId,
+        aiModelId: isFixedNodeBilling ? undefined : params.modelId,
         nodeType: params.metadata?.nodeType,
         quantity: imageCount,
         duration: params.metadata?.duration,
         resolution: params.imageSize || params.metadata?.resolution,
         mode: params.metadata?.mode,
       });
-      logger.info(`[TenantTaskService] 使用计费规则计算积分: ${creditCost} (数量: ${imageCount})`);
+      logger.info(`[TenantTaskService] 使用计费规则计算积分: ${creditCost} (数量: ${imageCount}, 固定节点: ${isFixedNodeBilling})`);
     } catch (error: any) {
       logger.warn(`[TenantTaskService] 计费规则计算失败: ${error.message}`);
     }

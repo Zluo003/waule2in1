@@ -335,9 +335,12 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
           console.log('[SoraCharacterNode] 任务完成，metadata:', metadata);
           console.log('[SoraCharacterNode] characterName:', characterName, 'avatarUrl:', avatarUrl);
 
-          // 如果没有头像URL，从视频截取首帧
-          if (!avatarUrl && videoInputInfoRef.current?.url) {
-            console.log('[SoraCharacterNode] 没有头像URL，从视频截取首帧...');
+          // 检查头像URL是否为视频格式
+          const isVideoUrl = (url: string) => /\.(mp4|webm|mov|avi|mkv)(\?|$)/i.test(url);
+
+          // 如果没有头像URL或头像URL是视频格式，从视频截取首帧
+          if ((!avatarUrl || isVideoUrl(avatarUrl)) && videoInputInfoRef.current?.url) {
+            console.log('[SoraCharacterNode] 头像URL为空或为视频格式，从视频截取首帧...');
             try {
               avatarUrl = await captureVideoFirstFrame(videoInputInfoRef.current.url);
               console.log('[SoraCharacterNode] 首帧截取成功:', avatarUrl.substring(0, 60));

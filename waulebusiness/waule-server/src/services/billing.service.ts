@@ -55,7 +55,8 @@ export class BillingService {
         logger.debug(`[BillingService] 使用默认图片计费: ${params.quantity}张 x 20积分 = ${defaultCredits}积分`);
         return defaultCredits;
       }
-      logger.debug('[BillingService] 无法计算积分：没有duration或quantity参数');
+      // 没有配置规则且没有duration/quantity参数，返回0让调用方使用模型默认价格
+      logger.debug('[BillingService] 无法计算积分：没有duration或quantity参数，返回0');
       return 0;
     }
 
