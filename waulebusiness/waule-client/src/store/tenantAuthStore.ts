@@ -175,7 +175,11 @@ export const useTenantAuthStore = create<TenantAuthState>()(
                 user: {
                   ...currentUser,
                   ...data.user,
-                  tenant: data.tenant || currentUser.tenant,
+                  // 确保 tenant 信息正确合并（包括 creditMode）
+                  tenant: {
+                    ...currentUser.tenant,
+                    ...data.tenant,
+                  },
                 },
               });
             }

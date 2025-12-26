@@ -34,12 +34,17 @@ const SettingsPage = () => {
 
   // 页面加载时刷新用户信息，确保积分是最新的
   useEffect(() => {
-    console.log('设置页面加载，当前租户积分:', user?.tenant?.credits);
+    console.log('设置页面加载，当前积分:', getEffectiveCredits(), '模式:', user?.tenant?.creditMode);
     // 租户版从 /tenant/me 获取最新用户信息
     apiClient.tenant.get('/me').then((res: any) => {
-      if (res.success && res.data?.user) {
-        updateUser(res.data.user);
-        console.log('刷新后积分:', res.data.tenant?.credits);
+      if (res.success && res.data) {
+        // 合并用户信息和租户信息
+        const updatedUser = {
+          ...res.data.user,
+          tenant: res.data.tenant,
+        };
+        updateUser(updatedUser);
+        console.log('刷新后积分:', res.data.tenant?.creditMode === 'personal' ? res.data.user?.personalCredits : res.data.tenant?.credits, '模式:', res.data.tenant?.creditMode);
       }
     }).catch(() => {});
 
