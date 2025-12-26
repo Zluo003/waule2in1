@@ -79,7 +79,7 @@ async function chargeTenantCredits(
 export const imagine = async (req: Request, res: Response) => {
   try {
     const { prompt, base64Array, nodeId, mode } = req.body;
-    
+
     // 支持租户用户和平台用户
     const tenantUser = (req as any).tenantUser;
     const platformUser = (req as any).user;
@@ -94,112 +94,124 @@ export const imagine = async (req: Request, res: Response) => {
     // 统一使用 'midjourney' moduleType
     const mjMode = mode || 'relax';
     const modeName = mjMode === 'fast' ? 'Fast' : 'Relax';
-    const creditCost = mjMode === 'fast' ? 20 : 10; // Fast 模式 20 积分，Relax 模式 10 积分
+
+    // 从计费规则获取积分，如果没有规则则使用默认值
+    let creditCost = mjMode === 'fast' ? 20 : 10;
+    try {
+      const credits = await billingService.calculateCredits({
+        moduleType: 'midjourney',
+        operationType: 'imagine',
+        mode: mjMode,
+      });
+      if (credits > 0) creditCost = credits;
+    } catch (e) {
+      // 使用默认值
+    }
 
     let creditsCharged = 0;
     let isFreeUsage = false;
 
+    // 先检查积分是否足够（不扣费）
     if (isTenantUser) {
-      // 租户用户：使用租户积分系统
-      console.log(`[Midjourney] 租户用户 ${userId} 提交 Imagine 任务 (${mjMode})`);
-      
-      const charged = await chargeTenantCredits(
-        tenantId,
-        userId,
-        creditCost,
-        `Midjourney Imagine (${modeName})`
-      );
-
-      if (!charged) {
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { credits: true, creditMode: true },
+      });
+      if (!tenant) {
+        return res.status(404).json({ error: '租户不存在' });
+      }
+      if (tenant.creditMode === 'personal') {
+        const user = await prisma.tenantUser.findUnique({
+          where: { id: userId },
+          select: { personalCredits: true },
+        });
+        if (!user || user.personalCredits < creditCost) {
+          return res.status(402).json({
+            success: false,
+            error: '个人积分不足',
+            code: 'INSUFFICIENT_CREDITS',
+          });
+        }
+      } else if (Number(tenant.credits) < creditCost) {
         return res.status(402).json({
           success: false,
           error: '租户积分不足，请联系管理员充值',
           code: 'INSUFFICIENT_CREDITS',
         });
       }
-      creditsCharged = creditCost;
     } else {
-      // 平台用户：使用平台权限检查和计费
+      // 平台用户：使用平台权限检查
       const permissionResult = await userLevelService.checkPermission({
         userId,
         moduleType: 'midjourney',
       });
 
       if (!permissionResult.allowed) {
-        console.log(`[Midjourney] 用户 ${userId} 无权使用: ${permissionResult.reason}`);
         return res.status(403).json({
           success: false,
           error: permissionResult.reason || '您没有权限使用 Midjourney',
           code: 'PERMISSION_DENIED',
         });
       }
-
       isFreeUsage = permissionResult.isFree || false;
-
-      if (!permissionResult.isFree) {
-        try {
-          const usageRecord = await billingService.chargeUser({
-            userId,
-            moduleType: 'midjourney',
-            operationType: 'imagine',
-            mode: mjMode,
-            operation: `Midjourney Imagine (${modeName})`,
-            quantity: 1,
-          });
-          creditsCharged = usageRecord?.creditsCharged || 0;
-          console.log(`[Midjourney] 用户 ${userId} Imagine (${mjMode}) 扣费成功: ${creditsCharged} 积分`);
-        } catch (error: any) {
-          console.error(`[Midjourney] 扣费失败:`, error.message);
-          return res.status(402).json({
-            success: false,
-            error: '积分不足，请充值后再试',
-            code: 'INSUFFICIENT_CREDITS',
-          });
-        }
-      } else {
-        console.log(`[Midjourney] 用户 ${userId} 使用免费额度 (${mjMode})`);
-      }
     }
 
-    console.log('📤 [Midjourney Controller] 提交 Imagine 任务:', { prompt, nodeId, userId, isTenantUser, isFree: isFreeUsage });
+    console.log('📤 [Midjourney Controller] 提交 Imagine 任务:', { prompt, nodeId, userId, isTenantUser, creditCost });
 
-    // 提交任务到 Midjourney Proxy
-    console.log('🔄 [Midjourney Controller] 调用 midjourneyService.imagine...');
+    // 先提交任务
     const response = await midjourneyService.imagine({
       prompt,
-      userId, // 🔑 传递用户ID
+      userId,
       base64Array,
-      nodeId, // 🔑 传递节点ID
+      nodeId,
     });
-    
+
     console.log('📥 [Midjourney Controller] 收到响应:', response);
 
     if (response.code !== 1) {
       console.error('❌ [Midjourney Controller] 响应code不是1:', response);
-      
-      // 特殊处理敏感词错误
+
+      // 任务失败，不扣费
       if (response.code === 24) {
         const bannedWord = response.properties?.bannedWord;
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: 'Banned word detected',
           description: `提示词包含敏感词: "${bannedWord}"，请修改后重试`,
           bannedWord: bannedWord,
           code: 24
         });
       }
-      
-      return res.status(500).json({ 
-        error: 'Failed to submit task', 
+
+      return res.status(500).json({
+        error: 'Failed to submit task',
         description: response.description,
         code: response.code
       });
     }
 
-    const taskId = response.result;
+    // 任务提交成功，扣费
+    if (isTenantUser) {
+      await chargeTenantCredits(tenantId, userId, creditCost, `Midjourney Imagine (${modeName})`);
+      creditsCharged = creditCost;
+    } else if (!isFreeUsage) {
+      try {
+        const usageRecord = await billingService.chargeUser({
+          userId,
+          moduleType: 'midjourney',
+          operationType: 'imagine',
+          mode: mjMode,
+          operation: `Midjourney Imagine (${modeName})`,
+          quantity: 1,
+        });
+        creditsCharged = usageRecord?.creditsCharged || 0;
+      } catch (error: any) {
+        console.error(`[Midjourney] 扣费失败:`, error.message);
+        // 任务已提交，扣费失败只记录日志
+      }
+    }
 
-    // 保存任务到数据库（可选，用于追踪）
-    // 这里简化处理，实际应该创建一个 MidjourneyTask 表
-    console.log('✅ [Midjourney Controller] 任务已提交:', taskId);
+    const taskId = response.result;
+    console.log('✅ [Midjourney Controller] 任务已提交:', taskId, `扣费: ${creditsCharged}`);
 
     res.json({
       success: true,
@@ -211,16 +223,15 @@ export const imagine = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('❌ [Midjourney Controller] Imagine 失败:', error.message);
-    
-    // 检查是否是任务限制错误
+
     if (error.message?.includes('只允许同时执行一个')) {
-      return res.status(429).json({ 
+      return res.status(429).json({
         success: false,
         error: error.message,
         code: 'TASK_LIMIT_EXCEEDED',
       });
     }
-    
+
     res.status(500).json({ error: error.message });
   }
 };
@@ -327,7 +338,7 @@ export const action = async (req: Request, res: Response) => {
     // 2. 单张图（UPSCALE/VARIATION）的所有按钮需要扣费（点赞除外）
     const isFromGrid = sourceAction === 'IMAGINE';
     const shouldCharge = !isLikeButton && !isFromGrid;
-    
+
     console.log(`[Midjourney] 扣费判断:`, {
       operationType,
       sourceAction,
@@ -338,36 +349,53 @@ export const action = async (req: Request, res: Response) => {
 
     let creditsCharged = 0;
     let isFreeUsage = false;
-    // 操作类型映射为小写，匹配数据库
     const operationTypeLower = operationType.toLowerCase();
-    // Upscale 无法传递模式参数，固定按 Relax 模式计费
     const billingMode = operationType === 'Upscale' ? 'relax' : mjMode;
-    const creditCost = billingMode === 'fast' ? 20 : 10;
-    
+
+    // 从计费规则获取积分
+    let creditCost = billingMode === 'fast' ? 20 : 10;
     if (shouldCharge) {
+      try {
+        const credits = await billingService.calculateCredits({
+          moduleType: 'midjourney',
+          operationType: operationTypeLower,
+          mode: billingMode,
+        });
+        if (credits > 0) creditCost = credits;
+      } catch (e) {
+        // 使用默认值
+      }
+
+      // 先检查积分是否足够
       if (isTenantUser) {
-        // 租户用户计费
-        const charged = await chargeTenantCredits(
-          tenantId,
-          userId,
-          creditCost,
-          `Midjourney ${operationType} (${billingMode})`
-        );
-        if (!charged) {
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: tenantId },
+          select: { credits: true, creditMode: true },
+        });
+        if (tenant?.creditMode === 'personal') {
+          const user = await prisma.tenantUser.findUnique({
+            where: { id: userId },
+            select: { personalCredits: true },
+          });
+          if (!user || user.personalCredits < creditCost) {
+            return res.status(402).json({
+              success: false,
+              error: '个人积分不足',
+              code: 'INSUFFICIENT_CREDITS',
+            });
+          }
+        } else if (!tenant || Number(tenant.credits) < creditCost) {
           return res.status(402).json({
             success: false,
             error: '租户积分不足，请联系管理员充值',
             code: 'INSUFFICIENT_CREDITS',
           });
         }
-        creditsCharged = creditCost;
       } else {
-        // 平台用户计费
         const permissionResult = await userLevelService.checkPermission({
           userId,
           moduleType: 'midjourney',
         });
-
         if (!permissionResult.allowed) {
           return res.status(403).json({
             success: false,
@@ -375,10 +403,25 @@ export const action = async (req: Request, res: Response) => {
             code: 'PERMISSION_DENIED',
           });
         }
-
         isFreeUsage = permissionResult.isFree || false;
+      }
+    }
 
-        if (!permissionResult.isFree) {
+    console.log('🎬 [Midjourney Controller] 执行动作:', { taskId, customId, operationType, messageId, messageHash, nodeId, userId, isTenantUser });
+
+    // 先提交任务
+    const response = await midjourneyService.action({ taskId, customId, userId, messageId, messageHash, nodeId });
+
+    console.log('📥 [Midjourney Controller] 收到响应:', response.code, response.description);
+
+    // 根据API文档，code: 1=提交成功, 21=已存在, 22=排队中, other=错误
+    if (response.code === 1 || response.code === 21 || response.code === 22) {
+      // 任务成功，扣费
+      if (shouldCharge) {
+        if (isTenantUser) {
+          await chargeTenantCredits(tenantId, userId, creditCost, `Midjourney ${operationType} (${billingMode})`);
+          creditsCharged = creditCost;
+        } else if (!isFreeUsage) {
           try {
             const usageRecord = await billingService.chargeUser({
               userId,
@@ -389,37 +432,12 @@ export const action = async (req: Request, res: Response) => {
               quantity: 1,
             });
             creditsCharged = usageRecord?.creditsCharged || 0;
-            console.log(`[Midjourney] 用户 ${userId} ${operationType} (${billingMode}) 扣费成功: ${creditsCharged} 积分`);
           } catch (error: any) {
-            console.error(`[Midjourney] ${operationType} 扣费失败:`, error.message);
-            return res.status(402).json({
-              success: false,
-              error: '积分不足，请充值后再试',
-              code: 'INSUFFICIENT_CREDITS',
-            });
+            console.error(`[Midjourney] 扣费失败:`, error.message);
           }
-        } else {
-          console.log(`[Midjourney] 用户 ${userId} 使用免费额度执行 ${operationType} (${billingMode})`);
         }
       }
-    } else {
-      console.log(`[Midjourney] ${operationType} 操作无需扣费 (源: ${sourceAction}, 点赞: ${isLikeButton})`);
-    }
 
-    console.log('🎬 [Midjourney Controller] 执行动作:', { taskId, customId, operationType, messageId, messageHash, nodeId, userId, isTenantUser });
-    console.log('   原始taskId:', taskId);
-
-    const response = await midjourneyService.action({ taskId, customId, userId, messageId, messageHash, nodeId });
-
-    console.log('📥 [Midjourney Controller] 收到响应:');
-    console.log('   code:', response.code);
-    console.log('   description:', response.description);
-    console.log('   result (新任务ID):', response.result);
-    console.log('   properties:', response.properties);
-
-    // 根据API文档，code: 1=提交成功, 21=已存在, 22=排队中, other=错误
-    if (response.code === 1 || response.code === 21 || response.code === 22) {
-      // 这些都是正常状态，返回新任务ID
       return res.json({
         success: true,
         taskId: response.result,
@@ -430,24 +448,23 @@ export const action = async (req: Request, res: Response) => {
       });
     }
 
-    // 其他错误码
-    return res.status(500).json({ 
-      error: 'Failed to submit action', 
+    // 任务失败，不扣费
+    return res.status(500).json({
+      error: 'Failed to submit action',
       description: response.description,
       code: response.code,
     });
   } catch (error: any) {
     console.error('❌ [Midjourney Controller] Action 失败:', error.message);
-    
-    // 检查是否是任务限制错误
+
     if (error.message?.includes('只允许同时执行一个')) {
-      return res.status(429).json({ 
+      return res.status(429).json({
         success: false,
         error: error.message,
         code: 'TASK_LIMIT_EXCEEDED',
       });
     }
-    
+
     res.status(500).json({ error: error.message });
   }
 };
