@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { apiClient } from '../../../lib/api';
 import { processImageUrl } from '../../../utils/imageUtils';
 import { processTaskResult } from '../../../utils/taskResultHandler';
+import { useBillingEstimate } from '../../../hooks/useBillingEstimate';
 
 interface HDUpscaleNodeData {
   config: {
@@ -80,6 +81,13 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
       setSelectedModel(targetModel);
     }
   }, [targetModel]);
+
+  // 积分估算
+  const { credits, loading: creditsLoading } = useBillingEstimate({
+    aiModelId: selectedModel?.id,
+    nodeType: 'hd_upscale',
+    resolution: imageSize,
+  });
 
   const { setNodes, setEdges, getNode, getNodes } = useReactFlow();
 
@@ -472,6 +480,9 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
             <>
               <span className="material-symbols-outlined text-sm">high_quality</span>
               <span>高清放大</span>
+              {!creditsLoading && credits !== null && credits > 0 && (
+                <span className="ml-1 text-[9px] opacity-70">{credits}积分</span>
+              )}
             </>
           )}
         </button>

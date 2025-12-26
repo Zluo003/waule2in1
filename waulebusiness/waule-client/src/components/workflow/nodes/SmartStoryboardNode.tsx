@@ -8,6 +8,7 @@ import { processTaskResult } from '../../../utils/taskResultHandler';
 import { sliceImageGrid } from '../../../utils/imageGridSlicer';
 import { uploadBase64ToLocal } from '../../../api/tenantLocalServer';
 import { isLocalStorageEnabled } from '../../../store/tenantStorageStore';
+import { useBillingEstimate } from '../../../hooks/useBillingEstimate';
 
 // 任务状态持久化 - 独立于工作流保存
 const TASK_STORAGE_KEY = 'smart_storyboard_tasks';
@@ -75,7 +76,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
   // 从可用模型中查找图片生成模型
   const imageModel = useMemo(() => {
     const models = data.models || [];
-    return models.find((m: any) => m.modelId === IMAGE_MODEL_ID) || 
+    return models.find((m: any) => m.modelId === IMAGE_MODEL_ID) ||
            models.find((m: any) => m.modelId?.includes('gemini')) ||
            models[0];
   }, [data.models]);
@@ -85,6 +86,13 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       setSelectedModel(imageModel);
     }
   }, [imageModel]);
+
+  // 积分估算
+  const { credits, loading: creditsLoading } = useBillingEstimate({
+    aiModelId: selectedModel?.id,
+    nodeType: 'smart_storyboard',
+    resolution: '4K',
+  });
 
   const { setNodes, setEdges, getNode, getNodes } = useReactFlow();
 
@@ -640,6 +648,9 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             <>
               <span className="material-symbols-outlined text-sm">grid_view</span>
               <span>智能分镜</span>
+              {!creditsLoading && credits !== null && credits > 0 && (
+                <span className="ml-1 text-[9px] opacity-70">{credits}积分</span>
+              )}
             </>
           )}
         </button>
