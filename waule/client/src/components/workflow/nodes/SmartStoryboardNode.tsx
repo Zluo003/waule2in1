@@ -457,6 +457,11 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     // 一次性添加所有节点和边
     setNodes((nodes) => [...nodes, ...newNodes]);
     setEdges((edges) => [...edges, ...newEdges]);
+
+    // 立即触发保存，确保预览节点被持久化（避免刷新页面后丢失）
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('workflow:save'));
+    }, 100);
   };
 
   return (
