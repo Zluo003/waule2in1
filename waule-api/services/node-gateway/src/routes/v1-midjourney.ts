@@ -137,6 +137,18 @@ router.get('/task/:taskId', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /v1/midjourney/status
+ * 查询服务状态
+ */
+router.get('/status', async (req: Request, res: Response) => {
+  const status = midjourneyService.getStatus();
+  res.json({
+    ready: midjourneyService.ready,
+    ...status,
+  });
+});
+
+/**
  * POST /v1/midjourney/task/:taskId/wait
  * 等待任务完成（长轮询）
  */
