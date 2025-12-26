@@ -112,6 +112,7 @@ export const getTenantById = asyncHandler(async (req: Request, res: Response) =>
           nickname: true,
           isAdmin: true,
           isActive: true,
+          personalCredits: true,
           lastLoginAt: true,
           createdAt: true,
         },
@@ -209,7 +210,12 @@ export const createTenant = asyncHandler(async (req: Request, res: Response) => 
  */
 export const updateTenant = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, contactName, contactPhone, contactEmail, remark, isActive } = req.body;
+  const { name, contactName, contactPhone, contactEmail, remark, isActive, creditMode } = req.body;
+
+  // 验证 creditMode
+  if (creditMode && !['global', 'personal'].includes(creditMode)) {
+    return res.status(400).json({ success: false, message: '积分模式无效' });
+  }
 
   const tenant = await prisma.tenant.update({
     where: { id },
@@ -220,6 +226,7 @@ export const updateTenant = asyncHandler(async (req: Request, res: Response) => 
       contactEmail,
       remark,
       isActive,
+      creditMode,
     },
   });
 
@@ -415,7 +422,7 @@ export const createTenantUser = asyncHandler(async (req: Request, res: Response)
  */
 export const updateTenantUser = asyncHandler(async (req: Request, res: Response) => {
   const { tenantId, userId } = req.params;
-  const { username, nickname, isAdmin, isActive } = req.body;
+  const { username, nickname, isAdmin, isActive, personalCredits } = req.body;
 
   // 如果要修改用户名，检查是否重复
   if (username) {
@@ -445,6 +452,32 @@ export const updateTenantUser = asyncHandler(async (req: Request, res: Response)
     }
   }
 
+  // 如果要修改个人积分，验证总和不超过租户积分
+  if (personalCredits !== undefined) {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { credits: true, creditMode: true },
+    });
+    if (!tenant) {
+      return res.status(404).json({ success: false, message: '租户不存在' });
+    }
+    if (tenant.creditMode !== 'personal') {
+      return res.status(400).json({ success: false, message: '当前为全局积分模式，无法设置个人积分' });
+    }
+    // 计算其他用户的积分总和
+    const otherUsersCredits = await prisma.tenantUser.aggregate({
+      where: { tenantId, id: { not: userId } },
+      _sum: { personalCredits: true },
+    });
+    const totalOther = otherUsersCredits._sum.personalCredits || 0;
+    if (totalOther + personalCredits > tenant.credits) {
+      return res.status(400).json({
+        success: false,
+        message: `积分超出限制，租户总积分 ${tenant.credits}，其他用户已分配 ${totalOther}，最多可分配 ${tenant.credits - totalOther}`,
+      });
+    }
+  }
+
   const user = await prisma.tenantUser.update({
     where: { id: userId },
     data: {
@@ -452,6 +485,7 @@ export const updateTenantUser = asyncHandler(async (req: Request, res: Response)
       nickname,
       isAdmin,
       isActive,
+      personalCredits,
     },
     select: {
       id: true,
@@ -459,6 +493,7 @@ export const updateTenantUser = asyncHandler(async (req: Request, res: Response)
       nickname: true,
       isAdmin: true,
       isActive: true,
+      personalCredits: true,
       createdAt: true,
       lastLoginAt: true,
     },

@@ -24,6 +24,7 @@ interface Tenant {
   name: string;
   apiKey: string;
   credits: number;
+  creditMode: 'global' | 'personal';
   maxClients: number;
   isActive: boolean;
   contactName: string | null;
@@ -58,6 +59,7 @@ interface TenantUser {
   nickname: string | null;
   isAdmin: boolean;
   isActive: boolean;
+  personalCredits: number;
   createdAt: string;
   lastLoginAt: string | null;
 }
@@ -537,6 +539,35 @@ const TenantDetailModal = ({
     }
   };
 
+  // 切换积分模式
+  const handleToggleCreditMode = async () => {
+    if (!tenant) return;
+    const newMode = tenant.creditMode === 'global' ? 'personal' : 'global';
+    try {
+      await apiClient.tenants.update(tenant.id, { creditMode: newMode });
+      toast.success(`已切换为${newMode === 'global' ? '全局' : '个人'}积分模式`);
+      loadTenant();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || '切换失败');
+    }
+  };
+
+  // 更新用户个人积分
+  const handleUpdatePersonalCredits = async (user: TenantUser, credits: number) => {
+    if (!tenant) return;
+    try {
+      await apiClient.tenants.users.update(tenant.id, user.id, { personalCredits: credits });
+      toast.success('积分更新成功');
+      loadTenant();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || '更新失败');
+    }
+  };
+
+  // 计算已分配积分
+  const allocatedCredits = users.reduce((sum, u) => sum + (u.personalCredits || 0), 0);
+  const remainingCredits = tenant ? tenant.credits - allocatedCredits : 0;
+
   const copyCode = async (code: string) => {
     try {
       if (navigator.clipboard && window.isSecureContext) {
@@ -631,6 +662,47 @@ const TenantDetailModal = ({
               {/* 用户管理 Tab */}
               {activeTab === 'users' && (
                 <div className="space-y-4">
+                  {/* 积分模式选择 */}
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-6">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">积分模式:</span>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="creditMode"
+                            checked={tenant.creditMode === 'global'}
+                            onChange={() => tenant.creditMode !== 'global' && handleToggleCreditMode()}
+                            className="w-4 h-4 text-purple-500 focus:ring-purple-500"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">全局积分</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="creditMode"
+                            checked={tenant.creditMode === 'personal'}
+                            onChange={() => tenant.creditMode !== 'personal' && handleToggleCreditMode()}
+                            className="w-4 h-4 text-purple-500 focus:ring-purple-500"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">个人积分</span>
+                        </label>
+                      </div>
+                      {tenant.creditMode === 'personal' && (
+                        <div className="flex items-center gap-4 text-sm">
+                          <span className="text-gray-500">租户总积分: <span className="text-amber-500 font-medium">{tenant.credits.toLocaleString()}</span></span>
+                          <span className="text-gray-500">已分配: <span className="text-purple-500 font-medium">{allocatedCredits.toLocaleString()}</span></span>
+                          <span className="text-gray-500">剩余: <span className="text-green-500 font-medium">{remainingCredits.toLocaleString()}</span></span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">
+                      {tenant.creditMode === 'global'
+                        ? '全局积分：所有用户共享租户的总积分池'
+                        : '个人积分：为每个用户单独分配积分，总和不能超过租户积分'}
+                    </p>
+                  </div>
+
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">用户列表</h3>
                     <button
@@ -664,6 +736,9 @@ const TenantDetailModal = ({
                           <th className="text-left px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400">用户名</th>
                           <th className="text-left px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400">昵称</th>
                           <th className="text-center px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400">角色</th>
+                          {tenant.creditMode === 'personal' && (
+                            <th className="text-center px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400">个人积分</th>
+                          )}
                           <th className="text-center px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400">状态</th>
                           <th className="text-center px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400">操作</th>
                         </tr>
@@ -676,6 +751,28 @@ const TenantDetailModal = ({
                             <td className="px-4 py-3 text-center">
                               <span className={`text-xs px-2 py-0.5 rounded-full ${user.isAdmin ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}`}>{user.isAdmin ? '管理员' : '普通用户'}</span>
                             </td>
+                            {tenant.creditMode === 'personal' && (
+                              <td className="px-4 py-3 text-center">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  defaultValue={user.personalCredits}
+                                  key={user.id + '-' + user.personalCredits}
+                                  onBlur={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    if (val !== user.personalCredits && val >= 0) {
+                                      handleUpdatePersonalCredits(user, val);
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      (e.target as HTMLInputElement).blur();
+                                    }
+                                  }}
+                                  className="w-24 px-2 py-1 text-sm text-center border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400"
+                                />
+                              </td>
+                            )}
                             <td className="px-4 py-3 text-center">
                               <button onClick={() => handleToggleUserActive(user)} className={`text-xs px-2 py-0.5 rounded-full ${user.isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>{user.isActive ? '启用' : '禁用'}</button>
                             </td>
@@ -684,7 +781,7 @@ const TenantDetailModal = ({
                             </td>
                           </tr>
                         ))}
-                        {users.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">暂无用户</td></tr>}
+                        {users.length === 0 && <tr><td colSpan={tenant.creditMode === 'personal' ? 6 : 5} className="px-4 py-8 text-center text-gray-400">暂无用户</td></tr>}
                       </tbody>
                     </table>
                   </div>

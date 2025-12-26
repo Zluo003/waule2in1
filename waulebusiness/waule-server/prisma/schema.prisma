@@ -694,6 +694,7 @@ model Tenant {
   apiKey        String              @unique
   apiSecret     String?
   credits       Int                 @default(0)
+  creditMode    String              @default("global") // global: 全局积分, personal: 个人积分
   isActive      Boolean             @default(true)
   contactName   String?
   contactPhone  String?
@@ -722,18 +723,19 @@ model Tenant {
 }
 
 model TenantUser {
-  id           String    @id @default(uuid())
-  tenantId     String
-  username     String
-  password     String
-  nickname     String?
-  avatar       String?
-  isAdmin      Boolean   @default(false)
-  isActive     Boolean   @default(true)
-  currentToken String?   // 当前有效的登录 token，用于单点登录验证
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  lastLoginAt  DateTime?
+  id              String    @id @default(uuid())
+  tenantId        String
+  username        String
+  password        String
+  nickname        String?
+  avatar          String?
+  isAdmin         Boolean   @default(false)
+  isActive        Boolean   @default(true)
+  personalCredits Int       @default(0) // 个人积分（仅在租户 creditMode=personal 时使用）
+  currentToken    String?   // 当前有效的登录 token，用于单点登录验证
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastLoginAt     DateTime?
   // 客户端在线状态
   lastHeartbeat DateTime? // 最后心跳时间
   clientIp      String?   // 客户端 IP
