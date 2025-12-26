@@ -580,8 +580,8 @@ class TenantTaskService {
         systemPrompt,
         modelId: textModel.modelId,
         imageUrls: referenceImages,
-        apiKey: textModel.apiKey,
-        apiUrl: textModel.apiUrl,
+        apiKey: textModel.apiKey || undefined,
+        apiUrl: textModel.apiUrl || undefined,
       });
       generatedText = result;
     } else {
