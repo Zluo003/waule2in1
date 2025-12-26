@@ -64,7 +64,7 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
   // 积分估算
   const { credits, loading: creditsLoading, isFreeUsage, freeUsageRemaining, refetch: refetchEstimate } = useBillingEstimate({
     aiModelId: selectedModel?.id,
-    quantity: 1, // 图片生成按张数计费
+    quantity: maxImages, // 组图模式按张数计费
     resolution: imageSize, // 传递分辨率（2K/4K）
   });
 
