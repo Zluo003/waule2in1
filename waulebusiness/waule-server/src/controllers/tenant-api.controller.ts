@@ -3230,13 +3230,13 @@ export const estimateCredits = asyncHandler(async (req: Request, res: Response) 
   } catch (error: any) {
     console.warn('[estimateCredits] 计费规则计算失败:', error.message);
   }
-  
+
   // 如果计费规则返回0，回退到模型默认价格或硬编码值
   if (credits === 0) {
     if (aiModelId) {
       const model = await prisma.aIModel.findUnique({ where: { id: aiModelId } });
       if (model) {
-        credits = model.pricePerUse?.toNumber() || 1;
+        credits = (model.pricePerUse?.toNumber() || 1) * quantity;
       }
     } else if (nodeType) {
       // 根据节点类型的默认值

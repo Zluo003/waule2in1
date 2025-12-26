@@ -60,26 +60,29 @@ class TenantTaskService {
     // 计算积分消耗 - 优先使用 BillingRule 计费规则
     const { billingService } = await import('./billing.service');
     let creditCost = 0;
+    // 组图模式：maxImages 表示生成的图片数量
+    const imageCount = params.metadata?.maxImages || 1;
     try {
       // 使用计费规则计算积分
       // 注意：imageSize 是图片分辨率参数（如 2K/4K），metadata.resolution 是视频分辨率（如 720p/1080p）
       creditCost = await billingService.calculateCredits({
         aiModelId: params.modelId,
         nodeType: params.metadata?.nodeType,
-        quantity: 1,
+        quantity: imageCount,
         duration: params.metadata?.duration,
         resolution: params.imageSize || params.metadata?.resolution,
         mode: params.metadata?.mode,
       });
-      logger.info(`[TenantTaskService] 使用计费规则计算积分: ${creditCost}`);
+      logger.info(`[TenantTaskService] 使用计费规则计算积分: ${creditCost} (数量: ${imageCount})`);
     } catch (error: any) {
       logger.warn(`[TenantTaskService] 计费规则计算失败: ${error.message}`);
     }
-    
+
     // 如果计费规则返回0或计算失败，回退到模型默认价格
     if (creditCost === 0) {
-      creditCost = model.pricePerUse?.toNumber() || (params.type === 'IMAGE' ? 10 : 50);
-      logger.info(`[TenantTaskService] 使用模型默认价格: ${creditCost}`);
+      const basePrice = model.pricePerUse?.toNumber() || (params.type === 'IMAGE' ? 10 : 50);
+      creditCost = basePrice * imageCount;
+      logger.info(`[TenantTaskService] 使用模型默认价格: ${creditCost} (单价: ${basePrice}, 数量: ${imageCount})`);
     }
 
     // 检查租户积分
