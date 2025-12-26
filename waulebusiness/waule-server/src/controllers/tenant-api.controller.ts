@@ -2985,7 +2985,7 @@ export const executeAgentRole = asyncHandler(async (req: Request, res: Response)
   }
 
   // 扣除积分（支持全局积分和个人积分模式）
-  await deductTenantCredits(
+  const deducted = await deductTenantCredits(
     tenantUser.tenantId,
     cost,
     '智能体角色执行',
@@ -2993,7 +2993,7 @@ export const executeAgentRole = asyncHandler(async (req: Request, res: Response)
     `智能体角色执行: ${role.name} (${model.name})`
   );
 
-  res.json({ success: true, data: { text, model: model.name } });
+  res.json({ success: true, data: { text, model: model.name }, creditsCharged: deducted ? cost : 0 });
 });
 
 /**
@@ -3155,15 +3155,18 @@ export const createStoryboardTask = asyncHandler(async (req: Request, res: Respo
     });
 
     // 扣除积分（支持全局积分和个人积分模式）
-    await deductTenantCredits(
+    const deducted = await deductTenantCredits(
       tenantUser.tenantId,
       cost,
       '分镜脚本生成',
       tenantUser.id,
       `分镜脚本生成 (任务: ${task.id.substring(0, 8)}...)`
     );
+    if (!deducted) {
+      console.error('[Storyboard] 扣费失败');
+    }
 
-    res.json({ success: true, taskId: task.id, status: 'SUCCESS', scriptJson: json });
+    res.json({ success: true, taskId: task.id, status: 'SUCCESS', scriptJson: json, creditsCharged: deducted ? cost : 0 });
   } catch (err: any) {
     console.error('[Storyboard] 分镜脚本生成失败:', err);
     
