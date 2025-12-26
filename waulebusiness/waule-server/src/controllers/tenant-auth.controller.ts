@@ -97,10 +97,12 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
         username: user.username,
         nickname: user.nickname,
         isAdmin: user.isAdmin,
+        personalCredits: user.personalCredits,
         tenant: {
           id: tenant.id,
           name: tenant.name,
           credits: tenant.credits,
+          creditMode: tenant.creditMode,
           // 仅管理员可见 API Key
           ...(user.isAdmin && { apiKey: tenant.apiKey }),
         },
@@ -123,10 +125,12 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
         username: tenantUser.username,
         nickname: tenantUser.nickname,
         isAdmin: tenantUser.isAdmin,
+        personalCredits: tenantUser.personalCredits,
         tenant: {
           id: tenantUser.tenant.id,
           name: tenantUser.tenant.name,
           credits: tenantUser.tenant.credits,
+          creditMode: tenantUser.tenant.creditMode,
           // 仅管理员可见 API Key
           ...(tenantUser.isAdmin && { apiKey: tenantUser.tenant.apiKey }),
         },

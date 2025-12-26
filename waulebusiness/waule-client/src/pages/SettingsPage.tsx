@@ -5,7 +5,7 @@ import { apiClient } from '../lib/api';
 import { checkLocalServerHealth, getLocalStorageStats } from '../api/tenantLocalServer';
 
 const SettingsPage = () => {
-  const { user, updateUser, clearAuth, activation } = useTenantAuthStore();
+  const { user, updateUser, clearAuth, activation, getEffectiveCredits } = useTenantAuthStore();
   const { config: storageConfig, setLocalServerUrl, setConnected, enableLocalStorage, disableLocalStorage: _disableLocalStorage } = useTenantStorageStore();
   const [nickname, setNickname] = useState(user?.nickname || '');
   const [nicknameError, setNicknameError] = useState('');
@@ -323,7 +323,10 @@ const SettingsPage = () => {
               {/* 积分 */}
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-500/10 border border-accent-500/30">
                 <span className="material-symbols-outlined text-accent-600 dark:text-accent-400 text-sm">stars</span>
-                <span className="text-accent-600 dark:text-accent-400 font-semibold text-sm">{user?.tenant?.credits || 0}</span>
+                <span className="text-accent-600 dark:text-accent-400 font-semibold text-sm">
+                  {getEffectiveCredits()}
+                  {user?.tenant?.creditMode === 'personal' && <span className="text-xs opacity-70 ml-1">(个人)</span>}
+                </span>
               </div>
               
               {/* 退出登录 */}

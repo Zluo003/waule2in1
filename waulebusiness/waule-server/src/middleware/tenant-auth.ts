@@ -12,11 +12,13 @@ declare global {
         username: string;
         nickname: string | null;
         isAdmin: boolean;
+        personalCredits: number;
         tenant: {
           id: string;
           name: string;
           apiKey: string;
           credits: number;
+          creditMode: string;
           isActive: boolean;
         };
       };
@@ -61,12 +63,14 @@ export const authenticateTenantUser = async (
         isAdmin: true,
         isActive: true,
         currentToken: true,
+        personalCredits: true,
         tenant: {
           select: {
             id: true,
             name: true,
             apiKey: true,
             credits: true,
+            creditMode: true,
             isActive: true,
           },
         },
@@ -101,6 +105,7 @@ export const authenticateTenantUser = async (
       username: tenantUser.username,
       nickname: tenantUser.nickname,
       isAdmin: tenantUser.isAdmin,
+      personalCredits: tenantUser.personalCredits,
       tenant: tenantUser.tenant,
     };
 
@@ -161,6 +166,7 @@ export const authenticateTenantApiKey = async (
         name: true,
         apiKey: true,
         credits: true,
+        creditMode: true,
         isActive: true,
       },
     });
@@ -180,6 +186,7 @@ export const authenticateTenantApiKey = async (
       username: 'tenant-server',
       nickname: '租户服务端',
       isAdmin: true,
+      personalCredits: 0,
       tenant: tenant,
     };
 
@@ -212,6 +219,7 @@ export const authenticateTenantUserOrApiKey = async (
           name: true,
           apiKey: true,
           credits: true,
+          creditMode: true,
           isActive: true,
         },
       });
@@ -231,6 +239,7 @@ export const authenticateTenantUserOrApiKey = async (
         username: 'tenant-server',
         nickname: '租户服务端',
         isAdmin: true,
+        personalCredits: 0,
         tenant: tenant,
       };
 

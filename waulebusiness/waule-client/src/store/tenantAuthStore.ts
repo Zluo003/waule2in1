@@ -37,6 +37,7 @@ interface TenantInfo {
   id: string;
   name: string;
   credits: number;
+  creditMode?: string; // 'global' | 'personal'
   apiKey?: string; // 仅管理员可见
 }
 
@@ -46,6 +47,7 @@ interface TenantUser {
   nickname: string | null;
   avatar?: string | null;
   isAdmin: boolean;
+  personalCredits?: number;
   tenant: TenantInfo;
 }
 
@@ -67,6 +69,9 @@ interface TenantAuthState {
   clearAuth: () => void;
   updateUser: (user: Partial<TenantUser>) => void;
   updateTenantCredits: (credits: number) => void;
+  updatePersonalCredits: (credits: number) => void;
+  // 获取有效积分（根据积分模式返回全局或个人积分）
+  getEffectiveCredits: () => number;
   // 激活相关
   setActivation: (activation: ActivationInfo) => void;
   clearActivation: () => void;
@@ -122,6 +127,24 @@ export const useTenantAuthStore = create<TenantAuthState>()(
             ? { ...state.user, tenant: { ...state.user.tenant, credits } }
             : null,
         })),
+
+      updatePersonalCredits: (credits) =>
+        set((state) => ({
+          user: state.user
+            ? { ...state.user, personalCredits: credits }
+            : null,
+        })),
+
+      getEffectiveCredits: () => {
+        const state = get();
+        if (!state.user) return 0;
+        // 个人积分模式：返回个人积分
+        if (state.user.tenant.creditMode === 'personal') {
+          return state.user.personalCredits ?? 0;
+        }
+        // 全局积分模式：返回租户积分
+        return state.user.tenant.credits;
+      },
 
       setActivation: (activation) =>
         set({

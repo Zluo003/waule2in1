@@ -15,7 +15,7 @@ import { generatePresignedUrl, uploadBuffer, TenantUploadInfo } from '../utils/o
 // ==================== 辅助函数 ====================
 
 /**
- * 扣除租户积分
+ * 扣除租户积分（支持全局积分和个人积分模式）
  */
 async function deductTenantCredits(
   tenantId: string,
@@ -27,25 +27,41 @@ async function deductTenantCredits(
   const result = await prisma.$transaction(async (tx) => {
     const tenant = await tx.tenant.findUnique({
       where: { id: tenantId },
-      select: { credits: true },
+      select: { credits: true, creditMode: true },
     });
 
-    if (!tenant || tenant.credits < amount) {
-      return false;
+    if (!tenant) return false;
+
+    // 个人积分模式：从用户个人积分扣除
+    if (tenant.creditMode === 'personal' && userId !== 'system') {
+      const user = await tx.tenantUser.findUnique({
+        where: { id: userId },
+        select: { personalCredits: true },
+      });
+      if (!user || user.personalCredits < amount) {
+        return false; // 个人积分不足
+      }
+      await tx.tenantUser.update({
+        where: { id: userId },
+        data: { personalCredits: { decrement: amount } },
+      });
+    } else {
+      // 全局积分模式：从租户积分扣除
+      if (tenant.credits < amount) {
+        return false;
+      }
+      await tx.tenant.update({
+        where: { id: tenantId },
+        data: { credits: { decrement: amount } },
+      });
     }
-
-    // 扣除积分
-    await tx.tenant.update({
-      where: { id: tenantId },
-      data: { credits: { decrement: amount } },
-    });
 
     // 记录使用
     await tx.tenantUsageRecord.create({
       data: {
         tenantId,
         userId,
-        modelId: operation, // 使用 operation 作为 modelId
+        modelId: operation,
         operation,
         creditsCharged: amount,
         metadata: { description },
@@ -57,7 +73,7 @@ async function deductTenantCredits(
       data: {
         tenantId,
         amount: -amount,
-        balance: tenant.credits - amount,
+        balance: tenant.creditMode === 'personal' ? tenant.credits : tenant.credits - amount,
         type: 'USAGE',
         description: description || operation,
       },
@@ -114,14 +130,26 @@ async function refundTenantCredits(
 }
 
 /**
- * 检查租户积分是否足够
+ * 检查租户积分是否足够（支持全局积分和个人积分模式）
  */
-async function checkTenantCredits(tenantId: string, amount: number): Promise<boolean> {
+async function checkTenantCredits(tenantId: string, amount: number, userId?: string): Promise<boolean> {
   const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
-    select: { credits: true },
+    select: { credits: true, creditMode: true },
   });
-  return tenant ? tenant.credits >= amount : false;
+  if (!tenant) return false;
+
+  // 个人积分模式：检查用户个人积分
+  if (tenant.creditMode === 'personal' && userId && userId !== 'system') {
+    const user = await prisma.tenantUser.findUnique({
+      where: { id: userId },
+      select: { personalCredits: true },
+    });
+    return user ? user.personalCredits >= amount : false;
+  }
+
+  // 全局积分模式：检查租户积分
+  return tenant.credits >= amount;
 }
 
 // ==================== 项目管理 ====================
@@ -3381,6 +3409,7 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
     id: tenantUser.tenant.id,
     name: tenantUser.tenant.name,
     credits: tenantUser.tenant.credits,
+    creditMode: tenantUser.tenant.creditMode,
   };
 
   // 仅管理员可见 API Key
@@ -3396,6 +3425,7 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
         username: tenantUser.username,
         nickname: tenantUser.nickname,
         isAdmin: tenantUser.isAdmin,
+        personalCredits: tenantUser.personalCredits,
       },
       tenant: tenantInfo,
     },
