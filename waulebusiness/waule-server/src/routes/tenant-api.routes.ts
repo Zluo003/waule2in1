@@ -201,6 +201,9 @@ router.post('/tasks/video', tenantApiController.createVideoTask);
 // 创建视频编辑任务（换人/换脸等）
 router.post('/tasks/video-edit', tenantApiController.createVideoEditTask);
 
+// 创建智能分镜任务
+router.post('/tasks/smart-storyboard', tenantApiController.createSmartStoryboardTask);
+
 // 获取进行中的任务（用于页面刷新后恢复）
 router.get('/tasks/active', tenantApiController.getActiveTask);
 

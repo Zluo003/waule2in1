@@ -644,6 +644,22 @@ export const apiClient = {
     // 标记预览节点已创建
     markPreviewNodeCreated: (taskId: string) =>
       apiClient.tenant.post(`/tasks/${taskId}/mark-preview-created`),
+
+    // 创建智能分镜任务
+    createSmartStoryboardTask: (data: {
+      modelId: string;
+      prompt: string;
+      ratio?: string;
+      imageSize?: string;
+      referenceImages?: string[];
+      sourceNodeId?: string;
+      metadata?: {
+        textModelId?: string;
+        systemPrompt?: string;
+        imagePrompt?: string;
+        [key: string]: any;
+      };
+    }) => apiClient.tenant.post('/tasks/smart-storyboard', data),
   },
 
   // AI服务API（商业版使用租户 API）

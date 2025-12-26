@@ -16,7 +16,7 @@ import * as viduService from './ai/vidu.service';
 interface CreateTenantTaskParams {
   tenantId: string;
   tenantUserId: string;
-  type: 'IMAGE' | 'VIDEO';
+  type: 'IMAGE' | 'VIDEO' | 'SMART_STORYBOARD';
   modelId: string;
   prompt: string;
   ratio?: string;
@@ -50,8 +50,10 @@ class TenantTaskService {
     }
 
     // 检查模型类型
-    const allowedTypes = params.type === 'IMAGE' 
-      ? ['IMAGE_GENERATION'] 
+    const allowedTypes = params.type === 'IMAGE'
+      ? ['IMAGE_GENERATION']
+      : params.type === 'SMART_STORYBOARD'
+      ? ['IMAGE_GENERATION'] // 智能分镜最终生成图片
       : ['VIDEO_GENERATION', 'VIDEO_EDITING']; // 视频任务允许视频生成和视频编辑模型
     if (!allowedTypes.includes(model.type)) {
       throw new Error(`该模型不支持${params.type === 'IMAGE' ? '图片' : '视频'}生成`);
@@ -126,10 +128,10 @@ class TenantTaskService {
         tenantId: params.tenantId,
         userId: params.tenantUserId,
         modelId: params.modelId,
-        operation: params.type === 'IMAGE' ? 'IMAGE_GENERATION' : 'VIDEO_GENERATION',
+        operation: params.type === 'IMAGE' ? 'IMAGE_GENERATION' : params.type === 'SMART_STORYBOARD' ? 'SMART_STORYBOARD' : 'VIDEO_GENERATION',
         creditsCharged: creditCost,
-        metadata: { 
-          description: `${params.type === 'IMAGE' ? '图片' : '视频'}生成 - ${model.name}`,
+        metadata: {
+          description: `${params.type === 'IMAGE' ? '图片' : params.type === 'SMART_STORYBOARD' ? '智能分镜' : '视频'}生成 - ${model.name}`,
           imageSize: params.imageSize,
           resolution: params.imageSize || params.metadata?.resolution,
           duration: params.metadata?.duration,
@@ -214,6 +216,9 @@ class TenantTaskService {
         } else {
           resultUrl = Array.isArray(imageResult) ? imageResult[0] : imageResult;
         }
+      } else if (params.type === 'SMART_STORYBOARD') {
+        // 智能分镜：先文字生成分镜描述，再图片生成九宫格
+        resultUrl = await this.processSmartStoryboardTask(params, model);
       } else if (params.type === 'VIDEO') {
         // 检查是否为 Sora 角色创建
         const isCharacterCreation = params.metadata?.isCharacterCreation === true || params.generationType === '角色创建';
@@ -542,6 +547,66 @@ class TenantTaskService {
     } else {
       throw new Error(`租户版暂不支持的视频生成提供商: ${provider}，请联系管理员`);
     }
+  }
+
+  /**
+   * 处理智能分镜任务
+   * 两步流程：1. 文字模型生成分镜描述 2. 图片模型生成九宫格
+   */
+  private async processSmartStoryboardTask(params: CreateTenantTaskParams, model: any): Promise<string> {
+    const { metadata } = params;
+    const textModelId = metadata?.textModelId || 'gemini-3-pro-preview';
+    const systemPrompt = metadata?.systemPrompt || '你是一个专业的分镜师，根据用户提供的图片和剧情简述，生成详细的9个分镜描述。每个分镜应包含场景、动作、镜头角度等信息。';
+    const imagePrompt = metadata?.imagePrompt || '根据以下分镜描述和参考图片，生成3x3的九宫格分镜图，每个格子展示一个分镜场景，保持角色和风格一致，使用细黑边框分隔每个画面。';
+    const referenceImages = params.referenceImages || [];
+
+    logger.info(`[TenantTaskService] 智能分镜 - 第1步：文字生成分镜描述`);
+
+    // 第一步：调用文字模型生成分镜描述
+    const textModel = await prisma.aIModel.findFirst({
+      where: { modelId: textModelId, isActive: true },
+    });
+
+    if (!textModel) {
+      throw new Error(`文字模型 ${textModelId} 不存在或未启用`);
+    }
+
+    let generatedText: string;
+    const textProvider = (textModel.provider || '').toLowerCase().trim();
+
+    if (textProvider === 'google') {
+      const result = await geminiService.generateText({
+        prompt: params.prompt,
+        systemPrompt,
+        modelId: textModel.modelId,
+        imageUrls: referenceImages,
+        apiKey: textModel.apiKey,
+        apiUrl: textModel.apiUrl,
+      });
+      generatedText = result;
+    } else {
+      throw new Error(`智能分镜暂不支持的文字模型提供商: ${textProvider}`);
+    }
+
+    if (!generatedText) {
+      throw new Error('文字生成返回为空');
+    }
+
+    logger.info(`[TenantTaskService] 智能分镜 - 第1步完成，分镜描述长度: ${generatedText.length}`);
+    logger.info(`[TenantTaskService] 智能分镜 - 第2步：图片生成九宫格`);
+
+    // 第二步：调用图片模型生成九宫格
+    const finalImagePrompt = `${imagePrompt}\n\n分镜描述：\n${generatedText}\n\n生成${params.ratio || '1:1'}比例的图片`;
+
+    const imageResult = await this.processImageTask({
+      ...params,
+      prompt: finalImagePrompt,
+    }, model);
+
+    const resultUrl = Array.isArray(imageResult) ? imageResult[0] : imageResult;
+    logger.info(`[TenantTaskService] 智能分镜 - 第2步完成`);
+
+    return resultUrl;
   }
 }
 

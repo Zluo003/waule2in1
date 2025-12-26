@@ -2575,6 +2575,51 @@ export const createVideoEditTask = asyncHandler(async (req: Request, res: Respon
   }
 });
 
+export const createSmartStoryboardTask = asyncHandler(async (req: Request, res: Response) => {
+  const tenantUser = req.tenantUser!;
+  const { modelId, prompt, ratio, imageSize, referenceImages, sourceNodeId, metadata } = req.body;
+
+  if (!modelId) {
+    return res.status(400).json({ error: '缺少图片模型ID' });
+  }
+
+  if (!prompt || !prompt.trim()) {
+    return res.status(400).json({ error: '剧情简述是必需的' });
+  }
+
+  try {
+    const { tenantTaskService } = await import('../services/tenant-task.service');
+
+    const task = await tenantTaskService.createTask({
+      tenantId: tenantUser.tenantId,
+      tenantUserId: tenantUser.id,
+      type: 'SMART_STORYBOARD',
+      modelId,
+      prompt,
+      ratio: ratio || '1:1',
+      imageSize,
+      referenceImages: referenceImages || [],
+      sourceNodeId,
+      metadata: {
+        ...(metadata || {}),
+        nodeType: 'smart_storyboard',
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      taskId: task.id,
+      status: task.status,
+      creditsCharged: task.creditsCharged,
+    });
+  } catch (error: any) {
+    if (error.message?.includes('积分不足')) {
+      return res.status(402).json({ success: false, error: error.message });
+    }
+    throw error;
+  }
+});
+
 export const getTaskStatus = asyncHandler(async (req: Request, res: Response) => {
   const tenantUser = req.tenantUser!;
   const { taskId } = req.params;

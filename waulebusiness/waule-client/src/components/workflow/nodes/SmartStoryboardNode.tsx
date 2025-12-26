@@ -147,17 +147,9 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     const recoverTask = async () => {
       if (!initialTaskId) return;
 
-      // 第一步（文字生成）是同步调用，无法恢复，提示用户重新生成
-      if (initialTaskId === 'text-generation') {
-        console.log('[SmartStoryboardNode] 文字生成阶段中断，无法恢复');
-        clearTaskState(id);
-        toast.error('分镜生成中断，请重新生成');
-        return;
-      }
-
       console.log('[SmartStoryboardNode] 恢复任务查询:', initialTaskId, savedTask ? '(from localStorage)' : '(from node data)');
       setIsGenerating(true);
-      setGeneratingStep(savedTask?.step || 'image');
+      setGeneratingStep('image');
 
       try {
         const response = await apiClient.tasks.getTaskStatus(initialTaskId);
@@ -196,7 +188,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           }
         } else if (task.status === 'PROCESSING' || task.status === 'PENDING') {
           setIsGenerating(true);
-          setGeneratingStep(savedTask?.step || 'image');
+          setGeneratingStep('image');
           pollTaskStatus(initialTaskId);
         } else if (task.status === 'FAILURE') {
           setIsGenerating(false);
@@ -240,7 +232,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
   const handleGenerate = async () => {
     console.log('[SmartStoryboardNode] handleGenerate called, inputImages:', inputImages.length, 'userPrompt:', userPrompt);
-    
+
     if (inputImages.length === 0) {
       toast.error('请先连接至少一张图片');
       return;
@@ -254,7 +246,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     // 检查输入图片大小（限制 10MB）
     const MAX_IMAGE_SIZE_MB = 10;
     const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
-    
+
     for (const imageUrl of inputImages) {
       try {
         if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) {
@@ -285,70 +277,19 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         inputImages.map(img => processImageUrl(img))
       );
 
-      // 优先从后台获取提示词配置，没有则使用内置默认值
+      // 优先从后台获取提示词配置
       let systemPrompt = '';
       let imagePrompt = '';
 
-      // 尝试从后台获取提示词配置
       try {
         const res = await apiClient.get('/tenant/node-prompts/type/smartStoryboard');
         if (res.success && res.data) {
-          if (res.data.systemPrompt) {
-            systemPrompt = res.data.systemPrompt;
-          }
-          if (res.data.userPromptTemplate) {
-            imagePrompt = res.data.userPromptTemplate;
-          }
-          console.log('[SmartStoryboardNode] 使用后台配置的提示词');
+          if (res.data.systemPrompt) systemPrompt = res.data.systemPrompt;
+          if (res.data.userPromptTemplate) imagePrompt = res.data.userPromptTemplate;
         }
       } catch (e) {
         console.log('[SmartStoryboardNode] 后台未配置提示词，使用内置默认值');
       }
-
-      // 内置默认提示词（后台未配置时使用）
-      if (!systemPrompt) {
-        systemPrompt = '你是一个专业的分镜师，根据用户提供的图片和剧情简述，生成详细的9个分镜描述。每个分镜应包含场景、动作、镜头角度等信息。';
-      }
-      if (!imagePrompt) {
-        imagePrompt = '根据以下分镜描述和参考图片，生成3x3的九宫格分镜图，每个格子展示一个分镜场景，保持角色和风格一致，使用细黑边框分隔每个画面。';
-      }
-
-      // ========== 第一步：调用文字模型生成分镜描述 ==========
-      saveTaskState(id, 'text-generation', 'text'); // 保存文字生成阶段状态
-      console.log('========================================');
-      console.log('[SmartStoryboardNode] 【第1步开始】调用文字模型生成分镜描述');
-      console.log('[SmartStoryboardNode] 模型ID:', TEXT_MODEL_ID);
-      console.log('[SmartStoryboardNode] 系统提示词:', systemPrompt);
-      console.log('[SmartStoryboardNode] 用户提示词(剧情简述):', userPrompt);
-      console.log('[SmartStoryboardNode] 图片数量:', processedImages.length);
-      console.log('========================================');
-      
-      const textResponse = await apiClient.ai.text.generate({
-        modelId: TEXT_MODEL_ID,
-        systemPrompt: systemPrompt,
-        prompt: userPrompt,
-        imageUrls: processedImages,
-      });
-
-      console.log('[SmartStoryboardNode] 【第1步完成】文字模型响应:', JSON.stringify(textResponse, null, 2));
-
-      if (!textResponse.success) {
-        console.error('[SmartStoryboardNode] 【第1步失败】success=false');
-        throw new Error(textResponse.message || '文字生成失败');
-      }
-      
-      // 兼容不同响应格式：优先检查 data.text，其次 data.content
-      const generatedText = textResponse.data?.text || textResponse.data?.content || textResponse.content;
-      if (!generatedText || typeof generatedText !== 'string') {
-        console.error('[SmartStoryboardNode] 【第1步失败】返回内容为空或格式错误', textResponse.data);
-        throw new Error('文字生成返回为空');
-      }
-
-      console.log('[SmartStoryboardNode] 【第1步成功】生成的分镜描述:', String(generatedText).substring(0, 500) + '...');
-
-      // ========== 第二步：调用图片模型生成9宫格 ==========
-      setGeneratingStep('image');
-      console.log('[SmartStoryboardNode] 第二步：调用图片模型生成9宫格');
 
       if (!selectedModel) {
         toast.error('图片模型未加载，请稍后重试');
@@ -357,31 +298,35 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         return;
       }
 
-      // 组合最终的图片生成提示词，结尾添加比例提示
-      const finalImagePrompt = `${imagePrompt}\n\n分镜描述：\n${generatedText}\n\n生成${aspectRatio}比例的图片`;
-
-      const response = await apiClient.tasks.createImageTask({
+      // 创建智能分镜任务（后端处理文字生成+图片生成两步）
+      console.log('[SmartStoryboardNode] 创建智能分镜任务');
+      const response = await apiClient.tasks.createSmartStoryboardTask({
         modelId: selectedModel.id,
-        prompt: finalImagePrompt,
+        prompt: userPrompt,
         ratio: aspectRatio,
-        imageSize: '4K', // 固定4K分辨率
+        imageSize: '4K',
         referenceImages: processedImages,
         sourceNodeId: id,
-        metadata: { nodeType: 'smart_storyboard' },
+        metadata: {
+          textModelId: TEXT_MODEL_ID,
+          systemPrompt: systemPrompt || undefined,
+          imagePrompt: imagePrompt || undefined,
+        },
       });
 
       if (!response.success) {
-        throw new Error(response.message || '创建图片任务失败');
+        throw new Error(response.message || '创建任务失败');
       }
 
       const taskId = response.taskId;
-      saveTaskState(id, taskId, 'image'); // 保存图片生成阶段状态
+      saveTaskState(id, taskId, 'image');
       updateNodeData({ taskId, userPrompt });
+      setGeneratingStep('image');
 
       pollTaskStatus(taskId);
     } catch (error: any) {
       console.error('[SmartStoryboardNode] 生成失败:', error);
-      clearTaskState(id); // 生成失败时清除
+      clearTaskState(id);
       toast.error(error.message || '生成失败');
       setIsGenerating(false);
       setGeneratingStep(null);
