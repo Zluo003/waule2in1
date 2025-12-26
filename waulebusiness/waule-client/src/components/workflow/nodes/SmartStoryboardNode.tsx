@@ -147,6 +147,14 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     const recoverTask = async () => {
       if (!initialTaskId) return;
 
+      // 第一步（文字生成）是同步调用，无法恢复，提示用户重新生成
+      if (initialTaskId === 'text-generation') {
+        console.log('[SmartStoryboardNode] 文字生成阶段中断，无法恢复');
+        clearTaskState(id);
+        toast.error('分镜生成中断，请重新生成');
+        return;
+      }
+
       console.log('[SmartStoryboardNode] 恢复任务查询:', initialTaskId, savedTask ? '(from localStorage)' : '(from node data)');
       setIsGenerating(true);
       setGeneratingStep(savedTask?.step || 'image');
