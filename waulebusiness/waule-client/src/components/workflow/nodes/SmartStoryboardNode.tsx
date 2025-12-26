@@ -9,6 +9,38 @@ import { sliceImageGrid } from '../../../utils/imageGridSlicer';
 import { uploadBase64ToLocal } from '../../../api/tenantLocalServer';
 import { isLocalStorageEnabled } from '../../../store/tenantStorageStore';
 
+// 任务状态持久化 - 独立于工作流保存
+const TASK_STORAGE_KEY = 'smart_storyboard_tasks';
+
+const saveTaskState = (nodeId: string, taskId: string, step: 'text' | 'image') => {
+  try {
+    const tasks = JSON.parse(localStorage.getItem(TASK_STORAGE_KEY) || '{}');
+    tasks[nodeId] = { taskId, step, timestamp: Date.now() };
+    localStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(tasks));
+  } catch (e) {
+    console.warn('[SmartStoryboardNode] 保存任务状态失败:', e);
+  }
+};
+
+const clearTaskState = (nodeId: string) => {
+  try {
+    const tasks = JSON.parse(localStorage.getItem(TASK_STORAGE_KEY) || '{}');
+    delete tasks[nodeId];
+    localStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(tasks));
+  } catch (e) {
+    console.warn('[SmartStoryboardNode] 清除任务状态失败:', e);
+  }
+};
+
+const getTaskState = (nodeId: string): { taskId: string; step: 'text' | 'image'; timestamp: number } | null => {
+  try {
+    const tasks = JSON.parse(localStorage.getItem(TASK_STORAGE_KEY) || '{}');
+    return tasks[nodeId] || null;
+  } catch (e) {
+    return null;
+  }
+};
+
 interface SmartStoryboardNodeData {
   config: {
     aspectRatio?: string;
@@ -107,20 +139,26 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     }
   }, [connectedEdges, getNodes]);
 
-  // 任务恢复逻辑
+  // 任务恢复逻辑 - 优先从 localStorage 恢复
   useEffect(() => {
-    const initialTaskId = data.config.taskId;
+    const savedTask = getTaskState(id);
+    const initialTaskId = savedTask?.taskId || data.config.taskId;
 
     const recoverTask = async () => {
       if (!initialTaskId) return;
 
-      console.log('[SmartStoryboardNode] 恢复任务查询:', initialTaskId);
+      console.log('[SmartStoryboardNode] 恢复任务查询:', initialTaskId, savedTask ? '(from localStorage)' : '(from node data)');
+      setIsGenerating(true);
+      setGeneratingStep(savedTask?.step || 'image');
+
       try {
         const response = await apiClient.tasks.getTaskStatus(initialTaskId);
         const task = response.task;
 
         if (task.status === 'SUCCESS') {
           setIsGenerating(false);
+          setGeneratingStep(null);
+          clearTaskState(id);
           const imageUrl = task.resultUrl;
           if (!imageUrl) {
             updateNodeData({ taskId: '' });
@@ -150,14 +188,19 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           }
         } else if (task.status === 'PROCESSING' || task.status === 'PENDING') {
           setIsGenerating(true);
+          setGeneratingStep(savedTask?.step || 'image');
           pollTaskStatus(initialTaskId);
         } else if (task.status === 'FAILURE') {
           setIsGenerating(false);
+          setGeneratingStep(null);
+          clearTaskState(id);
           updateNodeData({ taskId: '' });
           toast.error(`生成失败: ${task.errorMessage || '未知错误'}`);
         }
       } catch (error: any) {
         setIsGenerating(false);
+        setGeneratingStep(null);
+        clearTaskState(id);
         updateNodeData({ taskId: '' });
         toast.error('任务恢复失败，请重新生成');
       }
@@ -263,6 +306,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       }
 
       // ========== 第一步：调用文字模型生成分镜描述 ==========
+      saveTaskState(id, 'text-generation', 'text'); // 保存文字生成阶段状态
       console.log('========================================');
       console.log('[SmartStoryboardNode] 【第1步开始】调用文字模型生成分镜描述');
       console.log('[SmartStoryboardNode] 模型ID:', TEXT_MODEL_ID);
@@ -323,11 +367,13 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       }
 
       const taskId = response.taskId;
+      saveTaskState(id, taskId, 'image'); // 保存图片生成阶段状态
       updateNodeData({ taskId, userPrompt });
 
       pollTaskStatus(taskId);
     } catch (error: any) {
       console.error('[SmartStoryboardNode] 生成失败:', error);
+      clearTaskState(id); // 生成失败时清除
       toast.error(error.message || '生成失败');
       setIsGenerating(false);
       setGeneratingStep(null);
@@ -346,6 +392,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         if (task.status === 'SUCCESS') {
           setIsGenerating(false);
           setGeneratingStep(null);
+          clearTaskState(id); // 清除 localStorage 中的任务状态
           const imageUrl = task.resultUrl;
 
           if (!imageUrl) {
@@ -374,6 +421,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         } else if (task.status === 'FAILURE') {
           setIsGenerating(false);
           setGeneratingStep(null);
+          clearTaskState(id); // 清除 localStorage 中的任务状态
           updateNodeData({ taskId: '' });
           toast.error(`生成失败: ${task.errorMessage || '未知错误'}`);
         } else if (task.status === 'PROCESSING' || task.status === 'PENDING') {
@@ -383,12 +431,14 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           } else {
             setIsGenerating(false);
             setGeneratingStep(null);
+            clearTaskState(id); // 超时清除
             toast.error('生成超时，请重试');
           }
         }
       } catch (error: any) {
         setIsGenerating(false);
         setGeneratingStep(null);
+        clearTaskState(id); // 错误时清除
         toast.error('查询任务状态失败');
       }
     };
