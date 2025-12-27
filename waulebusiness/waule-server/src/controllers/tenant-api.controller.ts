@@ -3284,7 +3284,9 @@ export const estimateCredits = asyncHandler(async (req: Request, res: Response) 
     if (aiModelId) {
       const model = await prisma.aIModel.findUnique({ where: { id: aiModelId } });
       if (model) {
-        credits = (model.pricePerUse?.toNumber() || 1) * quantity;
+        const unitPrice = model.pricePerUse?.toNumber() || 1;
+        // 如果有时长参数，按时长计费；否则按数量计费
+        credits = duration ? unitPrice * Math.ceil(duration) : unitPrice * quantity;
       }
     } else if (nodeType) {
       // 根据节点类型的默认值

@@ -17,9 +17,8 @@ module.exports = {
       script: 'dist/index.js',
       cwd: __dirname,
       
-      // 集群模式 - 自动根据 CPU 核心数创建进程
-      // i7 通常有 8 核，会创建 8 个工作进程
-      instances: 'max',
+      // 集群模式 - 2 个进程
+      instances: 2,
       exec_mode: 'cluster',
       
       // 环境变量

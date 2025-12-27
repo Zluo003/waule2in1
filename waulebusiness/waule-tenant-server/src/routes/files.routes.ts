@@ -11,22 +11,33 @@ import logger from '../utils/logger';
 const router = Router();
 
 /**
+ * 生成文件访问的基础 URL
+ */
+function getBaseUrl(): string {
+  const config = getAppConfig();
+  if (config.serverHost && /^https?:\/\//.test(config.serverHost)) {
+    return config.serverHost;
+  }
+  const localIP = getLocalIP();
+  return `http://${config.serverHost || localIP}:${config.port}`;
+}
+
+/**
  * 获取文件列表
  * GET /api/files/list?path=uploads/xxx
  */
 router.get('/list', async (req: Request, res: Response) => {
   try {
     const subPath = (req.query.path as string) || '';
-    const config = getAppConfig();
     const files = storageService.listFiles(subPath);
-    
+
     // 添加完整 URL
-    const localIP = getLocalIP();
+    const baseUrl = getBaseUrl();
     const filesWithUrl = files.map(file => ({
       ...file,
-      url: file.isDirectory ? undefined : `http://${localIP}:${config.port}/files/${file.path}`,
+      url: file.isDirectory ? undefined : `${baseUrl}/files/${file.path}`,
     }));
-    
+
     res.json({
       success: true,
       path: subPath,

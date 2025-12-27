@@ -14,6 +14,19 @@ import logger from '../utils/logger';
 
 const router = Router();
 
+/**
+ * 生成文件访问的基础 URL
+ * 优先使用配置的外网地址，否则使用内网 IP
+ */
+function getBaseUrl(): string {
+  const config = getAppConfig();
+  if (config.serverHost && /^https?:\/\//.test(config.serverHost)) {
+    return config.serverHost;
+  }
+  const localIP = getLocalIP();
+  return `http://${config.serverHost || localIP}:${config.port}`;
+}
+
 // 获取临时目录（使用函数延迟初始化）
 function getTempDir(): string {
   const config = getAppConfig();
@@ -62,8 +75,7 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
     }
     
     const userId = req.body.userId || 'default';
-    const config = getAppConfig();
-    
+
     // 保存文件
     const savedFile = await storageService.saveUploadedFile(
       file.path,
@@ -71,10 +83,9 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
       userId,
       'uploads'
     );
-    
-    // 生成本地访问 URL
-    const localIP = getLocalIP();
-    const localUrl = `http://${localIP}:${config.port}/files/${savedFile.localPath}`;
+
+    // 生成访问 URL
+    const localUrl = `${getBaseUrl()}/files/${savedFile.localPath}`;
     
     // 生成唯一 ID
     const fileId = `local_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
@@ -218,10 +229,9 @@ router.post('/base64', async (req: Request, res: Response) => {
       userId,
       'slices' // 分割图片专用目录
     );
-    
-    // 生成本地访问 URL
-    const localIP = getLocalIP();
-    const localUrl = `http://${localIP}:${config.port}/files/${savedFile.localPath}`;
+
+    // 生成访问 URL
+    const localUrl = `${getBaseUrl()}/files/${savedFile.localPath}`;
     
     logger.info(`[Upload] Base64 图片已保存: ${localUrl}`);
     

@@ -80,6 +80,8 @@ export interface AppConfig {
   tenantApiKey: string;
   // 是否已完成初始配置
   isConfigured: boolean;
+  // 自定义服务器访问地址（外网IP或域名，留空则使用自动检测的内网IP）
+  serverHost: string;
 }
 
 // 默认配置（使用数据目录下的 storage）
@@ -89,6 +91,7 @@ const defaultConfig: AppConfig = {
   platformServerUrl: '',
   tenantApiKey: '',
   isConfigured: false,
+  serverHost: '',
 };
 
 /**
@@ -114,22 +117,25 @@ export function setConfigValue(key: string, value: string): void {
  */
 export function getAllConfig(): AppConfig {
   const config = { ...defaultConfig };
-  
+
   const port = getConfigValue('port');
   if (port) config.port = parseInt(port, 10);
-  
+
   const storagePath = getConfigValue('storagePath');
   if (storagePath) config.storagePath = storagePath;
-  
+
   const platformServerUrl = getConfigValue('platformServerUrl');
   if (platformServerUrl) config.platformServerUrl = platformServerUrl;
-  
+
   const tenantApiKey = getConfigValue('tenantApiKey');
   if (tenantApiKey) config.tenantApiKey = tenantApiKey;
-  
+
   const isConfigured = getConfigValue('isConfigured');
   config.isConfigured = isConfigured === 'true';
-  
+
+  const serverHost = getConfigValue('serverHost');
+  if (serverHost) config.serverHost = serverHost;
+
   return config;
 }
 
@@ -151,6 +157,9 @@ export function saveConfig(config: Partial<AppConfig>): void {
   }
   if (config.isConfigured !== undefined) {
     setConfigValue('isConfigured', config.isConfigured.toString());
+  }
+  if (config.serverHost !== undefined) {
+    setConfigValue('serverHost', config.serverHost);
   }
 }
 

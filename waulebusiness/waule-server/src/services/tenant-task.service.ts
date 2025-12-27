@@ -85,8 +85,10 @@ class TenantTaskService {
     // 如果计费规则返回0或计算失败，回退到模型默认价格
     if (creditCost === 0) {
       const basePrice = model.pricePerUse?.toNumber() || (params.type === 'IMAGE' ? 10 : 50);
-      creditCost = basePrice * imageCount;
-      logger.info(`[TenantTaskService] 使用模型默认价格: ${creditCost} (单价: ${basePrice}, 数量: ${imageCount})`);
+      const duration = params.metadata?.duration;
+      // 如果有时长参数，按时长计费；否则按数量计费
+      creditCost = duration ? basePrice * Math.ceil(duration) : basePrice * imageCount;
+      logger.info(`[TenantTaskService] 使用模型默认价格: ${creditCost} (单价: ${basePrice}, ${duration ? `时长: ${duration}秒` : `数量: ${imageCount}`})`);
     }
 
     // 检查租户积分

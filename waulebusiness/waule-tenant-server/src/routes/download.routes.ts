@@ -12,18 +12,29 @@ import logger from '../utils/logger';
 const router = Router();
 
 /**
+ * 生成文件访问的基础 URL
+ */
+function getBaseUrl(): string {
+  const config = getAppConfig();
+  if (config.serverHost && /^https?:\/\//.test(config.serverHost)) {
+    return config.serverHost;
+  }
+  const localIP = getLocalIP();
+  return `http://${config.serverHost || localIP}:${config.port}`;
+}
+
+/**
  * 从 OSS 下载 AI 生成结果到本地
  * POST /api/download-result
  */
 router.post('/result', async (req: Request, res: Response) => {
   try {
     const { taskId, ossUrl, type = 'IMAGE', userId = 'default' } = req.body;
-    const config = getAppConfig();
-    
+
     if (!ossUrl) {
       return res.status(400).json({ error: '缺少 ossUrl 参数' });
     }
-    
+
     // 下载并保存
     const result = await storageService.downloadAndSave(
       ossUrl,
@@ -31,12 +42,10 @@ router.post('/result', async (req: Request, res: Response) => {
       taskId,
       type as 'IMAGE' | 'VIDEO' | 'AUDIO'
     );
-    
+
     if (result.success && result.localPath) {
-      // 生成本地访问 URL
-      const localIP = getLocalIP();
-      const localUrl = `http://${localIP}:${config.port}/files/${result.localPath}`;
-      
+      const localUrl = `${getBaseUrl()}/files/${result.localPath}`;
+
       res.json({
         success: true,
         localPath: result.localPath,
@@ -61,28 +70,26 @@ router.post('/result', async (req: Request, res: Response) => {
 router.post('/batch', async (req: Request, res: Response) => {
   try {
     const { files, userId = 'default' } = req.body;
-    const config = getAppConfig();
-    
+
     if (!files || !Array.isArray(files) || files.length === 0) {
       return res.status(400).json({ error: '缺少 files 参数' });
     }
-    
+
     const results = [];
-    
+
     for (const file of files) {
       const { taskId, ossUrl, type = 'IMAGE' } = file;
-      
+
       const result = await storageService.downloadAndSave(
         ossUrl,
         userId,
         taskId,
         type as 'IMAGE' | 'VIDEO' | 'AUDIO'
       );
-      
+
       if (result.success && result.localPath) {
-        const localIP = getLocalIP();
-        const localUrl = `http://${localIP}:${config.port}/files/${result.localPath}`;
-        
+        const localUrl = `${getBaseUrl()}/files/${result.localPath}`;
+
         results.push({
           taskId,
           success: true,
@@ -97,7 +104,7 @@ router.post('/batch', async (req: Request, res: Response) => {
         });
       }
     }
-    
+
     res.json({
       success: true,
       results,

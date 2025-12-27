@@ -274,10 +274,13 @@ router.get('/', (req: Request, res: Response) => {
   const token = getSessionTokenFromRequest(req);
   // 修复：只有 token 验证通过才算已登录，没设置密码时也不算已登录
   const isLoggedIn = token ? verifySessionToken(token) : false;
-  
+  // 计算显示的 URL：如果 serverHost 包含协议则直接使用，否则加 http:// 和端口
+  const hasProtocol = config.serverHost && /^https?:\/\//.test(config.serverHost);
+  const displayUrl = hasProtocol ? config.serverHost : `http://${config.serverHost || localIP}:${config.port}`;
+
   console.log('[Admin] 页面访问 - needSetPassword:', needSetPassword, 'token:', token?.substring(0, 10), 'isLoggedIn:', isLoggedIn);
-  
-  res.send(getAdminPageHTML(config, localIP, isConfigured, needSetPassword, isLoggedIn));
+
+  res.send(getAdminPageHTML(config, localIP, displayUrl, isConfigured, needSetPassword, isLoggedIn));
 });
 
 // ==================== 需要认证的接口 ====================
@@ -308,7 +311,7 @@ router.get('/api/config', requireAuth, (req: Request, res: Response) => {
  */
 router.post('/api/config', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { storagePath, platformServerUrl, tenantApiKey: inputApiKey } = req.body;
+    const { storagePath, platformServerUrl, tenantApiKey: inputApiKey, serverHost } = req.body;
     
     // 验证必填项
     if (!platformServerUrl) {
@@ -427,6 +430,7 @@ router.post('/api/config', requireAuth, async (req: Request, res: Response) => {
       platformServerUrl: cleanUrl,
       tenantApiKey,
       isConfigured: true,
+      serverHost: serverHost || '',
     });
     
     logger.info('配置已保存（已通过安全验证）');
@@ -678,7 +682,7 @@ function formatBytes(bytes: number): string {
 /**
  * 生成管理页面 HTML - 横屏布局，Tab 分组
  */
-function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, needSetPassword: boolean, isLoggedIn: boolean): string {
+function getAdminPageHTML(config: any, localIP: string, displayUrl: string, isConfigured: boolean, needSetPassword: boolean, isLoggedIn: boolean): string {
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -957,12 +961,12 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
               <div class="value">http://localhost:${config.port}</div>
             </div>
             <div class="info-item">
-              <div class="label">内网访问（客户端配置此地址）</div>
-              <div class="value hl">http://${localIP}:${config.port}</div>
+              <div class="label">客户端配置此地址${config.serverHost ? '（自定义）' : '（内网）'}</div>
+              <div class="value hl">${displayUrl}</div>
             </div>
             <div class="info-item">
               <div class="label">文件访问</div>
-              <div class="value">http://${localIP}:${config.port}/files</div>
+              <div class="value">${displayUrl}/files</div>
             </div>
             <div class="info-item">
               <div class="label">存储路径</div>
@@ -1013,6 +1017,11 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
                 <input type="text" id="storagePath" value="${config.storagePath}" placeholder="D:/waule/data">
                 <div class="hint">AI 生成文件保存位置</div>
               </div>
+              <div class="form-group" style="flex: 1;">
+                <label>外网访问地址（可选）</label>
+                <input type="text" id="serverHost" value="${config.serverHost || ''}" placeholder="例如: https://demo.example.com">
+                <div class="hint">留空则使用内网 IP: http://${localIP}:${config.port}</div>
+              </div>
             </div>
             <div class="btn-group">
               <button type="button" class="btn btn-secondary" onclick="testConnection()"><span id="testBtnText">🔗 测试连接</span></button>
@@ -1029,8 +1038,9 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
           <div class="tips">
             <p><strong>1.</strong> 在「平台配置」中填写平台地址和 API Key，点击「测试连接」</p>
             <p><strong>2.</strong> 设置本地存储路径（建议使用 SSD 硬盘）</p>
-            <p><strong>3.</strong> 保存配置后，在客户端「设置」页面启用本地存储</p>
-            <p><strong>4.</strong> 客户端设置中填写：<strong>http://${localIP}:${config.port}</strong></p>
+            <p><strong>3.</strong> 如需外网访问，填写「外网访问地址」（完整 URL 如 https://demo.example.com）</p>
+            <p><strong>4.</strong> 保存配置后，在客户端「设置」页面启用本地存储</p>
+            <p><strong>5.</strong> 客户端设置中填写：<strong>${displayUrl}</strong></p>
             <p style="margin-top:12px;color:#666;">💡 保持此程序运行，AI 生成的内容将自动下载到本地</p>
           </div>
         </div>
@@ -1330,6 +1340,7 @@ function getAdminPageHTML(config: any, localIP: string, isConfigured: boolean, n
             storagePath: document.getElementById('storagePath').value,
             platformServerUrl: document.getElementById('platformServerUrl').value,
             tenantApiKey: document.getElementById('tenantApiKey').value,
+            serverHost: document.getElementById('serverHost').value,
           }),
         });
         const data = await res.json();
