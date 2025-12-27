@@ -1294,10 +1294,10 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                     >
                       <div className="flex flex-col items-center gap-0.5">
                         <span className="material-symbols-outlined text-sm text-slate-600 dark:text-text-dark-secondary">
-                          {cat === 'ROLE' ? 'person' : cat === 'SCENE' ? 'landscape' : cat === 'PROP' ? 'inventory_2' : cat === 'AUDIO' ? 'music_note' : 'widgets'}
+                          {cat === 'ROLE' ? 'person' : cat === 'SCENE' ? 'landscape' : cat === 'PROP' ? 'inventory_2' : 'widgets'}
                         </span>
                         <span className="text-xs text-slate-900 dark:text-text-dark-primary">
-                          {cat === 'ROLE' ? '角色' : cat === 'SCENE' ? '场景' : cat === 'PROP' ? '道具' : cat === 'AUDIO' ? '音频' : '其他'}
+                          {cat === 'ROLE' ? '角色' : cat === 'SCENE' ? '场景' : cat === 'PROP' ? '道具' : '其他'}
                         </span>
                       </div>
                     </button>

@@ -134,13 +134,11 @@ const AudioPreviewNode = ({ data, id }: NodeProps<NodeData>) => {
   // 加载资产库列表
   const loadLibraries = async () => {
     try {
-      const params = selectedCategory === 'ALL' ? { includeShared: 'true' } : { category: selectedCategory, includeShared: 'true' } as any;
+      const params = { category: selectedCategory, includeShared: 'true' } as any;
       const response = await apiClient.assetLibraries.getAll(params);
       const libs = response.data || [];
       setLibraries(libs);
-      const filtered = selectedCategory === 'ALL'
-        ? libs
-        : libs.filter((l: any) => (l.category || 'OTHER') === selectedCategory);
+      const filtered = libs.filter((l: any) => (l.category || 'OTHER') === selectedCategory);
       if (filtered.length > 0) {
         const currentInFilter = filtered.find((l: any) => l.id === selectedLibraryId);
         setSelectedLibraryId(currentInFilter ? currentInFilter.id : filtered[0].id);
@@ -549,10 +547,10 @@ const AudioPreviewNode = ({ data, id }: NodeProps<NodeData>) => {
                     >
                       <div className="flex flex-col items-center gap-0.5">
                         <span className="material-symbols-outlined text-sm text-slate-600 dark:text-text-dark-secondary">
-                          {cat === 'ROLE' ? 'person' : cat === 'SCENE' ? 'landscape' : cat === 'PROP' ? 'inventory_2' : cat === 'AUDIO' ? 'music_note' : 'widgets'}
+                          {cat === 'AUDIO' ? 'music_note' : 'widgets'}
                         </span>
                         <span className="text-xs text-slate-900 dark:text-text-dark-primary">
-                          {cat === 'ROLE' ? '角色' : cat === 'SCENE' ? '场景' : cat === 'PROP' ? '道具' : cat === 'AUDIO' ? '音频' : '其他'}
+                          {cat === 'AUDIO' ? '音频' : '其他'}
                         </span>
                       </div>
                     </button>
