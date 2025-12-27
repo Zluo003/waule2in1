@@ -99,6 +99,7 @@ interface SoraImageGenerateOptions {
   modelId: string;
   aspectRatio?: string;
   referenceImages?: string[];
+  serverConfig?: ServerConfig;
   apiKey?: string;
   apiUrl?: string;
 }
