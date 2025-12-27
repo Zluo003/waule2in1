@@ -599,13 +599,22 @@ class TenantTaskService {
     logger.info(`[TenantTaskService] 智能分镜 - 第1步完成，分镜描述长度: ${generatedText.length}`);
     logger.info(`[TenantTaskService] 智能分镜 - 第2步：图片生成九宫格`);
 
-    // 第二步：调用图片模型生成九宫格
+    // 第二步：调用图片模型生成九宫格（固定使用 gemini-3-pro-image-preview）
+    const imageModelId = 'gemini-3-pro-image-preview';
+    const imageModel = await prisma.aIModel.findFirst({
+      where: { modelId: imageModelId, isActive: true },
+    });
+
+    if (!imageModel) {
+      throw new Error(`图片模型 ${imageModelId} 不存在或未启用`);
+    }
+
     const finalImagePrompt = `${imagePrompt}\n\n分镜描述：\n${generatedText}\n\n生成${params.ratio || '1:1'}比例的图片`;
 
     const imageResult = await this.processImageTask({
       ...params,
       prompt: finalImagePrompt,
-    }, model);
+    }, imageModel);
 
     const resultUrl = Array.isArray(imageResult) ? imageResult[0] : imageResult;
     logger.info(`[TenantTaskService] 智能分镜 - 第2步完成`);

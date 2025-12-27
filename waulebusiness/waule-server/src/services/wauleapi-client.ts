@@ -359,6 +359,7 @@ export async function getServerConfigByModelId(modelIdOrProvider: string): Promi
   const prisma = new PrismaClient();
 
   try {
+    console.log(`[getServerConfigByModelId] 查询模型: ${modelIdOrProvider}`);
     // 特殊处理 Midjourney：从设置中获取 serverId
     if (modelIdOrProvider.toLowerCase() === 'midjourney') {
       const setting = await prisma.setting.findUnique({
@@ -392,6 +393,7 @@ export async function getServerConfigByModelId(modelIdOrProvider: string): Promi
     }
 
     if (model?.wauleApiServer) {
+      console.log(`[getServerConfigByModelId] 使用模型关联的服务器: ${model.wauleApiServer.url}`);
       return {
         url: model.wauleApiServer.url,
         authToken: model.wauleApiServer.authToken,
@@ -404,12 +406,14 @@ export async function getServerConfigByModelId(modelIdOrProvider: string): Promi
     });
 
     if (defaultServer) {
+      console.log(`[getServerConfigByModelId] 使用默认服务器: ${defaultServer.url}`);
       return {
         url: defaultServer.url,
         authToken: defaultServer.authToken,
       };
     }
 
+    console.log(`[getServerConfigByModelId] 未找到服务器配置，返回 undefined`);
     return undefined;
   } finally {
     await prisma.$disconnect();
