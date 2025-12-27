@@ -146,7 +146,12 @@ function startServer() {
 
   // 创建 HTTP 服务器
   const server = createServer(app);
-  
+
+  // 设置服务器超时（10分钟，支持长时间的 AI 请求）
+  server.timeout = 600000; // 10分钟
+  server.keepAliveTimeout = 620000; // 比 timeout 稍长
+  server.headersTimeout = 630000; // 比 keepAliveTimeout 稍长
+
   // 创建 WebSocket 代理
   const wsProxy = createProxyServer({
     ws: true,

@@ -888,7 +888,8 @@ export const apiClient = {
       create: (data: { agentId: string; name: string; description?: string; systemPrompt: string; aiModelId: string; temperature?: number; maxTokens?: number; isActive?: boolean; }) => apiClient.post('/agent-roles', data),
       update: (id: string, data: Partial<{ name: string; description?: string; systemPrompt: string; aiModelId: string; temperature?: number; maxTokens?: number; isActive?: boolean; order?: number; }>) => apiClient.put(`/agent-roles/${id}`, data),
       delete: (id: string) => apiClient.delete(`/agent-roles/${id}`),
-      execute: (id: string, data: { prompt: string; systemPrompt?: string; temperature?: number; maxTokens?: number; documentFiles?: any[]; imageUrls?: string[]; videoUrls?: string[] }) => apiClient.tenant.post(`/agent-roles/${id}/execute`, data),
+      execute: (id: string, data: { prompt: string; systemPrompt?: string; temperature?: number; maxTokens?: number; documentFiles?: any[]; imageUrls?: string[]; videoUrls?: string[] }) =>
+        api.post(`/tenant/agent-roles/${id}/execute`, data, { timeout: 600000 }).then((res) => res.data),
     },
   },
 
