@@ -69,7 +69,8 @@ class TaskService {
     let usageRecordId: string | undefined;
     
     logger.info(`[TaskService] 权限检查结果: isFree=${permissionResult.isFree}, metadata.duration=${params.metadata?.duration}`);
-    
+    logger.info(`[TaskService] metadata内容:`, JSON.stringify(params.metadata));
+
     if (!permissionResult.isFree) {
       const { billingService } = await import('./billing.service');
       // 标准化 mode 格式（wanMode 'wan-std'/'wan-pro' -> 'standard'/'pro'）
@@ -77,6 +78,7 @@ class TaskService {
       if (!mode && params.metadata?.wanMode) {
         mode = params.metadata.wanMode === 'wan-pro' ? 'pro' : 'standard';
       }
+      logger.info(`[TaskService] mode转换: metadata.mode=${params.metadata?.mode}, metadata.wanMode=${params.metadata?.wanMode}, 最终mode=${mode}`);
       // 如果 metadata 中有 nodeType，优先使用节点计费规则
       const nodeType = params.metadata?.nodeType;
       const billingParams: any = {
