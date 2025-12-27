@@ -20,7 +20,7 @@ const loadImageWithRetry = (
 ): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     let retryCount = 0;
-    let timeoutId: ReturnType<typeof setTimeout>;
+    let timeoutId: number | NodeJS.Timeout;
 
     const attemptLoad = () => {
       const img = new Image();

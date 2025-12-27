@@ -415,15 +415,17 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       try {
         console.log(`[SmartStoryboardNode] 尝试获取图片 (${attempt}/${maxRetries}):`, url.substring(0, 100));
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+        // 使用 Promise.race 实现超时，兼容不支持 AbortController 的环境
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('请求超时')), 30000);
+        });
 
-        const response = await fetch(url, {
-          signal: controller.signal,
+        const fetchPromise = fetch(url, {
           mode: 'cors',
           credentials: 'omit'
         });
-        clearTimeout(timeoutId);
+
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
