@@ -540,6 +540,7 @@ const AIVideoEditNode = ({ data, selected, id }: NodeProps<AIVideoEditNodeData>)
         referenceImages: connectedInputs.imageUrl ? [connectedInputs.imageUrl] : [],
         sourceNodeId: id,
         duration: videoDuration, // 传递时长用于计费
+        mode: wanMode === 'wan-pro' ? 'pro' : 'standard', // 传递模式用于计费
         metadata: { videoUrl: connectedInputs.videoUrl, wanMode, duration: videoDuration },
       } as any);
       
