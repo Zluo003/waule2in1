@@ -59,16 +59,16 @@ async function fetchImageAsBase64(img: string): Promise<{ mimeType: string; data
  * 从响应内容中提取图片URL
  * 响应格式: ![image](http://your-domain.com/media/xxx.jpg)
  */
-function extractImageUrls(content: string): string[] {
+function extractImageUrls(content: string, baseUrl: string): string[] {
   const urls: string[] = [];
-  
+
   // 匹配 markdown 图片格式 ![...](url)
   const markdownRegex = /!\[[^\]]*\]\(([^)]+)\)/g;
   let match;
   while ((match = markdownRegex.exec(content)) !== null) {
     urls.push(match[1]);
   }
-  
+
   // 匹配纯URL格式 (备用)
   if (urls.length === 0) {
     const urlRegex = /(https?:\/\/[^\s<>"{}|\\^`\[\]]+\.(?:png|jpg|jpeg|gif|webp))/gi;
@@ -76,8 +76,14 @@ function extractImageUrls(content: string): string[] {
       urls.push(match[1]);
     }
   }
-  
-  return urls;
+
+  // 修复localhost URL: 将 http://localhost:3000 替换为中转API的baseUrl
+  return urls.map(url => {
+    if (url.includes('localhost:3000') || url.includes('127.0.0.1:3000')) {
+      return url.replace(/https?:\/\/(localhost|127\.0\.0\.1):3000/, baseUrl);
+    }
+    return url;
+  });
 }
 
 /**
@@ -195,8 +201,8 @@ export async function generateImage(options: Gemini3ProxyImageOptions): Promise<
     
     log('Gemini3Proxy', `响应内容长度: ${content.length}`);
     
-    // 提取图片URL
-    const imageUrls = extractImageUrls(content);
+    // 提取图片URL (传入baseUrl用于修复localhost地址)
+    const imageUrls = extractImageUrls(content, baseUrl);
     
     if (imageUrls.length === 0) {
       // 检查是否有base64图片数据

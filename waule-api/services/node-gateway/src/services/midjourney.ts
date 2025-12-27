@@ -503,6 +503,7 @@ class MidjourneyService extends EventEmitter {
   private connections: DiscordConnection[] = [];
   private currentIndex: number = 0;
   private isInitialized: boolean = false;
+  private initializingPromise: Promise<void> | null = null;
 
   constructor() {
     super();
@@ -510,6 +511,17 @@ class MidjourneyService extends EventEmitter {
 
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
+
+    // 防止并发初始化
+    if (this.initializingPromise) {
+      return this.initializingPromise;
+    }
+
+    this.initializingPromise = this._doInitialize();
+    return this.initializingPromise;
+  }
+
+  private async _doInitialize(): Promise<void> {
 
     const accounts = getActiveDiscordAccounts();
     if (!accounts.length) {
@@ -612,6 +624,7 @@ class MidjourneyService extends EventEmitter {
     }
     this.connections = [];
     this.isInitialized = false;
+    this.initializingPromise = null;
     log('所有连接已断开');
   }
 }
