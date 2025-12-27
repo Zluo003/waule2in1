@@ -11,6 +11,69 @@ export interface SliceResult {
 }
 
 /**
+ * 加载图片并返回 Image 对象，带超时和重试机制
+ */
+const loadImageWithRetry = (
+  imageUrl: string,
+  timeout: number = 30000,
+  maxRetries: number = 3
+): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    let retryCount = 0;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const attemptLoad = () => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+
+      // 设置超时
+      timeoutId = setTimeout(() => {
+        console.warn(`[imageGridSlicer] 图片加载超时 (${timeout}ms)，重试 ${retryCount + 1}/${maxRetries}`);
+        img.src = ''; // 取消加载
+        if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(attemptLoad, 1000); // 1秒后重试
+        } else {
+          reject(new Error(`图片加载超时，已重试 ${maxRetries} 次`));
+        }
+      }, timeout);
+
+      img.onload = () => {
+        clearTimeout(timeoutId);
+        // 验证图片是否有效
+        if (img.width === 0 || img.height === 0) {
+          console.warn('[imageGridSlicer] 图片尺寸无效');
+          if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(attemptLoad, 1000);
+          } else {
+            reject(new Error('图片尺寸无效'));
+          }
+          return;
+        }
+        console.log(`[imageGridSlicer] 图片加载成功: ${img.width}x${img.height}`);
+        resolve(img);
+      };
+
+      img.onerror = (e) => {
+        clearTimeout(timeoutId);
+        console.warn(`[imageGridSlicer] 图片加载失败，重试 ${retryCount + 1}/${maxRetries}`, e);
+        if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(attemptLoad, 1000);
+        } else {
+          reject(new Error(`图片加载失败，已重试 ${maxRetries} 次`));
+        }
+      };
+
+      img.src = imageUrl;
+    };
+
+    attemptLoad();
+  });
+};
+
+/**
  * 将网格图片切割成独立的图片
  * @param imageUrl - 图片 URL 或 base64 字符串
  * @param rows - 行数 (如 2x2 网格为 2)
@@ -22,70 +85,63 @@ export const sliceImageGrid = async (
   rows: number,
   cols: number
 ): Promise<SliceResult> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
+  console.log(`[imageGridSlicer] 开始切割图片: rows=${rows}, cols=${cols}, url长度=${imageUrl.length}`);
 
-    img.onload = () => {
-      try {
-        const w = img.width;
-        const h = img.height;
-        const pieceWidth = Math.floor(w / cols);
-        const pieceHeight = Math.floor(h / rows);
+  try {
+    const img = await loadImageWithRetry(imageUrl);
 
-        const pieces: string[] = [];
-        const canvas = document.createElement('canvas');
-        canvas.width = pieceWidth;
-        canvas.height = pieceHeight;
-        const ctx = canvas.getContext('2d');
+    const w = img.width;
+    const h = img.height;
+    const pieceWidth = Math.floor(w / cols);
+    const pieceHeight = Math.floor(h / rows);
 
-        if (!ctx) {
-          reject(new Error('无法获取 Canvas 上下文'));
-          return;
-        }
+    console.log(`[imageGridSlicer] 图片尺寸: ${w}x${h}, 切片尺寸: ${pieceWidth}x${pieceHeight}`);
 
-        // 按行列顺序切割
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            ctx.clearRect(0, 0, pieceWidth, pieceHeight);
-            ctx.drawImage(
-              img,
-              c * pieceWidth,  // 源 x
-              r * pieceHeight, // 源 y
-              pieceWidth,      // 源宽度
-              pieceHeight,     // 源高度
-              0,               // 目标 x
-              0,               // 目标 y
-              pieceWidth,      // 目标宽度
-              pieceHeight      // 目标高度
-            );
-            pieces.push(canvas.toDataURL('image/png'));
-          }
-        }
+    const pieces: string[] = [];
+    const canvas = document.createElement('canvas');
+    canvas.width = pieceWidth;
+    canvas.height = pieceHeight;
+    const ctx = canvas.getContext('2d');
 
-        resolve({
-          slices: pieces,
-          fullImage: imageUrl,
-          rows,
-          cols,
-        });
-      } catch (error) {
-        reject(error);
-      }
-    };
-
-    img.onerror = () => {
-      reject(new Error('图片加载失败'));
-    };
-
-    // 处理不同类型的图片源
-    if (imageUrl.startsWith('data:')) {
-      img.src = imageUrl;
-    } else {
-      // 对于远程 URL，尝试直接加载
-      img.src = imageUrl;
+    if (!ctx) {
+      throw new Error('无法获取 Canvas 上下文');
     }
-  });
+
+    // 按行列顺序切割
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        ctx.clearRect(0, 0, pieceWidth, pieceHeight);
+        ctx.drawImage(
+          img,
+          c * pieceWidth,  // 源 x
+          r * pieceHeight, // 源 y
+          pieceWidth,      // 源宽度
+          pieceHeight,     // 源高度
+          0,               // 目标 x
+          0,               // 目标 y
+          pieceWidth,      // 目标宽度
+          pieceHeight      // 目标高度
+        );
+        const sliceData = canvas.toDataURL('image/png');
+        if (!sliceData || sliceData === 'data:,') {
+          throw new Error(`切片 ${r * cols + c + 1} 生成失败`);
+        }
+        pieces.push(sliceData);
+      }
+    }
+
+    console.log(`[imageGridSlicer] 切割完成，共 ${pieces.length} 个切片`);
+
+    return {
+      slices: pieces,
+      fullImage: imageUrl,
+      rows,
+      cols,
+    };
+  } catch (error) {
+    console.error('[imageGridSlicer] 切割失败:', error);
+    throw error;
+  }
 };
 
 /**

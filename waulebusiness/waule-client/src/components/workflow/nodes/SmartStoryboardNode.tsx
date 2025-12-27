@@ -407,30 +407,84 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     poll();
   };
 
-  const handleSliceAndCreatePreviews = async (imageUrl: string) => {
+  // 将远程图片转换为 base64，带重试机制
+  const fetchImageAsBase64 = async (url: string, maxRetries: number = 3): Promise<string> => {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`[SmartStoryboardNode] 尝试获取图片 (${attempt}/${maxRetries}):`, url.substring(0, 100));
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+
+        const response = await fetch(url, {
+          signal: controller.signal,
+          mode: 'cors',
+          credentials: 'omit'
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const blob = await response.blob();
+        if (blob.size === 0) {
+          throw new Error('获取到空图片');
+        }
+
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            if (!result || result === 'data:') {
+              reject(new Error('图片转换为base64失败'));
+            } else {
+              resolve(result);
+            }
+          };
+          reader.onerror = () => reject(new Error('FileReader读取失败'));
+          reader.readAsDataURL(blob);
+        });
+      } catch (error: any) {
+        lastError = error;
+        console.warn(`[SmartStoryboardNode] 获取图片失败 (${attempt}/${maxRetries}):`, error.message);
+        if (attempt < maxRetries) {
+          await new Promise(r => setTimeout(r, 1000 * attempt)); // 递增延迟
+        }
+      }
+    }
+
+    throw lastError || new Error('获取图片失败');
+  };
+
+  const handleSliceAndCreatePreviews = async (imageUrl: string, retryCount: number = 0) => {
+    const MAX_RETRIES = 3;
+
     try {
-      console.log('[SmartStoryboardNode] 开始切割图片:', imageUrl);
-      
+      console.log(`[SmartStoryboardNode] 开始切割图片 (尝试 ${retryCount + 1}/${MAX_RETRIES + 1}):`, imageUrl.substring(0, 100));
+
       // 先将远程图片转换为base64以避免CORS问题
       let imageToSlice = imageUrl;
       if (!imageUrl.startsWith('data:')) {
         try {
-          const response = await fetch(imageUrl);
-          const blob = await response.blob();
-          imageToSlice = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-          console.log('[SmartStoryboardNode] 图片已转换为base64');
-        } catch (fetchError) {
-          console.warn('[SmartStoryboardNode] 无法转换为base64，尝试直接切割:', fetchError);
+          imageToSlice = await fetchImageAsBase64(imageUrl);
+          console.log('[SmartStoryboardNode] 图片已转换为base64，长度:', imageToSlice.length);
+        } catch (fetchError: any) {
+          console.error('[SmartStoryboardNode] 无法转换为base64:', fetchError.message);
+          // 如果无法获取远程图片，抛出错误而不是继续
+          throw new Error(`无法获取图片: ${fetchError.message}`);
         }
       }
-      
+
       // 固定3x3九宫格
       const result = await sliceImageGrid(imageToSlice, 3, 3);
+
+      if (!result.slices || result.slices.length !== 9) {
+        throw new Error(`切割结果异常: 期望9个切片，实际${result.slices?.length || 0}个`);
+      }
+
       console.log('[SmartStoryboardNode] 切割完成，共', result.slices.length, '个片段');
 
       // 如果启用了本地存储，将base64图片上传到本地服务器
@@ -440,10 +494,14 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         const userId = data.createdBy?.id || 'default';
         const uploadPromises = result.slices.map(async (base64, index) => {
           const filename = `storyboard_${id}_slice_${index + 1}_${Date.now()}.png`;
-          const uploadResult = await uploadBase64ToLocal(base64, userId, filename);
-          if (uploadResult.success && uploadResult.localUrl) {
-            console.log(`[SmartStoryboardNode] 分镜 ${index + 1} 已上传:`, uploadResult.localUrl);
-            return uploadResult.localUrl;
+          try {
+            const uploadResult = await uploadBase64ToLocal(base64, userId, filename);
+            if (uploadResult.success && uploadResult.localUrl) {
+              console.log(`[SmartStoryboardNode] 分镜 ${index + 1} 已上传:`, uploadResult.localUrl);
+              return uploadResult.localUrl;
+            }
+          } catch (uploadError) {
+            console.warn(`[SmartStoryboardNode] 分镜 ${index + 1} 上传异常:`, uploadError);
           }
           console.warn(`[SmartStoryboardNode] 分镜 ${index + 1} 上传失败，使用base64`);
           return base64;
@@ -452,15 +510,30 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         console.log('[SmartStoryboardNode] 所有分割图片已上传到本地存储');
       }
 
+      // 验证最终切片
+      const validSlices = finalSlices.filter(s => s && s.length > 100);
+      if (validSlices.length !== 9) {
+        throw new Error(`有效切片数量不足: ${validSlices.length}/9`);
+      }
+
       updateNodeData({ slicedImages: finalSlices });
 
       // 批量创建9个预览节点（避免状态覆盖）
       createAllPreviewNodes(finalSlices, aspectRatio);
-      
+
       console.log('[SmartStoryboardNode] 已创建', finalSlices.length, '个预览节点');
     } catch (error: any) {
-      console.error('[SmartStoryboardNode] 切割失败:', error);
-      toast.error('图片切割失败: ' + error.message);
+      console.error(`[SmartStoryboardNode] 切割失败 (尝试 ${retryCount + 1}):`, error);
+
+      // 重试机制
+      if (retryCount < MAX_RETRIES) {
+        console.log(`[SmartStoryboardNode] ${2 * (retryCount + 1)}秒后重试...`);
+        toast.error(`图片切割失败，正在重试 (${retryCount + 1}/${MAX_RETRIES})...`);
+        await new Promise(r => setTimeout(r, 2000 * (retryCount + 1)));
+        return handleSliceAndCreatePreviews(imageUrl, retryCount + 1);
+      }
+
+      toast.error('图片切割失败: ' + error.message + '，请重新生成');
     }
   };
 
