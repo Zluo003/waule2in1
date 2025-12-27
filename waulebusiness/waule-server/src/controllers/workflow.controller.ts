@@ -773,75 +773,46 @@ export const getOrCreateShotWorkflow = asyncHandler(async (req: Request, res: Re
     canEdit = !!episodePermission;
   }
 
-  const displayName = `${project.name} - ${episode.name} - 第${scene}幕第${shot}镜 - 工作流`;
+  const displayName = `${project.name} - ${episode.name} - 分镜${shot} - 工作流`;
 
   console.log('[getOrCreateShotWorkflow] 查找工作流:', { shotId, scene, shot, episodeId });
 
-  // 优先通过 shotId 查找工作流（新逻辑）
-  let workflow = null;
-  if (shotId) {
-    workflow = await prisma.workflow.findFirst({
-      where: {
-        episodeId,
-        userId: project.userId,
-        data: { path: ['shotId'], equals: shotId },
-      },
-      include: {
-        nodes: true,
-        _count: { select: { shares: true } },
-      },
-    });
-    console.log('[getOrCreateShotWorkflow] 通过 shotId 查找结果:', workflow ? workflow.id : 'null');
+  // 通过 shotId 查找工作流（shotId 是唯一标识）
+  if (!shotId) {
+    return res.status(400).json({ success: false, message: '缺少分镜ID (shotId)' });
   }
 
-  // 如果没有 shotId 或未找到，回退到旧逻辑（通过名称查找）
-  if (!workflow) {
-    const expectedName = `${project.name} - ${episode.name} - 第${scene}幕第${shot}镜 - 工作流`;
-    workflow = await prisma.workflow.findFirst({
-      where: {
-        episodeId,
-        userId: project.userId,
-        name: expectedName,
-      },
-      include: {
-        nodes: true,
-        _count: { select: { shares: true } },
-      },
-    });
-    console.log('[getOrCreateShotWorkflow] 通过名称查找结果:', workflow ? workflow.id : 'null', expectedName);
-  }
+  let workflow = await prisma.workflow.findFirst({
+    where: {
+      episodeId,
+      userId: project.userId,
+      data: { path: ['shotId'], equals: shotId },
+    },
+    include: {
+      nodes: true,
+      _count: { select: { shares: true } },
+    },
+  });
+  console.log('[getOrCreateShotWorkflow] 通过 shotId 查找结果:', workflow ? workflow.id : 'null');
 
-  // 如果不存在，创建新工作流（由项目所有者拥有，所有协作者共享）
+  // 如果不存在，创建新工作流
   if (!workflow) {
     workflow = await prisma.workflow.create({
       data: {
         name: displayName,
-        userId: project.userId, // 始终由项目所有者拥有
+        userId: project.userId,
         projectId,
         episodeId,
         data: {
           scope: 'shot',
           scene,
           shot,
-          shotId: shotId || undefined, // 保存 shotId
+          shotId,
           nodes: [],
           edges: [],
           nodeGroups: [],
           viewport: { x: 0, y: 0, zoom: 1 },
         },
-      },
-      include: {
-        nodes: true,
-        _count: { select: { shares: true } },
-      },
-    });
-  } else if (shotId && !(workflow.data as any)?.shotId) {
-    // 如果工作流存在但没有 shotId，更新它
-    workflow = await prisma.workflow.update({
-      where: { id: workflow.id },
-      data: {
-        name: displayName, // 同时更新名称
-        data: { ...(workflow.data as any), shotId },
       },
       include: {
         nodes: true,
@@ -912,37 +883,26 @@ export const saveShotWorkflow = asyncHandler(async (req: Request, res: Response)
     throw new AppError('无效的分镜参数', 400);
   }
 
-  const displayName = `${project.name} - ${episode.name} - 第${scene}幕第${shot}镜 - 工作流`;
+  const displayName = `${project.name} - ${episode.name} - 分镜${shot} - 工作流`;
 
-  // 优先通过 shotId 查找工作流
-  let workflow = null;
-  if (shotId) {
-    workflow = await prisma.workflow.findFirst({
-      where: {
-        episodeId,
-        userId: project.userId,
-        data: { path: ['shotId'], equals: shotId },
-      },
-    });
+  // 通过 shotId 查找工作流（shotId 是唯一标识）
+  if (!shotId) {
+    throw new AppError('缺少分镜ID (shotId)', 400);
   }
 
-  // 如果没有 shotId 或未找到，回退到旧逻辑
-  if (!workflow) {
-    const expectedName = `${project.name} - ${episode.name} - 第${scene}幕第${shot}镜 - 工作流`;
-    workflow = await prisma.workflow.findFirst({
-      where: {
-        episodeId,
-        userId: project.userId,
-        name: expectedName,
-      },
-    });
-  }
+  let workflow = await prisma.workflow.findFirst({
+    where: {
+      episodeId,
+      userId: project.userId,
+      data: { path: ['shotId'], equals: shotId },
+    },
+  });
 
   const workflowData = {
     scope: 'shot',
     scene,
     shot,
-    shotId: shotId || undefined, // 保存 shotId
+    shotId,
     nodes: sanitizeWorkflowNodes(nodes || []),
     edges: edges || [],
     nodeGroups: nodeGroups || [],

@@ -1172,14 +1172,15 @@ export const getOrCreateShotWorkflow = asyncHandler(async (req: Request, res: Re
     return res.status(404).json({ success: false, message: '剧集不存在' });
   }
 
-  // 只通过 shotId 查找工作流
-  let workflow = null;
-  if (shotId) {
-    workflow = await prisma.tenantWorkflow.findFirst({
-      where: { projectId, episodeId, shotId },
-      include: { collaborators: { select: { id: true } } },
-    });
+  // 通过 shotId 查找工作流（shotId 是唯一标识）
+  if (!shotId) {
+    return res.status(400).json({ success: false, message: '缺少分镜ID (shotId)' });
   }
+
+  let workflow = await prisma.tenantWorkflow.findFirst({
+    where: { projectId, episodeId, shotId },
+    include: { collaborators: { select: { id: true } } },
+  });
 
   if (!workflow) {
     // 项目所有者或有编辑权限的协作者可以创建工作流
@@ -1193,10 +1194,10 @@ export const getOrCreateShotWorkflow = asyncHandler(async (req: Request, res: Re
         episodeId,
         scene,
         shot,
-        shotId: shotId || undefined,
+        shotId,
         tenantId: tenantUser.tenantId,
         tenantUserId: project.tenantUserId,
-        name: `${episode.title} - 第${scene}幕第${shot}镜`,
+        name: `${episode.title} - 分镜${shot}`,
         nodes: [],
         edges: [],
       },
@@ -1276,16 +1277,17 @@ export const saveShotWorkflow = asyncHandler(async (req: Request, res: Response)
     return res.status(404).json({ success: false, message: '剧集不存在' });
   }
 
-  // 只通过 shotId 查找工作流
-  let workflow = null;
-  if (shotId) {
-    workflow = await prisma.tenantWorkflow.findFirst({
-      where: { projectId, episodeId, shotId },
-    });
+  // 通过 shotId 查找工作流（shotId 是唯一标识）
+  if (!shotId) {
+    return res.status(400).json({ success: false, message: '缺少分镜ID (shotId)' });
   }
 
+  let workflow = await prisma.tenantWorkflow.findFirst({
+    where: { projectId, episodeId, shotId },
+  });
+
   if (workflow) {
-    // 找到了，更新节点数据
+    // 更新工作流数据
     workflow = await prisma.tenantWorkflow.update({
       where: { id: workflow.id },
       data: {
@@ -1296,17 +1298,17 @@ export const saveShotWorkflow = asyncHandler(async (req: Request, res: Response)
       },
     });
   } else {
-    // 没找到，创建新工作流
+    // 创建新工作流
     workflow = await prisma.tenantWorkflow.create({
       data: {
         projectId,
         episodeId,
         scene,
         shot,
-        shotId: shotId || undefined,
+        shotId,
         tenantId: project.tenantId,
         tenantUserId: project.tenantUserId,
-        name: `${episode.title} - 第${scene}幕第${shot}镜`,
+        name: `${episode.title} - 分镜${shot}`,
         nodes: nodes || [],
         edges: edges || [],
         nodeGroups: nodeGroups || [],
