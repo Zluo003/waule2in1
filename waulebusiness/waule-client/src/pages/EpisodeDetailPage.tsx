@@ -1010,9 +1010,7 @@ export default function EpisodeDetailPageNew() {
     }
     
     const assetsParam = assets.length > 0 ? `&assets=${encodeURIComponent(JSON.stringify(assets))}` : ''
-    // 获取原始的 scene 和 shot 索引
-    const originalSceneShot = globalToSceneShot[currentShotIndex] || { scene: 1, shot: currentShotIndex }
-    navigate(`/projects/${projectId}/episodes/${episodeId}/workflow?scene=${originalSceneShot.scene}&shot=${originalSceneShot.shot}${assetsParam}`)
+    navigate(`/projects/${projectId}/episodes/${episodeId}/workflow?scene=1&shot=${currentShotIndex}${assetsParam}`)
   }
 
   const projectName = project?.name || ''

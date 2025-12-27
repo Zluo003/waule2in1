@@ -422,17 +422,10 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
               const url = data.videoUrl;
               const ctx = data.workflowContext || {};
               const ep = ctx.episode;
-              // 优先从 nodeGroup 获取 scene 和 shot
-              let nodeGroup = ctx.nodeGroup;
-              if (!nodeGroup && ctx.nodeGroups) {
-                nodeGroup = ctx.nodeGroups.find((g: any) => g.nodeIds?.includes(id));
-              }
-              if (!nodeGroup && (window as any).__workflowContext?.nodeGroups) {
-                nodeGroup = (window as any).__workflowContext.nodeGroups.find((g: any) => g.nodeIds?.includes(id));
-              }
+              // 直接从 URL 参数获取 scene 和 shot（最可靠的来源）
               const sp = new URLSearchParams(window.location.search);
-              const scene = Number(nodeGroup?.scene) || Number(sp.get('scene')) || 1;
-              const shot = Number(nodeGroup?.shot) || Number(sp.get('shot')) || 1;
+              const scene = Number(sp.get('scene')) || 1;
+              const shot = Number(sp.get('shot')) || 1;
               // 从 URL 路径获取 projectId 和 episodeId
               const parts = location.pathname.split('/').filter(Boolean);
               const pIdx = parts.indexOf('projects');
