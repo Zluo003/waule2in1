@@ -104,13 +104,25 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
     connectedEdges.forEach((edge) => {
       const sourceNode = nodes.find((n) => n.id === edge.source);
       if (sourceNode) {
-        const imageUrl =
-          sourceNode.data?.imageUrl ||
-          sourceNode.data?.config?.generatedImageUrl ||
-          sourceNode.data?.config?.imageUrl ||
-          sourceNode.data?.url;
-        if (imageUrl) {
-          newInputImage = imageUrl;
+        // 优先从 uploadedFiles 获取（上传节点）
+        const uploadedFiles = sourceNode.data?.config?.uploadedFiles;
+        if (Array.isArray(uploadedFiles) && uploadedFiles.length > 0) {
+          const firstFile = uploadedFiles[0];
+          if (firstFile?.url) {
+            newInputImage = firstFile.url;
+          }
+        }
+
+        // 如果没有找到，再从其他属性获取
+        if (!newInputImage) {
+          const imageUrl =
+            sourceNode.data?.imageUrl ||
+            sourceNode.data?.config?.generatedImageUrl ||
+            sourceNode.data?.config?.imageUrl ||
+            sourceNode.data?.url;
+          if (imageUrl) {
+            newInputImage = imageUrl;
+          }
         }
       }
     });
@@ -476,7 +488,7 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
           onClick={handleGenerate}
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
-          disabled={isGenerating || !inputImage || data._canEdit === false}
+          disabled={isGenerating || !inputImage}
           className={`nodrag w-full mt-2 py-2 text-[10px] font-bold rounded-lg border transition-all flex items-center justify-center gap-2 ${
             isGenerating || !inputImage
               ? 'bg-neutral-800 dark:bg-white text-white dark:text-black cursor-not-allowed border-transparent'

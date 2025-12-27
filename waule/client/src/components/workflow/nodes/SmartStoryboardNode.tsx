@@ -6,6 +6,7 @@ import { apiClient } from '../../../lib/api';
 import { processImageUrl } from '../../../utils/imageUtils';
 import { processTaskResult } from '../../../utils/taskResultHandler';
 import { sliceImageGrid, base64ToBlob } from '../../../utils/imageGridSlicer';
+import { useBillingEstimate } from '../../../hooks/useBillingEstimate';
 
 interface SmartStoryboardNodeData {
   config: {
@@ -37,6 +38,12 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
   const [isGenerating, setIsGenerating] = useState(!!data.config.taskId);
   const [generatingStep, setGeneratingStep] = useState<'text' | 'image' | null>(null);
   const [selectedModel, setSelectedModel] = useState<any>(null);
+
+  // 积分估算
+  const { credits, loading: creditsLoading, isFreeUsage, freeUsageRemaining } = useBillingEstimate({
+    nodeType: 'smart_storyboard',
+    quantity: 1,
+  });
 
   // 从可用模型中查找图片生成模型
   const imageModel = useMemo(() => {
@@ -230,12 +237,13 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       const imagePrompt = '根据以下分镜描述和参考图片，生成3x3的九宫格分镜图，每个格子展示一个分镜场景，保持角色和风格一致，使用细黑边框分隔每个画面。';
 
       // ========== 第一步：调用文字模型生成分镜描述 ==========
-      
+
       const textResponse = await apiClient.ai.text.generate({
         modelId: TEXT_MODEL_ID,
         systemPrompt: systemPrompt,
         prompt: userPrompt,
         imageUrls: processedImages,
+        skipBilling: true,  // 跳过第一步的扣费，只在第二步扣费
       });
 
       if (!textResponse.success) {
@@ -267,7 +275,10 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         ratio: aspectRatio,
         referenceImages: processedImages,
         sourceNodeId: id,
-        metadata: { imageSize: '4K' },
+        metadata: {
+          imageSize: '4K',
+          nodeType: 'smart_storyboard'  // 用于计费识别
+        },
       });
 
       if (!response.success) {
@@ -275,7 +286,15 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       }
 
       const taskId = response.taskId;
+      const creditsCharged = response.creditsCharged || 0;
       updateNodeData({ taskId, userPrompt });
+
+      // 刷新用户积分
+      if (creditsCharged > 0) {
+        const { useAuthStore } = await import('../../../store/authStore');
+        const { refreshUser } = useAuthStore.getState();
+        await refreshUser();
+      }
 
       // 触发工作流保存，确保刷新页面后能恢复任务
       setTimeout(() => {
@@ -630,6 +649,18 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             <>
               <span className="material-symbols-outlined text-sm">grid_view</span>
               <span>智能分镜</span>
+              {/* 积分/免费显示 */}
+              {!creditsLoading && (
+                isFreeUsage ? (
+                  <span className="ml-1 px-1.5 py-0.5 text-neutral-400 dark:text-neutral-500 rounded text-[9px]">
+                    免费，今日剩{Math.floor(freeUsageRemaining)}次
+                  </span>
+                ) : credits !== null && credits > 0 ? (
+                  <span className="ml-1 px-1.5 py-0.5 text-neutral-400 dark:text-neutral-500 text-[9px]">
+                    {credits}积分
+                  </span>
+                ) : null
+              )}
             </>
           )}
         </button>

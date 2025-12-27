@@ -434,21 +434,23 @@ class BillingService {
     }
     /**
      * 🚀 获取计费规则（带 Redis 缓存）
+     * 优先级：nodeType > moduleType > aiModelId
      */
     async getBillingRule(params) {
         const where = { isActive: true };
         let cacheKey = '';
-        if (params.aiModelId) {
-            where.aiModelId = params.aiModelId;
-            cacheKey = `billing:rule:model:${params.aiModelId}`;
-        }
-        else if (params.nodeType) {
+        // 优先检查固定节点计费规则
+        if (params.nodeType) {
             where.nodeType = params.nodeType;
             cacheKey = `billing:rule:node:${params.nodeType}`;
         }
         else if (params.moduleType) {
             where.moduleType = params.moduleType;
             cacheKey = `billing:rule:module:${params.moduleType}`;
+        }
+        else if (params.aiModelId) {
+            where.aiModelId = params.aiModelId;
+            cacheKey = `billing:rule:model:${params.aiModelId}`;
         }
         else {
             return null;

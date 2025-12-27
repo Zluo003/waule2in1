@@ -80,6 +80,7 @@ export declare class BillingService {
     }>;
     /**
      * 🚀 获取计费规则（带 Redis 缓存）
+     * 优先级：nodeType > moduleType > aiModelId
      */
     private getBillingRule;
     /**

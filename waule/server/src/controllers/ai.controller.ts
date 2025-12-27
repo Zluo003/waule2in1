@@ -277,7 +277,7 @@ export const generateImage = asyncHandler(async (req: Request, res: Response) =>
  * 生成文本
  */
 export const generateText = asyncHandler(async (req: Request, res: Response) => {
-  const { modelId, prompt, systemPrompt, temperature, maxTokens, documentFiles, imageUrls, videoUrls } = req.body;
+  const { modelId, prompt, systemPrompt, temperature, maxTokens, documentFiles, imageUrls, videoUrls, skipBilling } = req.body;
   const userId = req.user!.id;
 
   if (!modelId || !prompt) {
@@ -299,25 +299,29 @@ export const generateText = asyncHandler(async (req: Request, res: Response) => 
     throw new AppError('该模型不支持文本生成', 400);
   }
 
-  // 扣费逻辑
+  // 扣费逻辑（如果 skipBilling 为 true，则跳过扣费）
   const { billingService } = await import('../services/billing.service');
   let creditsCharged = 0;
-  try {
-    const usageRecord = await billingService.chargeUser({
-      userId,
-      aiModelId: modelId,
-      operation: '文本生成',
-      quantity: 1,
-    });
-    if (usageRecord) {
-      creditsCharged = usageRecord.creditsCharged || 0;
-      console.log(`[AI] 文本生成扣费: ${creditsCharged} 积分, 用户: ${userId}`);
+  if (!skipBilling) {
+    try {
+      const usageRecord = await billingService.chargeUser({
+        userId,
+        aiModelId: modelId,
+        operation: '文本生成',
+        quantity: 1,
+      });
+      if (usageRecord) {
+        creditsCharged = usageRecord.creditsCharged || 0;
+        console.log(`[AI] 文本生成扣费: ${creditsCharged} 积分, 用户: ${userId}`);
+      }
+    } catch (error: any) {
+      if (error.message?.includes('Insufficient')) {
+        throw new AppError('积分不足，请充值后再试', 402);
+      }
+      console.warn('[AI] 文本生成扣费失败:', error.message);
     }
-  } catch (error: any) {
-    if (error.message?.includes('Insufficient')) {
-      throw new AppError('积分不足，请充值后再试', 402);
-    }
-    console.warn('[AI] 文本生成扣费失败:', error.message);
+  } else {
+    console.log(`[AI] 文本生成跳过扣费（skipBilling=true）, 用户: ${userId}`);
   }
 
   let text: string | undefined;

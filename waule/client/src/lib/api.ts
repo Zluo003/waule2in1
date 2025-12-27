@@ -532,6 +532,7 @@ export const apiClient = {
         documentFiles?: Array<{ filePath: string; mimeType: string; }>;
         imageUrls?: string[];
         videoUrls?: string[];
+        skipBilling?: boolean;
       }) => {
         try {
           return await api.post('/ai/text/generate', data, { timeout: 450000 }).then((res) => res.data);
