@@ -921,11 +921,15 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                 // 如果 URL 没有参数，从 nodeGroup 获取
                 if (!scene || !shot) {
                   let nodeGroup = ctx.nodeGroup;
+                  console.log('[ImagePreviewNode] ctx.nodeGroup:', nodeGroup);
                   if (!nodeGroup && ctx.nodeGroups) {
                     nodeGroup = ctx.nodeGroups.find((g: any) => g.nodeIds?.includes(id));
+                    console.log('[ImagePreviewNode] 从 ctx.nodeGroups 查找:', nodeGroup, 'nodeId:', id);
                   }
                   if (!nodeGroup && (window as any).__workflowContext?.nodeGroups) {
-                    nodeGroup = (window as any).__workflowContext.nodeGroups.find((g: any) => g.nodeIds?.includes(id));
+                    const allGroups = (window as any).__workflowContext.nodeGroups;
+                    nodeGroup = allGroups.find((g: any) => g.nodeIds?.includes(id));
+                    console.log('[ImagePreviewNode] 从 __workflowContext 查找:', nodeGroup, '所有编组:', allGroups.map((g: any) => ({ id: g.id, scene: g.scene, shot: g.shot, nodeIds: g.nodeIds })));
                   }
                   scene = Number(nodeGroup?.scene) || 1;
                   shot = Number(nodeGroup?.shot) || 1;
