@@ -50,7 +50,7 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
   const [showLibrarySelector, setShowLibrarySelector] = useState(false);
   const [libraries, setLibraries] = useState<AssetLibrary[]>([]);
   const [selectedLibraryId, setSelectedLibraryId] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'ROLE' | 'SCENE' | 'PROP' | 'AUDIO' | 'OTHER'>('ALL');
+  const [selectedCategory, setSelectedCategory] = useState<'OTHER'>('OTHER');
   const [assetName, setAssetName] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const { setNodes } = useReactFlow();
@@ -566,13 +566,11 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
                   选择资产库 *
                 </label>
                 {(() => {
-                  const filtered = selectedCategory === 'ALL'
-                    ? libraries
-                    : libraries.filter((l) => (l.category || 'OTHER') === selectedCategory);
+                  const filtered = libraries.filter((l) => (l.category || 'OTHER') === selectedCategory);
                   if (filtered.length === 0) {
                     return (
                       <div className="text-sm text-slate-600 dark:text-text-dark-secondary">
-                        {selectedCategory === 'ALL' ? '暂无资产库，请先创建' : '该类型暂无资产库'}
+                        该类型暂无资产库
                       </div>
                     );
                   }
