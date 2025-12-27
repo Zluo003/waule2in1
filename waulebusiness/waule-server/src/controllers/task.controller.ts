@@ -254,7 +254,7 @@ export const createVideoEditTask = async (req: Request, res: Response) => {
       metadata: {
         ...(metadata || {}),
         duration,
-        mode,
+        ...(mode && { mode }),  // 只有 mode 有值时才覆盖
       },
     } as any);
 
