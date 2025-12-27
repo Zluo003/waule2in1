@@ -50,7 +50,7 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
   const [showLibrarySelector, setShowLibrarySelector] = useState(false);
   const [libraries, setLibraries] = useState<AssetLibrary[]>([]);
   const [selectedLibraryId, setSelectedLibraryId] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<'OTHER'>('OTHER');
+  const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'ROLE' | 'SCENE' | 'PROP' | 'AUDIO' | 'OTHER'>('OTHER');
   const [assetName, setAssetName] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const { setNodes } = useReactFlow();

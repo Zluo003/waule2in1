@@ -84,7 +84,7 @@ const AudioPreviewNode = ({ data, id }: NodeProps<NodeData>) => {
   const [showLibrarySelector, setShowLibrarySelector] = useState(false);
   const [libraries, setLibraries] = useState<AssetLibrary[]>([]);
   const [selectedLibraryId, setSelectedLibraryId] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<'AUDIO' | 'OTHER'>('AUDIO');
+  const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'ROLE' | 'SCENE' | 'PROP' | 'AUDIO' | 'OTHER'>('AUDIO');
   const [assetName, setAssetName] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const apiBase = useMemo(() => window.location.origin, []);
