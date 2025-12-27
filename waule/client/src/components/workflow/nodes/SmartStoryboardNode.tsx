@@ -377,19 +377,18 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       // 固定3x3九宫格
       const result = await sliceImageGrid(imageToSlice, 3, 3);
 
-      // 保存到本地并上传到OSS
-      const savedUrls: string[] = [];
-      const failedIndexes: number[] = [];
+      // 并行上传所有切片到服务器
       const TIMEOUT_MS = 30000; // 30秒超时
 
-      for (let i = 0; i < result.slices.length; i++) {
+      toast.info(`开始上传 ${result.slices.length} 个分镜...`);
+
+      // 创建所有上传任务
+      const uploadTasks = result.slices.map(async (base64, i) => {
         try {
-          const base64 = result.slices[i];
           const blob = base64ToBlob(base64, 'image/png');
           const fileName = `storyboard_${id}_slice_${i + 1}_${Date.now()}.png`;
-
-          // 上传到服务器（带超时）
           const file = new File([blob], fileName, { type: 'image/png' });
+
           const uploadPromise = apiClient.assets.upload(file);
           const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('上传超时')), TIMEOUT_MS)
@@ -398,16 +397,31 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           const uploadResult = await Promise.race([uploadPromise, timeoutPromise]) as any;
 
           if (uploadResult.success && uploadResult.data?.url) {
-            savedUrls.push(uploadResult.data.url);
+            return { success: true, url: uploadResult.data.url, index: i + 1 };
           } else {
             console.error(`分镜 ${i + 1} 上传失败:`, uploadResult.message);
-            failedIndexes.push(i + 1);
+            return { success: false, index: i + 1, error: uploadResult.message };
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error(`分镜 ${i + 1} 处理失败:`, error);
-          failedIndexes.push(i + 1);
+          return { success: false, index: i + 1, error: error.message };
         }
-      }
+      });
+
+      // 并行执行所有上传任务
+      const results = await Promise.all(uploadTasks);
+
+      // 收集成功上传的URL和失败的索引
+      const savedUrls: string[] = [];
+      const failedIndexes: number[] = [];
+
+      results.forEach(result => {
+        if (result.success && result.url) {
+          savedUrls.push(result.url);
+        } else {
+          failedIndexes.push(result.index);
+        }
+      });
 
       updateNodeData({ slicedImages: savedUrls });
 
