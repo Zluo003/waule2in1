@@ -332,6 +332,16 @@ class SoraCharacterController {
                 where: { id },
                 data: { isActive: false },
             });
+            // 🚀 清除用户的角色列表缓存
+            try {
+                const keys = await index_1.redis.keys(`sora:chars:${userId}:*`);
+                if (keys.length > 0) {
+                    await index_1.redis.del(...keys);
+                }
+            }
+            catch (e) {
+                logger_1.default.warn('[SoraCharacter] 清除缓存失败:', e);
+            }
             res.json({
                 success: true,
                 message: '角色已删除',

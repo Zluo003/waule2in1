@@ -350,33 +350,58 @@ function getExtFromContentType(contentType: string, url?: string): string {
 }
 
 /**
- * 从 URL 流式下载并上传到 OSS（边下载边上传，内存占用极小）
+ * 从 URL 流式下载并上传到当前存储（根据存储模式）
  * @param url 源文件 URL
  * @param prefix 文件名前缀，如 'minimaxi', 'doubao', 'wanx'
  * @param headers 可选的请求头
- * @returns OSS 公共 URL
+ * @returns 存储 URL
  */
 export const downloadAndUploadToOss = async (
-  url: string, 
+  url: string,
   prefix: string = 'download',
   headers?: Record<string, string>,
   forceTransfer: boolean = false // 强制转存，即使开启了 SKIP_SERVER_TRANSFER
 ): Promise<string> => {
   // 如果开启了跳过转存且不是强制转存，直接返回原始 URL
   if (SKIP_SERVER_TRANSFER && !forceTransfer) {
-    logger.info(`[OSS] 跳过服务器转存，返回原始 URL: ${prefix}`);
+    logger.info(`[Storage] 跳过服务器转存，返回原始 URL: ${prefix}`);
     return url;
   }
-  
+
+  // 动态导入 storageService 避免循环依赖
+  const { storageService } = await import('../services/storage.service');
+  const mode = await storageService.getStorageMode();
+
+  // 本地存储模式
+  if (mode === 'local') {
+    try {
+      const res = await axios.get(url, {
+        responseType: 'arraybuffer',
+        timeout: 300000,
+        headers,
+      });
+      const buffer = Buffer.from(res.data);
+      const contentType = res.headers['content-type'] || 'application/octet-stream';
+      const ext = getExtFromContentType(contentType, url);
+      const localUrl = await storageService.uploadBuffer(buffer, ext);
+      logger.info(`[Storage] 下载并保存到本地成功: ${prefix} -> ${localUrl}`);
+      return localUrl;
+    } catch (error: any) {
+      logger.error(`[Storage] 下载并保存到本地失败: ${url}`, error.message);
+      throw error;
+    }
+  }
+
+  // OSS 存储模式
   const client = ensureClient();
   const bucket = (client as any).options?.bucket as string;
   const region = (client as any).options?.region as string;
-  
+
   try {
     // 先发送 HEAD 请求获取 Content-Type 和 Content-Length
     let contentType = 'application/octet-stream';
     let contentLength: number | undefined;
-    
+
     try {
       const headRes = await axios.head(url, { timeout: 30000, headers });
       contentType = headRes.headers['content-type'] || contentType;
@@ -384,19 +409,19 @@ export const downloadAndUploadToOss = async (
     } catch {
       // HEAD 请求失败，继续尝试 GET
     }
-    
+
     const ext = getExtFromContentType(contentType, url);
     const objectKey = `aivider/${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
-    
+
     // 流式下载
-    const res = await axios.get(url, { 
-      responseType: 'stream', 
+    const res = await axios.get(url, {
+      responseType: 'stream',
       timeout: 600000,
       headers,
     });
-    
+
     contentType = res.headers['content-type'] || contentType;
-    
+
     // 直接将流上传到 OSS
     const result = await (client as any).putStream(objectKey, res.data, {
       headers: {
@@ -404,20 +429,20 @@ export const downloadAndUploadToOss = async (
         'Content-Type': contentType,
       },
     });
-    
+
     let publicUrl = `https://${bucket}.${region}.aliyuncs.com/${objectKey}`;
     publicUrl = publicUrl.replace('.oss-oss-', '.oss-');
-    
+
     logger.info(`[OSS] 流式上传成功: ${prefix} -> ${publicUrl}`);
     return publicUrl;
   } catch (error: any) {
     logger.error(`[OSS] 流式上传失败: ${url}`, error.message);
-    
+
     // 回退到内存下载方式
     logger.info(`[OSS] 尝试回退到内存下载方式...`);
     try {
-      const res = await axios.get(url, { 
-        responseType: 'arraybuffer', 
+      const res = await axios.get(url, {
+        responseType: 'arraybuffer',
         timeout: 300000,
         headers,
       });
@@ -435,40 +460,74 @@ export const downloadAndUploadToOss = async (
 };
 
 /**
- * 从 URL 流式下载并上传到 OSS（边下载边上传，适合大文件如视频）
+ * 从 URL 流式下载并上传到当前存储（根据存储模式，适合大文件如视频）
  * @param url 源文件 URL
  * @param ext 文件扩展名，如 '.mp4', '.jpg'
  * @param headers 可选的请求头
- * @returns OSS 公共 URL
+ * @returns 存储 URL
  */
 export const streamDownloadAndUploadToOss = async (
-  url: string, 
+  url: string,
   ext: string,
   headers?: Record<string, string>,
   forceTransfer: boolean = false // 强制转存，即使开启了 SKIP_SERVER_TRANSFER
 ): Promise<string> => {
   // 如果开启了跳过转存且不是强制转存，直接返回原始 URL
   if (SKIP_SERVER_TRANSFER && !forceTransfer) {
-    logger.info(`[OSS] 跳过服务器转存视频，返回原始 URL`);
+    logger.info(`[Storage] 跳过服务器转存视频，返回原始 URL`);
     return url;
   }
-  
+
+  // 动态导入 storageService 避免循环依赖
+  const { storageService } = await import('../services/storage.service');
+  const mode = await storageService.getStorageMode();
+
+  // 本地存储模式 - 下载到临时文件再保存
+  if (mode === 'local') {
+    try {
+      const tmpDir = path.join(process.cwd(), 'uploads', 'tmp');
+      if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+
+      const tmpFile = path.join(tmpDir, `local-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`);
+
+      const res = await axios.get(url, {
+        responseType: 'stream',
+        timeout: 600000,
+        headers,
+      });
+
+      const writeStream = fs.createWriteStream(tmpFile);
+      await pipeline(res.data, writeStream);
+
+      const localUrl = await storageService.uploadPath(tmpFile);
+
+      try { fs.unlinkSync(tmpFile); } catch {}
+
+      logger.info(`[Storage] 视频下载并保存到本地成功: ${ext} -> ${localUrl}`);
+      return localUrl;
+    } catch (error: any) {
+      logger.error(`[Storage] 视频下载并保存到本地失败: ${url}`, error.message);
+      throw error;
+    }
+  }
+
+  // OSS 存储模式
   const client = ensureClient();
   const bucket = (client as any).options?.bucket as string;
   const region = (client as any).options?.region as string;
-  
+
   try {
     const objectKey = `aivider/${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
-    
+
     // 流式下载
-    const res = await axios.get(url, { 
-      responseType: 'stream', 
+    const res = await axios.get(url, {
+      responseType: 'stream',
       timeout: 600000,
       headers,
     });
-    
+
     const contentType = res.headers['content-type'] || 'application/octet-stream';
-    
+
     // 直接将流上传到 OSS（边下载边上传）
     await (client as any).putStream(objectKey, res.data, {
       headers: {
@@ -476,36 +535,36 @@ export const streamDownloadAndUploadToOss = async (
         'Content-Type': contentType,
       },
     });
-    
+
     let publicUrl = `https://${bucket}.${region}.aliyuncs.com/${objectKey}`;
     publicUrl = publicUrl.replace('.oss-oss-', '.oss-');
-    
+
     logger.info(`[OSS] 视频流式上传成功: ${ext} -> ${publicUrl}`);
     return publicUrl;
   } catch (error: any) {
     logger.error(`[OSS] 视频流式上传失败: ${url}`, error.message);
-    
+
     // 回退：先下载到临时文件再上传
     logger.info(`[OSS] 尝试回退到临时文件方式...`);
     try {
       const tmpDir = path.join(process.cwd(), 'uploads', 'tmp');
       if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-      
+
       const tmpFile = path.join(tmpDir, `fallback-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`);
-      
-      const res = await axios.get(url, { 
-        responseType: 'stream', 
+
+      const res = await axios.get(url, {
+        responseType: 'stream',
         timeout: 600000,
         headers,
       });
-      
+
       const writeStream = fs.createWriteStream(tmpFile);
       await pipeline(res.data, writeStream);
-      
+
       const ossUrl = await uploadPath(tmpFile);
-      
+
       try { fs.unlinkSync(tmpFile); } catch {}
-      
+
       logger.info(`[OSS] 临时文件上传成功: ${ext} -> ${ossUrl}`);
       return ossUrl;
     } catch (fallbackError: any) {

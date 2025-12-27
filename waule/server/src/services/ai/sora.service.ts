@@ -1,7 +1,7 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
-import { uploadBuffer } from '../../utils/oss';
+import { storageService } from '../storage.service';
 import { logger } from '../../utils/logger';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { getGlobalWauleApiClient } from '../waule-api.client';

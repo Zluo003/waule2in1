@@ -5,7 +5,8 @@ import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
-import { uploadPath, uploadBuffer, ensureAliyunOssUrl } from '../utils/oss';
+import { ensureAliyunOssUrl } from '../utils/oss';
+import { storageService } from '../services/storage.service';
 import { calculateStorageExpiresAt } from '../utils/storage-expiration';
 
 // 获取所有资产库（包括自己的和共享给我的）
@@ -529,8 +530,8 @@ export const addAssetFromUrl = async (req: Request, res: Response) => {
       const fileName = `base64-${Date.now()}-${hash}${ext}`;
       originalName = `ai-generated${ext}`;
       
-      // 直接上传到 OSS
-      fileUrl = await uploadBuffer(buffer, ext);
+      // 直接上传到存储
+      fileUrl = await storageService.uploadBuffer(buffer, ext);
     } else if (isExternalUrl) {
       // 下载公网图片到本地（将来部署后本地链接会变成公网链接）
       logger.info(`Downloading asset from URL: ${url}`);
@@ -558,8 +559,8 @@ export const addAssetFromUrl = async (req: Request, res: Response) => {
       const ext = path.extname(originalName) || getExtensionFromMimeType(mimeType);
       const fileName = `download-${Date.now()}-${hash}${ext}`;
       
-      // 直接上传到 OSS：下载到内存后直传
-      fileUrl = await uploadBuffer(Buffer.from(response.data), ext);
+      // 直接上传到存储：下载到内存后直传
+      fileUrl = await storageService.uploadBuffer(Buffer.from(response.data), ext);
     } else {
       // 本地文件，从URL路径解析
       // 去除可能的域名和端口，只保留路径
@@ -604,8 +605,8 @@ export const addAssetFromUrl = async (req: Request, res: Response) => {
       const ext = path.extname(localPath).toLowerCase();
       mimeType = getMimeTypeFromExtension(ext);
       originalName = path.basename(localPath);
-      // 将本地文件直传到 OSS
-      fileUrl = await uploadPath(localPath);
+      // 将本地文件直传到存储
+      fileUrl = await storageService.uploadPath(localPath);
     }
 
     // 确定资产类型

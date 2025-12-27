@@ -9,6 +9,7 @@ const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const oss_1 = require("../utils/oss");
+const storage_service_1 = require("../services/storage.service");
 const logger_1 = require("../utils/logger");
 const fileValidator_1 = require("../utils/fileValidator");
 const content_moderation_service_1 = require("../services/content-moderation.service");
@@ -100,9 +101,9 @@ const uploadAsset = async (req, res) => {
                 return res.status(404).json({ message: '资产库不存在' });
             }
         }
-        // 直传到阿里云 OSS
+        // 上传到当前配置的存储（OSS 或本地）
         const ext = path_1.default.extname(file.originalname);
-        const fileUrl = await (0, oss_1.uploadBuffer)(file.buffer, ext);
+        const fileUrl = await storage_service_1.storageService.uploadBuffer(file.buffer, ext);
         // 内容安全审核（图片/视频）
         if ((0, content_moderation_service_1.isModerationEnabled)() && (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/'))) {
             try {
@@ -541,11 +542,27 @@ const getPresignedUrl = async (req, res) => {
         if (!fileName || !contentType) {
             return res.status(400).json({ message: '缺少 fileName 或 contentType' });
         }
+        // 检查存储模式
+        const storageMode = await storage_service_1.storageService.getStorageMode();
+        // 如果是本地存储模式，返回特殊标记
+        if (storageMode === 'local') {
+            return res.json({
+                success: true,
+                data: {
+                    mode: 'local',
+                    uploadUrl: '/api/assets/upload', // 使用服务器上传接口
+                },
+            });
+        }
+        // OSS 模式：返回预签名 URL
         const ext = path_1.default.extname(fileName);
         const result = await (0, oss_1.generatePresignedUrl)(ext, contentType);
         res.json({
             success: true,
-            data: result,
+            data: {
+                mode: 'oss',
+                ...result,
+            },
         });
     }
     catch (error) {

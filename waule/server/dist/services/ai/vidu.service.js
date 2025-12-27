@@ -43,7 +43,7 @@ exports.textToVideo = textToVideo;
 exports.upscaleVideo = upscaleVideo;
 exports.createCommercialVideo = createCommercialVideo;
 const axios_1 = __importDefault(require("axios"));
-const oss_1 = require("../../utils/oss");
+const storage_service_1 = require("../storage.service");
 const logger_1 = require("../../utils/logger");
 const waule_api_client_1 = require("../waule-api.client");
 /**
@@ -63,7 +63,7 @@ async function downloadFile(url, type) {
             timeout: 60000, // 60秒下载超时
         });
         const ext = type === 'image' ? '.png' : '.mp4';
-        const publicUrl = await (0, oss_1.uploadBuffer)(Buffer.from(response.data), ext);
+        const publicUrl = await storage_service_1.storageService.uploadBuffer(Buffer.from(response.data), ext);
         logger_1.logger.info(`[Vidu] ✅ ${type} 已上传到 OSS: ${publicUrl}`);
         return publicUrl;
     }
@@ -87,7 +87,7 @@ async function processImageUrl(imageUrl) {
                 const ext = matches[1] === 'jpeg' ? '.jpg' : `.${matches[1]}`;
                 const base64Data = matches[2];
                 const buffer = Buffer.from(base64Data, 'base64');
-                const ossUrl = await uploadBuffer(buffer, ext);
+                const ossUrl = await storage_service_1.storageService.uploadBuffer(buffer, ext);
                 logger_1.logger.info('[Vidu] ✅ 已上传到 OSS:', ossUrl);
                 return ossUrl;
             }

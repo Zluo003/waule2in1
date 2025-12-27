@@ -17,6 +17,7 @@ const axios_1 = __importDefault(require("axios"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const oss_1 = require("../../utils/oss");
+const storage_service_1 = require("../storage.service");
 function ensureApiKey(apiKey) {
     const key = apiKey || process.env.MINIMAX_API_KEY || process.env.MINIMAXI_API_KEY || process.env.MINIMAX_API_TOKEN;
     if (!key)
@@ -75,7 +76,7 @@ async function synthesizeSync(options) {
     if (hexData && typeof hexData === 'string' && hexData.length > 0) {
         const ext = (audio?.format === 'wav') ? '.wav' : '.mp3';
         const buf = Buffer.from(hexData, 'hex');
-        return await (0, oss_1.uploadBuffer)(buf, ext);
+        return await storage_service_1.storageService.uploadBuffer(buf, ext);
     }
     if (!fileId) {
         const status = (resp?.data?.base_resp?.status_code ?? data?.base_resp?.status_code);

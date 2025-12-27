@@ -38,6 +38,7 @@ const express_validator_1 = require("express-validator");
 const auth_1 = require("../middleware/auth");
 const adminController = __importStar(require("../controllers/admin.controller"));
 const settingsController = __importStar(require("../controllers/settings.controller"));
+const storageController = __importStar(require("../controllers/storage.controller"));
 const router = (0, express_1.Router)();
 // All admin routes require authentication and ADMIN role
 router.use(auth_1.authenticateToken);
@@ -333,5 +334,8 @@ router.get('/users/:userId/asset-libraries', adminController.getUserAssetLibrari
  *       - bearerAuth: []
  */
 router.get('/asset-libraries/:libraryId/assets', adminController.getAssetLibraryAssets);
+// Storage configuration routes
+router.get('/settings/storage', storageController.getStorageConfig);
+router.put('/settings/storage', storageController.updateStorageConfig);
 exports.default = router;
 //# sourceMappingURL=admin.routes.js.map

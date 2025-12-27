@@ -3,7 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { pipeline } from 'stream/promises';
-import { uploadBuffer, downloadAndUploadToOss, streamDownloadAndUploadToOss } from '../../utils/oss';
+import { downloadAndUploadToOss, streamDownloadAndUploadToOss } from '../../utils/oss';
+import { storageService } from '../storage.service';
 
 import { getGlobalWauleApiClient } from '../waule-api.client';
 /**
@@ -21,7 +22,7 @@ async function processImageUrl(imageUrl: string): Promise<string> {
         const ext = matches[1] === 'jpeg' ? '.jpg' : `.${matches[1]}`;
         const base64Data = matches[2];
         const buffer = Buffer.from(base64Data, 'base64');
-        const ossUrl = await uploadBuffer(buffer, ext);
+        const ossUrl = await storageService.uploadBuffer(buffer, ext);
         console.log('✅ 已上传到 OSS:', ossUrl);
         return ossUrl;
       }
@@ -86,7 +87,7 @@ async function processImageData(imageData: any, index?: number): Promise<string>
   if (imageData.b64_json) {
     console.log(`⚠️ 豆包返回了 Base64 数据${index ? ` (图片${index})` : ''}，上传到 OSS`);
     const imageBuffer = Buffer.from(imageData.b64_json, 'base64');
-    const ossUrl = await uploadBuffer(imageBuffer, '.png');
+    const ossUrl = await storageService.uploadBuffer(imageBuffer, '.png');
     console.log(`✅ 豆包图片${index ? ` ${index}` : ''}已上传到 OSS: ${ossUrl} (${imageBuffer.length} bytes)`);
     return ossUrl;
   }

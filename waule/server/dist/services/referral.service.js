@@ -544,7 +544,10 @@ async function getReferralStats() {
         index_1.prisma.user.count(),
         index_1.prisma.user.count({ where: { referredById: { not: null } } }),
         index_1.prisma.referralCommission.aggregate({
-            where: { status: client_1.CommissionStatus.SETTLED },
+            where: {
+                status: client_1.CommissionStatus.SETTLED,
+                type: client_1.CommissionType.RECHARGE_COMMISSION, // 只统计充值返利，不包括注册奖励积分
+            },
             _sum: { amount: true },
         }),
         index_1.prisma.withdrawalRequest.aggregate({

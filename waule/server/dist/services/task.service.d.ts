@@ -128,7 +128,7 @@ declare class TaskService {
      */
     private markTaskAsFailed;
     /**
-     * 异步转存视频到OSS（后台执行，不阻塞任务完成）
+     * 异步转存视频到存储（后台执行，不阻塞任务完成）
      * @param taskId 任务ID
      * @param originalUrl 原始视频URL
      */

@@ -10,6 +10,7 @@ const axios_1 = __importDefault(require("axios"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const oss_1 = require("../../utils/oss");
+const storage_service_1 = require("../storage.service");
 const waule_api_client_1 = require("../waule-api.client");
 /**
  * 将本地图片URL转换为base64或保持原URL（如果是公网URL）
@@ -25,7 +26,7 @@ async function processImageUrl(imageUrl) {
                 const ext = matches[1] === 'jpeg' ? '.jpg' : `.${matches[1]}`;
                 const base64Data = matches[2];
                 const buffer = Buffer.from(base64Data, 'base64');
-                const ossUrl = await (0, oss_1.uploadBuffer)(buffer, ext);
+                const ossUrl = await storage_service_1.storageService.uploadBuffer(buffer, ext);
                 console.log('✅ 已上传到 OSS:', ossUrl);
                 return ossUrl;
             }
@@ -75,7 +76,7 @@ async function processImageData(imageData, index) {
     if (imageData.b64_json) {
         console.log(`⚠️ 豆包返回了 Base64 数据${index ? ` (图片${index})` : ''}，上传到 OSS`);
         const imageBuffer = Buffer.from(imageData.b64_json, 'base64');
-        const ossUrl = await (0, oss_1.uploadBuffer)(imageBuffer, '.png');
+        const ossUrl = await storage_service_1.storageService.uploadBuffer(imageBuffer, '.png');
         console.log(`✅ 豆包图片${index ? ` ${index}` : ''}已上传到 OSS: ${ossUrl} (${imageBuffer.length} bytes)`);
         return ossUrl;
     }

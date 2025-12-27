@@ -8,6 +8,7 @@ exports.queryVoice = queryVoice;
 exports.synthesize = synthesize;
 const axios_1 = __importDefault(require("axios"));
 const oss_1 = require("../../utils/oss");
+const storage_service_1 = require("../storage.service");
 const DEFAULT_BASE_URL = 'https://dashscope.aliyuncs.com/api/v1';
 async function createVoice(options) {
     const apiKey = options.apiKey || process.env.DASHSCOPE_API_KEY || process.env.ALIYUN_API_KEY;
@@ -91,7 +92,7 @@ async function synthesize(options) {
     // Base64 直接上传到 OSS
     if (audioBase64) {
         const buf = Buffer.from(audioBase64, 'base64');
-        return await (0, oss_1.uploadBuffer)(buf, ext);
+        return await storage_service_1.storageService.uploadBuffer(buf, ext);
     }
     // URL 下载并上传到 OSS
     if (audioUrl) {

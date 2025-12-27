@@ -9,35 +9,49 @@ import { logger } from '../utils/logger';
  */
 function sanitizeWorkflowNodes(nodes: any[]): any[] {
   if (!Array.isArray(nodes)) return nodes;
-  
+
   let cleanedCount = 0;
-  const sanitized = nodes.map(node => {
-    if (!node || !node.data) return node;
-    
-    const data = { ...node.data };
-    let modified = false;
-    
-    // 检查常见的图片字段
-    const imageFields = ['imageUrl', 'url', 'thumbnail', 'src', 'image'];
-    for (const field of imageFields) {
-      if (typeof data[field] === 'string' && data[field].startsWith('data:image')) {
+
+  /**
+   * 递归清理对象中的所有 Base64 图片
+   */
+  const cleanBase64FromObject = (obj: any): any => {
+    if (!obj || typeof obj !== 'object') return obj;
+
+    // 处理数组
+    if (Array.isArray(obj)) {
+      return obj.map(item => cleanBase64FromObject(item));
+    }
+
+    // 处理对象
+    const cleaned: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (typeof value === 'string' && value.startsWith('data:image')) {
         // 检测到 base64 图片，清空该字段
-        data[field] = '';
-        modified = true;
+        cleaned[key] = '';
         cleanedCount++;
+        logger.warn(`[Workflow] 清理了字段 "${key}" 中的 base64 图片数据`);
+      } else if (typeof value === 'object' && value !== null) {
+        // 递归处理嵌套对象
+        cleaned[key] = cleanBase64FromObject(value);
+      } else {
+        cleaned[key] = value;
       }
     }
-    
-    if (modified) {
-      return { ...node, data };
-    }
-    return node;
+    return cleaned;
+  };
+
+  const sanitized = nodes.map(node => {
+    if (!node || !node.data) return node;
+
+    const cleanedData = cleanBase64FromObject(node.data);
+    return { ...node, data: cleanedData };
   });
-  
+
   if (cleanedCount > 0) {
-    logger.warn(`[Workflow] 清理了 ${cleanedCount} 个 base64 图片字段，请使用 URL 而非 base64`);
+    logger.warn(`[Workflow] 总共清理了 ${cleanedCount} 个 base64 图片字段，请使用 URL 而非 base64`);
   }
-  
+
   return sanitized;
 }
 

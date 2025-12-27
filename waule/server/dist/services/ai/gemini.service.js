@@ -41,7 +41,7 @@ const axios_1 = __importDefault(require("axios"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const socks_proxy_agent_1 = require("socks-proxy-agent");
-const oss_1 = require("../../utils/oss");
+const storage_service_1 = require("../storage.service");
 const waule_api_client_1 = require("../waule-api.client");
 // 🌐 SOCKS5 代理配置（用于访问 Google API）
 // 延迟创建，确保 dotenv.config() 已执行
@@ -415,7 +415,7 @@ const generateImage = async (options) => {
         console.log(`📏 [Gemini] 文件大小: ${fileSizeMB} MB (${imageBuffer.length} bytes)`);
         // 上传到 OSS
         const ossStartTime = Date.now();
-        const ossUrl = await (0, oss_1.uploadBuffer)(imageBuffer, ext);
+        const ossUrl = await storage_service_1.storageService.uploadBuffer(imageBuffer, ext);
         const ossDuration = ((Date.now() - ossStartTime) / 1000).toFixed(1);
         console.log(`💾 [Gemini] 图片已上传到 OSS: ${ossUrl}, OSS上传耗时: ${ossDuration}s`);
         console.log(`⏱️ [Gemini] 总耗时: API ${apiDuration}s + OSS ${ossDuration}s`);

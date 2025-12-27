@@ -36,7 +36,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const oss_1 = require("../utils/oss");
 const storage_expiration_1 = require("../utils/storage-expiration");
 const role_helpers_1 = require("../utils/role-helpers");
 const doubaoService = __importStar(require("./ai/doubao.service"));
@@ -47,6 +46,7 @@ const viduService = __importStar(require("./ai/vidu.service"));
 const aliyunService = __importStar(require("./ai/aliyun.service"));
 const wanxService = __importStar(require("./ai/wanx.service"));
 const waule_api_client_1 = require("./waule-api.client");
+const storage_service_1 = require("./storage.service");
 const logger_1 = __importDefault(require("../utils/logger"));
 const index_1 = require("../index");
 const user_level_service_1 = require("./user-level.service");
@@ -272,22 +272,22 @@ class TaskService {
                 await index_1.prisma.generationTask.update({ where: { id: taskId }, data: { status: 'PROCESSING', progress: 30 } });
                 return;
             }
-            logger_1.default.info(`[TaskService] 开始转存结果到OSS: ${resultUrl?.substring(0, 80)}...`);
+            logger_1.default.info(`[TaskService] 开始转存结果到存储: ${resultUrl?.substring(0, 80)}...`);
             const ossStartTime = Date.now();
-            const publicUrl = resultUrl ? await (0, oss_1.ensureAliyunOssUrl)(resultUrl) : '';
-            logger_1.default.info(`[TaskService] OSS转存完成，耗时 ${((Date.now() - ossStartTime) / 1000).toFixed(1)}s: ${publicUrl?.substring(0, 80)}...`);
+            const publicUrl = resultUrl ? await storage_service_1.storageService.ensureStoredUrl(resultUrl) : '';
+            logger_1.default.info(`[TaskService] 存储转存完成，耗时 ${((Date.now() - ossStartTime) / 1000).toFixed(1)}s: ${publicUrl?.substring(0, 80)}...`);
             // 如果是多图，也需要处理所有图片URL
             let publicImageUrls;
             if (multipleResults && multipleResults.length > 1) {
-                logger_1.default.info(`[TaskService] 处理多图OSS URL转换，共 ${multipleResults.length} 张图片`);
+                logger_1.default.info(`[TaskService] 处理多图存储URL转换，共 ${multipleResults.length} 张图片`);
                 publicImageUrls = [];
                 for (const imgUrl of multipleResults) {
-                    const publicImgUrl = await (0, oss_1.ensureAliyunOssUrl)(imgUrl);
+                    const publicImgUrl = await storage_service_1.storageService.ensureStoredUrl(imgUrl);
                     if (publicImgUrl) {
                         publicImageUrls.push(publicImgUrl);
                     }
                 }
-                logger_1.default.info(`[TaskService] 多图OSS URL转换完成:`, publicImageUrls);
+                logger_1.default.info(`[TaskService] 多图存储URL转换完成:`, publicImageUrls);
             }
             const previewNodeData = resultUrl ? {
                 type: task.type === 'IMAGE' ? 'imagePreview' : 'videoPreview',
@@ -768,7 +768,7 @@ Requirements:
                 if (!videoUrl || !audioUrl) {
                     throw new Error('对口型需要连接1个视频与1个音频；图片可选');
                 }
-                const toAli = async (u) => u ? await (0, oss_1.ensureAliyunOssUrl)(u) : undefined;
+                const toAli = async (u) => u ? await storage_service_1.storageService.ensureStoredUrl(u) : undefined;
                 const publicVideoUrl = await toAli(videoUrl);
                 const publicAudioUrl = await toAli(audioUrl);
                 const publicRefImageUrl = await toAli(refImageUrl);
@@ -790,7 +790,7 @@ Requirements:
                 if (!videoUrl) {
                     throw new Error('风格转换需要连接1个视频');
                 }
-                const publicVideoUrl = await (0, oss_1.ensureAliyunOssUrl)(videoUrl);
+                const publicVideoUrl = await storage_service_1.storageService.ensureStoredUrl(videoUrl);
                 const stylizedUrl = await wanxService.generateVideoStylize({
                     videoUrl: publicVideoUrl,
                     style: styleId,
@@ -816,9 +816,9 @@ Requirements:
                 if (!url1 || !url2) {
                     throw new Error('该能力需要人物图片与参考视频；请连接上传节点提供一张图片与一个视频');
                 }
-                // 确保为阿里云可拉取的公网链接（OSS）
-                const publicImageUrl = await (0, oss_1.ensureAliyunOssUrl)(url1);
-                const publicVideoUrl = await (0, oss_1.ensureAliyunOssUrl)(url2);
+                // 确保为可拉取的公网链接
+                const publicImageUrl = await storage_service_1.storageService.ensureStoredUrl(url1);
+                const publicVideoUrl = await storage_service_1.storageService.ensureStoredUrl(url2);
                 const videoResUrl = await wanxService.generateVideoFromFirstFrame({
                     prompt: task.prompt || '',
                     modelId,
@@ -834,7 +834,7 @@ Requirements:
                 const videoUrl = await wanxService.generateVideoFromFirstFrame({
                     prompt: task.prompt,
                     modelId,
-                    firstFrameImage: referenceImages && referenceImages.length > 0 ? await (0, oss_1.ensureAliyunOssUrl)(referenceImages[0]) : undefined,
+                    firstFrameImage: referenceImages && referenceImages.length > 0 ? await storage_service_1.storageService.ensureStoredUrl(referenceImages[0]) : undefined,
                     duration: 5,
                     resolution: '1080P',
                     apiKey: model.apiKey,
@@ -1019,17 +1019,17 @@ Requirements:
         }
     }
     /**
-     * 异步转存视频到OSS（后台执行，不阻塞任务完成）
+     * 异步转存视频到存储（后台执行，不阻塞任务完成）
      * @param taskId 任务ID
      * @param originalUrl 原始视频URL
      */
     async asyncTransferToOss(taskId, originalUrl) {
-        logger_1.default.info(`[TaskService] 开始异步转存到OSS: ${taskId}`);
+        logger_1.default.info(`[TaskService] 开始异步转存到存储: ${taskId}`);
         const startTime = Date.now();
         try {
-            const ossUrl = await (0, oss_1.ensureAliyunOssUrl)(originalUrl);
+            const storedUrl = await storage_service_1.storageService.ensureStoredUrl(originalUrl);
             const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
-            if (ossUrl && ossUrl !== originalUrl && /oss.*aliyuncs\.com/i.test(ossUrl)) {
+            if (storedUrl && storedUrl !== originalUrl) {
                 // 先获取当前任务的metadata
                 const currentTask = await index_1.prisma.generationTask.findUnique({ where: { id: taskId } });
                 const existingMetadata = currentTask?.metadata || {};
@@ -1037,29 +1037,29 @@ Requirements:
                 await index_1.prisma.generationTask.update({
                     where: { id: taskId },
                     data: {
-                        resultUrl: ossUrl,
+                        resultUrl: storedUrl,
                         previewNodeData: {
                             type: 'videoPreview',
-                            url: ossUrl,
+                            url: storedUrl,
                             ratio: currentTask?.ratio || '16:9',
                             timestamp: Date.now(),
                         },
                         metadata: {
                             ...existingMetadata,
                             ossTransferPending: false,
-                            ossUrl: ossUrl,
-                            ossTransferDuration: durationSec,
+                            storedUrl: storedUrl,
+                            transferDuration: durationSec,
                         },
                     },
                 });
-                logger_1.default.info(`[TaskService] ✅ 异步OSS转存成功: ${taskId}, 耗时 ${durationSec}s`);
+                logger_1.default.info(`[TaskService] ✅ 异步存储转存成功: ${taskId}, 耗时 ${durationSec}s`);
             }
             else {
-                logger_1.default.warn(`[TaskService] ⚠️ 异步OSS转存返回原URL或失败: ${taskId}`);
+                logger_1.default.warn(`[TaskService] ⚠️ 异步存储转存返回原URL或失败: ${taskId}`);
             }
         }
         catch (error) {
-            logger_1.default.error(`[TaskService] ❌ 异步OSS转存异常: ${taskId}`, error.message);
+            logger_1.default.error(`[TaskService] ❌ 异步存储转存异常: ${taskId}`, error.message);
         }
     }
     /**

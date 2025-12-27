@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateImage = generateImage;
 const axios_1 = __importDefault(require("axios"));
 const oss_1 = require("../../utils/oss");
+const storage_service_1 = require("../storage.service");
 // 下载图片并上传到 OSS
 async function downloadImage(url) {
     return (0, oss_1.downloadAndUploadToOss)(url, 'minimaxi-image');
@@ -38,7 +39,7 @@ async function generateImage(options) {
                 const ext = m && /png/i.test(m[1]) ? '.png' : '.jpg';
                 const b64 = m ? m[2] : u.split(',')[1];
                 if (b64) {
-                    const url = await (0, oss_1.uploadBuffer)(Buffer.from(b64, 'base64'), ext);
+                    const url = await storage_service_1.storageService.uploadBuffer(Buffer.from(b64, 'base64'), ext);
                     imageUrls.push(url);
                 }
             }
@@ -80,7 +81,7 @@ async function generateImage(options) {
         if (b64) {
             // Base64 直接上传到 OSS
             const buf = Buffer.from(String(b64), 'base64');
-            return await (0, oss_1.uploadBuffer)(buf, '.png');
+            return await storage_service_1.storageService.uploadBuffer(buf, '.png');
         }
     }
     const status = data?.status || data?.base_resp?.status_msg;

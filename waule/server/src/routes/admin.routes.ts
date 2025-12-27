@@ -3,6 +3,7 @@ import { body } from 'express-validator';
 import { authenticateToken, authorizeRoles } from '../middleware/auth';
 import * as adminController from '../controllers/admin.controller';
 import * as settingsController from '../controllers/settings.controller';
+import * as storageController from '../controllers/storage.controller';
 
 const router = Router();
 
@@ -323,5 +324,9 @@ router.get('/users/:userId/asset-libraries', adminController.getUserAssetLibrari
  *       - bearerAuth: []
  */
 router.get('/asset-libraries/:libraryId/assets', adminController.getAssetLibraryAssets);
+
+// Storage configuration routes
+router.get('/settings/storage', storageController.getStorageConfig);
+router.put('/settings/storage', storageController.updateStorageConfig);
 
 export default router;

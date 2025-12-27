@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -368,19 +401,43 @@ function getExtFromContentType(contentType, url) {
     return '.bin';
 }
 /**
- * 从 URL 流式下载并上传到 OSS（边下载边上传，内存占用极小）
+ * 从 URL 流式下载并上传到当前存储（根据存储模式）
  * @param url 源文件 URL
  * @param prefix 文件名前缀，如 'minimaxi', 'doubao', 'wanx'
  * @param headers 可选的请求头
- * @returns OSS 公共 URL
+ * @returns 存储 URL
  */
 const downloadAndUploadToOss = async (url, prefix = 'download', headers, forceTransfer = false // 强制转存，即使开启了 SKIP_SERVER_TRANSFER
 ) => {
     // 如果开启了跳过转存且不是强制转存，直接返回原始 URL
     if (exports.SKIP_SERVER_TRANSFER && !forceTransfer) {
-        logger_1.default.info(`[OSS] 跳过服务器转存，返回原始 URL: ${prefix}`);
+        logger_1.default.info(`[Storage] 跳过服务器转存，返回原始 URL: ${prefix}`);
         return url;
     }
+    // 动态导入 storageService 避免循环依赖
+    const { storageService } = await Promise.resolve().then(() => __importStar(require('../services/storage.service')));
+    const mode = await storageService.getStorageMode();
+    // 本地存储模式
+    if (mode === 'local') {
+        try {
+            const res = await axios_1.default.get(url, {
+                responseType: 'arraybuffer',
+                timeout: 300000,
+                headers,
+            });
+            const buffer = Buffer.from(res.data);
+            const contentType = res.headers['content-type'] || 'application/octet-stream';
+            const ext = getExtFromContentType(contentType, url);
+            const localUrl = await storageService.uploadBuffer(buffer, ext);
+            logger_1.default.info(`[Storage] 下载并保存到本地成功: ${prefix} -> ${localUrl}`);
+            return localUrl;
+        }
+        catch (error) {
+            logger_1.default.error(`[Storage] 下载并保存到本地失败: ${url}`, error.message);
+            throw error;
+        }
+    }
+    // OSS 存储模式
     const client = ensureClient();
     const bucket = client.options?.bucket;
     const region = client.options?.region;
@@ -442,19 +499,50 @@ const downloadAndUploadToOss = async (url, prefix = 'download', headers, forceTr
 };
 exports.downloadAndUploadToOss = downloadAndUploadToOss;
 /**
- * 从 URL 流式下载并上传到 OSS（边下载边上传，适合大文件如视频）
+ * 从 URL 流式下载并上传到当前存储（根据存储模式，适合大文件如视频）
  * @param url 源文件 URL
  * @param ext 文件扩展名，如 '.mp4', '.jpg'
  * @param headers 可选的请求头
- * @returns OSS 公共 URL
+ * @returns 存储 URL
  */
 const streamDownloadAndUploadToOss = async (url, ext, headers, forceTransfer = false // 强制转存，即使开启了 SKIP_SERVER_TRANSFER
 ) => {
     // 如果开启了跳过转存且不是强制转存，直接返回原始 URL
     if (exports.SKIP_SERVER_TRANSFER && !forceTransfer) {
-        logger_1.default.info(`[OSS] 跳过服务器转存视频，返回原始 URL`);
+        logger_1.default.info(`[Storage] 跳过服务器转存视频，返回原始 URL`);
         return url;
     }
+    // 动态导入 storageService 避免循环依赖
+    const { storageService } = await Promise.resolve().then(() => __importStar(require('../services/storage.service')));
+    const mode = await storageService.getStorageMode();
+    // 本地存储模式 - 下载到临时文件再保存
+    if (mode === 'local') {
+        try {
+            const tmpDir = path_1.default.join(process.cwd(), 'uploads', 'tmp');
+            if (!fs_1.default.existsSync(tmpDir))
+                fs_1.default.mkdirSync(tmpDir, { recursive: true });
+            const tmpFile = path_1.default.join(tmpDir, `local-${Date.now()}-${crypto_1.default.randomBytes(4).toString('hex')}${ext}`);
+            const res = await axios_1.default.get(url, {
+                responseType: 'stream',
+                timeout: 600000,
+                headers,
+            });
+            const writeStream = fs_1.default.createWriteStream(tmpFile);
+            await (0, promises_1.pipeline)(res.data, writeStream);
+            const localUrl = await storageService.uploadPath(tmpFile);
+            try {
+                fs_1.default.unlinkSync(tmpFile);
+            }
+            catch { }
+            logger_1.default.info(`[Storage] 视频下载并保存到本地成功: ${ext} -> ${localUrl}`);
+            return localUrl;
+        }
+        catch (error) {
+            logger_1.default.error(`[Storage] 视频下载并保存到本地失败: ${url}`, error.message);
+            throw error;
+        }
+    }
+    // OSS 存储模式
     const client = ensureClient();
     const bucket = client.options?.bucket;
     const region = client.options?.region;

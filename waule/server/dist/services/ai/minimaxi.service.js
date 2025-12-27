@@ -9,6 +9,7 @@ exports.queryVideoTaskStatus = queryVideoTaskStatus;
 exports.generateVideo = generateVideo;
 const axios_1 = __importDefault(require("axios"));
 const oss_1 = require("../../utils/oss");
+const storage_service_1 = require("../storage.service");
 const waule_api_client_1 = require("../waule-api.client");
 // 下载视频并直接上传到 OSS
 async function downloadToLocal(url, filenamePrefix, headers) {
@@ -107,7 +108,7 @@ async function downloadVideoToOss(baseUrl, apiKey, fileId) {
                 throw new Error('MiniMax 下载的视频文件过小，可能有问题');
             }
             // 上传到 OSS
-            const ossUrl = await (0, oss_1.uploadBuffer)(buf, '.mp4');
+            const ossUrl = await storage_service_1.storageService.uploadBuffer(buf, '.mp4');
             console.log('✅ 视频已上传到 OSS:', ossUrl);
             return ossUrl;
         }
@@ -124,7 +125,7 @@ async function downloadVideoToOss(baseUrl, apiKey, fileId) {
     if (buf2.length < 102400) {
         throw new Error('MiniMax 下载的视频文件过小，可能有问题');
     }
-    const ossUrl = await (0, oss_1.uploadBuffer)(buf2, '.mp4');
+    const ossUrl = await storage_service_1.storageService.uploadBuffer(buf2, '.mp4');
     console.log('✅ 视频已上传到 OSS:', ossUrl);
     return ossUrl;
 }
@@ -173,7 +174,7 @@ async function generateVideo(options) {
                 const ext = m && /png/i.test(m[1]) ? '.png' : '.jpg';
                 const b64 = m ? m[2] : u.split(',')[1];
                 if (b64) {
-                    const url = await (0, oss_1.uploadBuffer)(Buffer.from(b64, 'base64'), ext);
+                    const url = await storage_service_1.storageService.uploadBuffer(Buffer.from(b64, 'base64'), ext);
                     images.push(url);
                 }
             }

@@ -582,6 +582,11 @@ app.use('/uploads', express_1.default.static('uploads', {
     maxAge: isDevelopment ? 0 : '7d',
     immutable: false,
 }));
+app.use('/images', express_1.default.static('public/images', {
+    etag: true,
+    maxAge: isDevelopment ? 0 : '30d',
+    immutable: true,
+}));
 // HTTP请求日志
 app.use(logger_1.httpLogger);
 // Swagger文档（仅开发环境）

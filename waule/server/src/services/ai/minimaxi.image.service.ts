@@ -1,5 +1,6 @@
 import axios from 'axios'
-import { ensureAliyunOssUrl, uploadBuffer, downloadAndUploadToOss } from '../../utils/oss'
+import { ensureAliyunOssUrl, downloadAndUploadToOss } from '../../utils/oss'
+import { storageService } from '../storage.service'
 
 interface GenerateImageOptions {
   prompt: string
@@ -42,7 +43,7 @@ export async function generateImage(options: GenerateImageOptions): Promise<stri
         const ext = m && /png/i.test(m[1]) ? '.png' : '.jpg'
         const b64 = m ? m[2] : u.split(',')[1]
         if (b64) {
-          const url = await uploadBuffer(Buffer.from(b64, 'base64'), ext)
+          const url = await storageService.uploadBuffer(Buffer.from(b64, 'base64'), ext)
           imageUrls.push(url)
         }
       } else {
@@ -78,7 +79,7 @@ export async function generateImage(options: GenerateImageOptions): Promise<stri
     if (b64) {
       // Base64 直接上传到 OSS
       const buf = Buffer.from(String(b64), 'base64')
-      return await uploadBuffer(buf, '.png')
+      return await storageService.uploadBuffer(buf, '.png')
     }
   }
   const status = data?.status || data?.base_resp?.status_msg

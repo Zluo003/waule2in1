@@ -4,6 +4,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { pipeline } from 'stream/promises';
 import { streamDownloadAndUploadToOss } from '../../utils/oss';
+import { storageService } from '../storage.service';
 import { getGlobalWauleApiClient } from '../waule-api.client';
 
 async function uploadBufferToFallbackHost(buffer: Buffer, filename?: string): Promise<string> {

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
-import { uploadBuffer } from '../../utils/oss';
+import { storageService } from '../storage.service';
 import { logger } from '../../utils/logger';
 import { getGlobalWauleApiClient } from '../waule-api.client';
 
@@ -24,7 +24,7 @@ async function downloadFile(url: string, type: 'image' | 'video'): Promise<strin
       timeout: 60000, // 60秒下载超时
     });
     const ext = type === 'image' ? '.png' : '.mp4';
-    const publicUrl = await uploadBuffer(Buffer.from(response.data), ext);
+    const publicUrl = await storageService.uploadBuffer(Buffer.from(response.data), ext);
     logger.info(`[Vidu] ✅ ${type} 已上传到 OSS: ${publicUrl}`);
     return publicUrl;
   } catch (error: any) {
@@ -48,7 +48,7 @@ async function processImageUrl(imageUrl: string): Promise<string> {
         const ext = matches[1] === 'jpeg' ? '.jpg' : `.${matches[1]}`;
         const base64Data = matches[2];
         const buffer = Buffer.from(base64Data, 'base64');
-        const ossUrl = await uploadBuffer(buffer, ext);
+        const ossUrl = await storageService.uploadBuffer(buffer, ext);
         logger.info('[Vidu] ✅ 已上传到 OSS:', ossUrl);
         return ossUrl;
       }

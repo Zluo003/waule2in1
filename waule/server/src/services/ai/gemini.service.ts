@@ -4,7 +4,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { pipeline } from 'stream/promises';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import { uploadBuffer } from '../../utils/oss';
+import { storageService } from '../storage.service';
 import { getGlobalWauleApiClient } from '../waule-api.client';
 
 // 🌐 SOCKS5 代理配置（用于访问 Google API）
@@ -478,7 +478,7 @@ export const generateImage = async (options: GeminiImageGenerateOptions): Promis
 
     // 上传到 OSS
     const ossStartTime = Date.now();
-    const ossUrl = await uploadBuffer(imageBuffer, ext);
+    const ossUrl = await storageService.uploadBuffer(imageBuffer, ext);
     const ossDuration = ((Date.now() - ossStartTime) / 1000).toFixed(1);
     console.log(`💾 [Gemini] 图片已上传到 OSS: ${ossUrl}, OSS上传耗时: ${ossDuration}s`);
     console.log(`⏱️ [Gemini] 总耗时: API ${apiDuration}s + OSS ${ossDuration}s`);

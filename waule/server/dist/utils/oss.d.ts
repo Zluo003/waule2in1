@@ -19,19 +19,19 @@ export declare const generatePresignedUrl: (ext: string, contentType: string) =>
     objectKey: string;
 }>;
 /**
- * 从 URL 流式下载并上传到 OSS（边下载边上传，内存占用极小）
+ * 从 URL 流式下载并上传到当前存储（根据存储模式）
  * @param url 源文件 URL
  * @param prefix 文件名前缀，如 'minimaxi', 'doubao', 'wanx'
  * @param headers 可选的请求头
- * @returns OSS 公共 URL
+ * @returns 存储 URL
  */
 export declare const downloadAndUploadToOss: (url: string, prefix?: string, headers?: Record<string, string>, forceTransfer?: boolean) => Promise<string>;
 /**
- * 从 URL 流式下载并上传到 OSS（边下载边上传，适合大文件如视频）
+ * 从 URL 流式下载并上传到当前存储（根据存储模式，适合大文件如视频）
  * @param url 源文件 URL
  * @param ext 文件扩展名，如 '.mp4', '.jpg'
  * @param headers 可选的请求头
- * @returns OSS 公共 URL
+ * @returns 存储 URL
  */
 export declare const streamDownloadAndUploadToOss: (url: string, ext: string, headers?: Record<string, string>, forceTransfer?: boolean) => Promise<string>;
 /**

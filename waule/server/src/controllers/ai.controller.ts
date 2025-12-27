@@ -12,7 +12,8 @@ import { getMidjourneyService } from '../services/midjourney.service';
 import * as aliyunService from '../services/ai/aliyun.service';
 import cosyvoiceService from '../services/ai/cosyvoice.service';
 import minimaxiAudioService from '../services/ai/minimaxi.audio.service';
-import { ensureAliyunOssUrl, uploadBuffer } from '../utils/oss';
+import { ensureAliyunOssUrl } from '../utils/oss';
+import { storageService } from '../services/storage.service';
 import { downloadToLocal } from '../utils/file';
 import { userLevelService } from '../services/user-level.service';
 import { getWauleApiClient } from '../services/waule-api.client';
@@ -901,8 +902,8 @@ export const synthesizeAudio = asyncHandler(async (req: Request, res: Response) 
       }
       const ct = String(res2.headers?.['content-type'] || '');
       const ext = ct.includes('wav') ? '.wav' : '.mp3';
-      // 上传到 OSS
-      audioUrl = await uploadBuffer(buf, ext);
+      // 上传到存储
+      audioUrl = await storageService.uploadBuffer(buf, ext);
     } else if (audioUrl && !/^https?:\/\//.test(audioUrl)) {
       const pathMod = require('path');
       const fs = require('fs');

@@ -10,7 +10,7 @@ const axios_1 = __importDefault(require("axios"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const crypto_1 = __importDefault(require("crypto"));
-const oss_1 = require("../utils/oss");
+const storage_service_1 = require("../services/storage.service");
 const storage_expiration_1 = require("../utils/storage-expiration");
 // 获取所有资产库（包括自己的和共享给我的）
 const getAssetLibraries = async (req, res) => {
@@ -480,8 +480,8 @@ const addAssetFromUrl = async (req, res) => {
             const hash = crypto_1.default.randomBytes(8).toString('hex');
             const fileName = `base64-${Date.now()}-${hash}${ext}`;
             originalName = `ai-generated${ext}`;
-            // 直接上传到 OSS
-            fileUrl = await (0, oss_1.uploadBuffer)(buffer, ext);
+            // 直接上传到存储
+            fileUrl = await storage_service_1.storageService.uploadBuffer(buffer, ext);
         }
         else if (isExternalUrl) {
             // 下载公网图片到本地（将来部署后本地链接会变成公网链接）
@@ -505,8 +505,8 @@ const addAssetFromUrl = async (req, res) => {
             const hash = crypto_1.default.randomBytes(8).toString('hex');
             const ext = path_1.default.extname(originalName) || getExtensionFromMimeType(mimeType);
             const fileName = `download-${Date.now()}-${hash}${ext}`;
-            // 直接上传到 OSS：下载到内存后直传
-            fileUrl = await (0, oss_1.uploadBuffer)(Buffer.from(response.data), ext);
+            // 直接上传到存储：下载到内存后直传
+            fileUrl = await storage_service_1.storageService.uploadBuffer(Buffer.from(response.data), ext);
         }
         else {
             // 本地文件，从URL路径解析
@@ -551,8 +551,8 @@ const addAssetFromUrl = async (req, res) => {
             const ext = path_1.default.extname(localPath).toLowerCase();
             mimeType = getMimeTypeFromExtension(ext);
             originalName = path_1.default.basename(localPath);
-            // 将本地文件直传到 OSS
-            fileUrl = await (0, oss_1.uploadPath)(localPath);
+            // 将本地文件直传到存储
+            fileUrl = await storage_service_1.storageService.uploadPath(localPath);
         }
         // 确定资产类型
         const assetType = getAssetTypeFromMimeType(mimeType);

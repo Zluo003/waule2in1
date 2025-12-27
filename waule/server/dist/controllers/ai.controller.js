@@ -50,7 +50,7 @@ const midjourney_service_1 = require("../services/midjourney.service");
 const aliyunService = __importStar(require("../services/ai/aliyun.service"));
 const cosyvoice_service_1 = __importDefault(require("../services/ai/cosyvoice.service"));
 const minimaxi_audio_service_1 = __importDefault(require("../services/ai/minimaxi.audio.service"));
-const oss_1 = require("../utils/oss");
+const storage_service_1 = require("../services/storage.service");
 const file_1 = require("../utils/file");
 const user_level_service_1 = require("../services/user-level.service");
 const waule_api_client_1 = require("../services/waule-api.client");
@@ -875,8 +875,8 @@ exports.synthesizeAudio = (0, errorHandler_1.asyncHandler)(async (req, res) => {
             }
             const ct = String(res2.headers?.['content-type'] || '');
             const ext = ct.includes('wav') ? '.wav' : '.mp3';
-            // 上传到 OSS
-            audioUrl = await (0, oss_1.uploadBuffer)(buf, ext);
+            // 上传到存储
+            audioUrl = await storage_service_1.storageService.uploadBuffer(buf, ext);
         }
         else if (audioUrl && !/^https?:\/\//.test(audioUrl)) {
             const pathMod = require('path');

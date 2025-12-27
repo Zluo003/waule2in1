@@ -3,7 +3,8 @@ import { prisma, redis } from '../index';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { uploadBuffer, generatePresignedUrl } from '../utils/oss';
+import { generatePresignedUrl } from '../utils/oss';
+import { storageService } from '../services/storage.service';
 import { logger } from '../utils/logger';
 import { validateFileMagicBytes, sanitizeFilename, MAX_FILE_SIZES, getFileCategory } from '../utils/fileValidator';
 import { moderateContent, isModerationEnabled } from '../services/content-moderation.service';
@@ -108,9 +109,9 @@ export const uploadAsset = async (req: Request, res: Response) => {
       }
     }
 
-    // 直传到阿里云 OSS
+    // 上传到当前配置的存储（OSS 或本地）
     const ext = path.extname(file.originalname);
-    const fileUrl = await uploadBuffer(file.buffer, ext);
+    const fileUrl = await storageService.uploadBuffer(file.buffer, ext);
 
     // 内容安全审核（图片/视频）
     if (isModerationEnabled() && (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/'))) {
@@ -570,12 +571,30 @@ export const getPresignedUrl = async (req: Request, res: Response) => {
       return res.status(400).json({ message: '缺少 fileName 或 contentType' });
     }
 
+    // 检查存储模式
+    const storageMode = await storageService.getStorageMode();
+
+    // 如果是本地存储模式，返回特殊标记
+    if (storageMode === 'local') {
+      return res.json({
+        success: true,
+        data: {
+          mode: 'local',
+          uploadUrl: '/api/assets/upload', // 使用服务器上传接口
+        },
+      });
+    }
+
+    // OSS 模式：返回预签名 URL
     const ext = path.extname(fileName);
     const result = await generatePresignedUrl(ext, contentType);
 
     res.json({
       success: true,
-      data: result,
+      data: {
+        mode: 'oss',
+        ...result,
+      },
     });
   } catch (error: any) {
     logger.error('获取预签名 URL 失败:', error);

@@ -2,7 +2,8 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { pipeline } from 'stream/promises';
-import { uploadBuffer, downloadAndUploadToOss } from '../../utils/oss';
+import { downloadAndUploadToOss } from '../../utils/oss';
+import { storageService } from '../storage.service';
 
 interface VoiceSetting {
   voice_id?: string;
@@ -74,7 +75,7 @@ export async function synthesizeSync(options: { model: string; text: string; voi
   if (hexData && typeof hexData === 'string' && hexData.length > 0) {
     const ext = (audio?.format === 'wav') ? '.wav' : '.mp3';
     const buf = Buffer.from(hexData, 'hex');
-    return await uploadBuffer(buf, ext);
+    return await storageService.uploadBuffer(buf, ext);
   }
   if (!fileId) {
     const status = (resp?.data?.base_resp?.status_code ?? data?.base_resp?.status_code);

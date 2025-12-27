@@ -361,7 +361,6 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       let imageToSlice = imageUrl;
       if (!imageUrl.startsWith('data:')) {
         try {
-          // 使用后端代理接口绕过CORS限制
           const proxyResponse = await apiClient.assets.proxyDownload(imageUrl);
           const blob = new Blob([proxyResponse], { type: 'image/png' });
           imageToSlice = await new Promise<string>((resolve, reject) => {
@@ -374,31 +373,58 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           // 代理下载失败，尝试直接切割
         }
       }
-      
+
       // 固定3x3九宫格
       const result = await sliceImageGrid(imageToSlice, 3, 3);
 
-      // 将 base64 图片上传到 OSS，获取 OSS URL
-      const ossUrls: string[] = [];
+      // 保存到本地并上传到OSS
+      const savedUrls: string[] = [];
+      const failedIndexes: number[] = [];
+      const TIMEOUT_MS = 30000; // 30秒超时
+
       for (let i = 0; i < result.slices.length; i++) {
         try {
           const base64 = result.slices[i];
           const blob = base64ToBlob(base64, 'image/png');
-          const file = new File([blob], `storyboard_${id}_slice_${i + 1}_${Date.now()}.png`, { type: 'image/png' });
-          const uploadResult = await apiClient.assets.upload(file);
+          const fileName = `storyboard_${id}_slice_${i + 1}_${Date.now()}.png`;
+
+          // 1. 保存到本地
+          const link = document.createElement('a');
+          link.href = base64;
+          link.download = fileName;
+          link.click();
+
+          // 2. 上传到OSS（带超时）
+          const file = new File([blob], fileName, { type: 'image/png' });
+          const uploadPromise = apiClient.assets.upload(file);
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('上传超时')), TIMEOUT_MS)
+          );
+
+          const uploadResult = await Promise.race([uploadPromise, timeoutPromise]) as any;
+
           if (uploadResult.success && uploadResult.data?.url) {
-            ossUrls.push(uploadResult.data.url);
+            savedUrls.push(uploadResult.data.url);
           } else {
-            ossUrls.push(base64);
+            console.error(`分镜 ${i + 1} 上传失败:`, uploadResult.message);
+            failedIndexes.push(i + 1);
           }
-        } catch (uploadError) {
-          ossUrls.push(result.slices[i]);
+        } catch (error) {
+          console.error(`分镜 ${i + 1} 处理失败:`, error);
+          failedIndexes.push(i + 1);
         }
       }
-      updateNodeData({ slicedImages: ossUrls });
 
-      // 批量创建9个预览节点
-      createAllPreviewNodes(ossUrls, aspectRatio);
+      updateNodeData({ slicedImages: savedUrls });
+
+      if (failedIndexes.length > 0) {
+        toast.error(`分镜 ${failedIndexes.join(', ')} 上传失败，已保存到本地`);
+      } else {
+        toast.success(`成功保存 ${savedUrls.length} 个分镜到本地`);
+      }
+
+      // 只为成功上传的图片创建预览节点
+      createAllPreviewNodes(savedUrls, aspectRatio);
     } catch (error: any) {
       toast.error('图片切割失败: ' + error.message);
     }

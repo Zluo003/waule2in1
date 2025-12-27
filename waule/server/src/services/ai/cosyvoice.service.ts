@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { uploadBuffer, downloadAndUploadToOss } from '../../utils/oss';
+import { downloadAndUploadToOss } from '../../utils/oss';
+import { storageService } from '../storage.service';
 
 const DEFAULT_BASE_URL = 'https://dashscope.aliyuncs.com/api/v1';
 
@@ -111,7 +112,7 @@ export async function synthesize(options: SynthesizeOptions): Promise<string> {
   // Base64 直接上传到 OSS
   if (audioBase64) {
     const buf = Buffer.from(audioBase64, 'base64');
-    return await uploadBuffer(buf, ext);
+    return await storageService.uploadBuffer(buf, ext);
   }
   
   // URL 下载并上传到 OSS

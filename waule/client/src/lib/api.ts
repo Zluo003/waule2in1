@@ -244,21 +244,34 @@ export const apiClient = {
     upload: async (file: File, metadata?: any, config?: AxiosRequestConfig) => {
       const startTime = Date.now();
       try {
-        // 1. 获取预签名 URL
-        console.log('[上传] 开始获取预签名 URL...');
+        // 1. 获取预签名 URL 或存储模式
+        console.log('[上传] 开始获取上传配置...');
         const presignedRes = await apiClient.post('/assets/presigned-url', {
           fileName: file.name,
           contentType: file.type || 'application/octet-stream',
         });
-        console.log('[上传] 获取预签名 URL 耗时:', Date.now() - startTime, 'ms');
-        
+        console.log('[上传] 获取配置耗时:', Date.now() - startTime, 'ms');
+
         if (!presignedRes.success || !presignedRes.data) {
           throw new Error('获取上传地址失败');
         }
-        
-        const { uploadUrl, publicUrl, objectKey } = presignedRes.data;
+
+        const { mode, uploadUrl, publicUrl, objectKey } = presignedRes.data;
+
+        // 如果是本地存储模式，使用服务器中转上传
+        if (mode === 'local') {
+          console.log('[上传] 使用本地存储模式，通过服务器上传');
+          const formData = new FormData();
+          formData.append('file', file);
+          if (metadata) {
+            formData.append('metadata', JSON.stringify(metadata));
+          }
+          return api.post('/assets/upload', formData, config).then((res) => res.data);
+        }
+
+        // OSS 模式：直传到 OSS
         console.log('[上传] 开始直传 OSS，文件大小:', (file.size / 1024 / 1024).toFixed(2), 'MB');
-        
+
         // 2. 直传到 OSS
         const uploadStart = Date.now();
         await axios.put(uploadUrl, file, {
@@ -269,7 +282,7 @@ export const apiClient = {
           timeout: 300000, // 5 分钟超时
         });
         console.log('[上传] OSS 直传完成，耗时:', Date.now() - uploadStart, 'ms');
-        
+
         // 3. 确认上传，创建数据库记录
         const confirmRes = await apiClient.post('/assets/confirm-upload', {
           objectKey,
@@ -280,11 +293,11 @@ export const apiClient = {
           assetLibraryId: metadata?.assetLibraryId,
           customName: metadata?.customName,
         });
-        
+
         console.log('[上传] 总耗时:', Date.now() - startTime, 'ms');
         return confirmRes;
       } catch (error: any) {
-        console.error('[上传] 直传 OSS 失败，回退到服务器中转:', error.message);
+        console.error('[上传] 上传失败，回退到服务器中转:', error.message);
         console.error('[上传] 错误详情:', error);
         // 回退到服务器中转上传
         const formData = new FormData();

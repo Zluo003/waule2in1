@@ -650,6 +650,12 @@ app.use('/uploads', express.static('uploads', {
   immutable: false,
 }));
 
+app.use('/images', express.static('public/images', {
+  etag: true,
+  maxAge: isDevelopment ? 0 : '30d',
+  immutable: true,
+}));
+
 // HTTP请求日志
 app.use(httpLogger);
 
