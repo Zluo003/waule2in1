@@ -442,8 +442,6 @@ class TaskService {
       authToken: model.wauleApiServer.authToken,
     } : undefined;
 
-    logger.info(`[TaskService] 服务器配置: modelId=${model.id}, wauleApiServer=${model.wauleApiServer ? model.wauleApiServer.url : '未配置，使用默认'}`);
-
     if (provider === 'google') {
       const imageUrl = await geminiService.generateImage({
         prompt: task.prompt,
@@ -522,8 +520,6 @@ class TaskService {
       url: model.wauleApiServer.url,
       authToken: model.wauleApiServer.authToken,
     } : undefined;
-
-    logger.info(`[TaskService] 视频服务器配置: modelId=${model.id}, wauleApiServer=${model.wauleApiServer ? model.wauleApiServer.url : '未配置，使用默认'}`);
 
     if (provider === 'minimaxi' || provider === 'hailuo' || provider === '海螺') {
       const genType = task.generationType || (referenceImages.length >= 2 ? 'fl2v' : (referenceImages.length === 1 ? 'i2v' : 't2v'));
