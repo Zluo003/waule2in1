@@ -914,10 +914,22 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                 const url = data.imageUrl;
                 const ctx = data.workflowContext || {};
                 const ep = ctx.episode;
-                // 直接从 URL 参数获取 scene 和 shot（最可靠的来源）
+                // 优先从 URL 参数获取，如果没有则从 nodeGroup 获取
                 const sp = new URLSearchParams(window.location.search);
-                const scene = Number(sp.get('scene')) || 1;
-                const shot = Number(sp.get('shot')) || 1;
+                let scene = Number(sp.get('scene')) || 0;
+                let shot = Number(sp.get('shot')) || 0;
+                // 如果 URL 没有参数，从 nodeGroup 获取
+                if (!scene || !shot) {
+                  let nodeGroup = ctx.nodeGroup;
+                  if (!nodeGroup && ctx.nodeGroups) {
+                    nodeGroup = ctx.nodeGroups.find((g: any) => g.nodeIds?.includes(id));
+                  }
+                  if (!nodeGroup && (window as any).__workflowContext?.nodeGroups) {
+                    nodeGroup = (window as any).__workflowContext.nodeGroups.find((g: any) => g.nodeIds?.includes(id));
+                  }
+                  scene = Number(nodeGroup?.scene) || 1;
+                  shot = Number(nodeGroup?.shot) || 1;
+                }
                 console.log('[ImagePreviewNode] 添加到分镜:', { scene, shot, urlScene: sp.get('scene'), urlShot: sp.get('shot') });
                 // 从 URL 路径获取 projectId 和 episodeId
                 const parts = location.pathname.split('/').filter(Boolean);
