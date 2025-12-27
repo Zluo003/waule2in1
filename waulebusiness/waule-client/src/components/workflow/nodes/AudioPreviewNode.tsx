@@ -537,7 +537,7 @@ const AudioPreviewNode = ({ data, id }: NodeProps<NodeData>) => {
                   库类型
                 </label>
                 <div className="flex gap-1.5">
-                  {(['ROLE', 'SCENE', 'PROP', 'AUDIO', 'OTHER'] as const).map(cat => (
+                  {(['AUDIO', 'OTHER'] as const).map(cat => (
                     <button
                       key={cat}
                       type="button"

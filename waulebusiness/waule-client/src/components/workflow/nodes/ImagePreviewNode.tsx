@@ -1280,7 +1280,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                   库类型
                 </label>
                 <div className="flex gap-1.5">
-                  {(['ROLE', 'SCENE', 'PROP', 'AUDIO', 'OTHER'] as const).map(cat => (
+                  {(['ROLE', 'SCENE', 'PROP', 'OTHER'] as const).map(cat => (
                     <button
                       key={cat}
                       type="button"
