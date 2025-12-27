@@ -24,9 +24,10 @@ export const createImageTask = async (req: Request, res: Response) => {
     return res.status(400).json({ error: '提示词是必需的' });
   }
 
-    // 获取模型配置
+    // 获取模型配置（包含服务器配置）
     const model = await prisma.aIModel.findUnique({
       where: { id: modelId },
+      include: { wauleApiServer: true },
     });
 
     if (!model) {
@@ -131,9 +132,10 @@ export const createVideoTask = async (req: Request, res: Response) => {
       return res.status(400).json({ error: '提示词是必需的' });
     }
 
-    // 获取模型配置
+    // 获取模型配置（包含服务器配置）
     const model = await prisma.aIModel.findUnique({
       where: { id: modelId },
+      include: { wauleApiServer: true },
     });
 
     if (!model) {
@@ -226,7 +228,7 @@ export const createVideoEditTask = async (req: Request, res: Response) => {
     if (!userId) return res.status(401).json({ error: '未授权' });
     if (!modelId) return res.status(400).json({ error: '缺少模型ID' });
 
-    const model = await prisma.aIModel.findUnique({ where: { id: modelId } });
+    const model = await prisma.aIModel.findUnique({ where: { id: modelId }, include: { wauleApiServer: true } });
     if (!model) return res.status(404).json({ error: '模型不存在' });
     if (!model.isActive) return res.status(400).json({ error: '模型未启用' });
     if (model.type !== 'VIDEO_EDITING') return res.status(400).json({ error: '该模型不支持视频编辑' });

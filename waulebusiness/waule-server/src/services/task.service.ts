@@ -436,6 +436,12 @@ class TaskService {
       data: { progress: 30 },
     });
 
+    // 构建服务器配置（从模型关联的 wauleApiServer 获取）
+    const serverConfig = model.wauleApiServer ? {
+      url: model.wauleApiServer.url,
+      authToken: model.wauleApiServer.authToken,
+    } : undefined;
+
     if (provider === 'google') {
       const imageUrl = await geminiService.generateImage({
         prompt: task.prompt,
@@ -443,8 +449,7 @@ class TaskService {
         aspectRatio: task.ratio || '1:1',
         imageSize: imageSize, // 传递分辨率参数（2K/4K）
         referenceImages,
-        apiKey: model.apiKey,
-        apiUrl: model.apiUrl,
+        serverConfig,
       });
 
       return imageUrl;
@@ -456,6 +461,7 @@ class TaskService {
         aspectRatio: task.ratio || '1:1',
         referenceImages,
         maxImages,
+        serverConfig,
       });
 
       return imageUrl;
@@ -466,6 +472,7 @@ class TaskService {
         modelId: model.modelId,
         aspectRatio: task.ratio || '1:1',
         referenceImages,
+        serverConfig,
       })
       return imageUrl
     } else if (provider === 'sora') {
@@ -474,8 +481,7 @@ class TaskService {
         modelId: model.modelId,
         aspectRatio: task.ratio || '1:1',
         referenceImages,
-        apiKey: model.apiKey,
-        apiUrl: model.apiUrl,
+        serverConfig,
       });
 
       return imageUrl;
@@ -485,6 +491,7 @@ class TaskService {
         modelId: model.modelId,
         aspectRatio: task.ratio || '1:1',
         referenceImages,
+        serverConfig,
       });
 
       return imageUrl;
@@ -508,6 +515,12 @@ class TaskService {
       data: { progress: 20 },
     });
 
+    // 构建服务器配置（从模型关联的 wauleApiServer 获取）
+    const serverConfig = model.wauleApiServer ? {
+      url: model.wauleApiServer.url,
+      authToken: model.wauleApiServer.authToken,
+    } : undefined;
+
     if (provider === 'minimaxi' || provider === 'hailuo' || provider === '海螺') {
       const genType = task.generationType || (referenceImages.length >= 2 ? 'fl2v' : (referenceImages.length === 1 ? 'i2v' : 't2v'));
       if (genType === 'fl2v') {
@@ -527,6 +540,7 @@ class TaskService {
         resolution: minimaxResolution,
         referenceImages,
         generationType: genType,
+        serverConfig,
       });
       if (videoUrl && /^task:/.test(videoUrl)) {
         const extId = videoUrl.substring(5);
@@ -546,6 +560,7 @@ class TaskService {
         duration,
         referenceImages,
         generationType: task.generationType || 'text2video',
+        serverConfig,
       });
 
       return videoUrl;
@@ -615,8 +630,7 @@ class TaskService {
           referenceImage,
           referenceVideo,
           duration,
-          apiKey: model.apiKey,
-          apiUrl: model.apiUrl,
+          serverConfig,
         });
         
         // 清除模拟进度
@@ -792,6 +806,7 @@ class TaskService {
           bgm,
           movement_amplitude,
           aspect_ratio: task.ratio || '16:9',
+          serverConfig,
         });
         videoUrl = result.status; // textToVideo 返回 { taskId, status }，status 是视频 URL
       } else {
@@ -808,6 +823,7 @@ class TaskService {
           voice_id,
           bgm,
           movement_amplitude,
+          serverConfig,
         });
       }
 
