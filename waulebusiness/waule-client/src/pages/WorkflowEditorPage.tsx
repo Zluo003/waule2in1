@@ -139,6 +139,7 @@ const WorkflowEditorInner = () => {
     const v = Number(searchParams.get('shot'));
     return Number.isFinite(v) && v > 0 ? v : undefined;
   }, [searchParams]);
+  const shotIdParam = useMemo(() => searchParams.get('shotId') || '', [searchParams]); // 分镜唯一ID
   const forceReadOnly = useMemo(() => searchParams.get('readonly') === 'true', [searchParams]);
   // 从剧集详情页传入的资产
   const initialAssets = useMemo(() => {
@@ -177,6 +178,7 @@ const WorkflowEditorInner = () => {
   const episodeIdRef = useRef(episodeId);
   const sceneParamRef = useRef(sceneParam);
   const shotParamRef = useRef(shotParam);
+  const shotIdParamRef = useRef(shotIdParam); // 分镜唯一ID ref
   const idRef = useRef(id);
   const directWorkflowIdRef = useRef(directWorkflowId);
   const [initialFitDone, setInitialFitDone] = useState(false);
@@ -294,12 +296,13 @@ const WorkflowEditorInner = () => {
     episodeIdRef.current = episodeId;
     sceneParamRef.current = sceneParam;
     shotParamRef.current = shotParam;
+    shotIdParamRef.current = shotIdParam;
     idRef.current = id;
     directWorkflowIdRef.current = directWorkflowId;
     isDirectWorkflowAccessRef.current = isDirectWorkflowAccess;
     isEpisodeWorkflowRef.current = isEpisodeWorkflow;
     isShotWorkflowRef.current = isShotWorkflow;
-  }, [projectId, episodeId, sceneParam, shotParam, id, directWorkflowId, isDirectWorkflowAccess, isEpisodeWorkflow, isShotWorkflow]);
+  }, [projectId, episodeId, sceneParam, shotParam, shotIdParam, id, directWorkflowId, isDirectWorkflowAccess, isEpisodeWorkflow, isShotWorkflow]);
 
   const [workflowLoaded, setWorkflowLoaded] = useState(false);
 
@@ -1192,12 +1195,12 @@ const WorkflowEditorInner = () => {
   const loadWorkflow = async () => {
     try {
       let response;
-      
+
       // 直接访问工作流（共享的工作流）
       if (isDirectWorkflowAccess && directWorkflowId) {
         response = await apiClient.workflows.getById(directWorkflowId);
       } else if (isShotWorkflow) {
-        response = await apiClient.workflows.getOrCreateByShot(projectId!, episodeId!, sceneParam!, shotParam!);
+        response = await apiClient.workflows.getOrCreateByShot(projectId!, episodeId!, sceneParam!, shotParam!, shotIdParam);
       } else if (isEpisodeWorkflow) {
         response = await apiClient.workflows.getOrCreateByEpisode(projectId!, episodeId!);
       } else {
@@ -1620,6 +1623,7 @@ const WorkflowEditorInner = () => {
       const currentEpisodeId = episodeIdRef.current;
       const currentSceneParam = sceneParamRef.current;
       const currentShotParam = shotParamRef.current;
+      const currentShotIdParam = shotIdParamRef.current;
       const currentId = idRef.current;
       const currentDirectWorkflowId = directWorkflowIdRef.current;
       const currentIsShotWorkflow = isShotWorkflowRef.current;
@@ -1632,7 +1636,7 @@ const WorkflowEditorInner = () => {
           edges: optimizedEdges,
           nodeGroups: nodeGroupsRef.current,
           viewport: { x: 0, y: 0, zoom: 1 },
-        });
+        }, currentShotIdParam);
         
         // 同步Agent节点的输出到剧集详情页的分镜脚本
         try {

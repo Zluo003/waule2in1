@@ -5,6 +5,9 @@ import JSZip from 'jszip'
 import { apiClient, api } from '../lib/api'
 import AILoadingAnimation from '../components/AILoadingAnimation'
 
+// 生成分镜唯一ID
+const generateShotId = () => `shot_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
+
 interface Episode {
   id: string
   name: string
@@ -24,6 +27,7 @@ interface Project {
 }
 
 type ScriptShot = {
+  shotId?: string // 分镜唯一标识，用于关联工作流
   shotIndex: number
   '画面': string
   '景别/镜头': string
@@ -215,7 +219,7 @@ export default function EpisodeDetailPageNew() {
       const res = await apiClient.episodes.getById(projectId, episodeId)
       const ep = (res as any)?.data ?? res
       setEpisode(ep)
-      
+
       // 解析分镜数据 - 扁平化处理（移除幕的概念）
       const acts = (ep as any)?.scriptJson?.acts
       if (Array.isArray(acts) && acts.length > 0) {
@@ -224,7 +228,8 @@ export default function EpisodeDetailPageNew() {
         acts.forEach((act: any) => {
           if (Array.isArray(act.shots)) {
             act.shots.forEach((shot: any) => {
-              allShots.push({ ...shot, shotIndex: shotCounter++ })
+              // 为没有 shotId 的旧数据生成 shotId
+              allShots.push({ ...shot, shotId: shot.shotId || generateShotId(), shotIndex: shotCounter++ })
             })
           }
         })
@@ -246,7 +251,7 @@ export default function EpisodeDetailPageNew() {
         const res = await apiClient.episodes.getById(projectId!, episodeId!)
         const ep = (res as any)?.data ?? res
         setEpisode(ep)
-        
+
         // 解析分镜数据 - 扁平化处理（移除幕的概念）
         const acts = (ep as any)?.scriptJson?.acts
         if (Array.isArray(acts) && acts.length > 0) {
@@ -256,7 +261,8 @@ export default function EpisodeDetailPageNew() {
           acts.forEach((act: any) => {
             if (Array.isArray(act.shots)) {
               act.shots.forEach((shot: any) => {
-                allShots.push({ ...shot, shotIndex: shotCounter++ })
+                // 为没有 shotId 的旧数据生成 shotId
+                allShots.push({ ...shot, shotId: shot.shotId || generateShotId(), shotIndex: shotCounter++ })
               })
             }
           })
@@ -588,14 +594,15 @@ export default function EpisodeDetailPageNew() {
   // 新增镜头
   const addShot = async () => {
     const newIndex = shots.length > 0 ? Math.max(...shots.map(s => s.shotIndex)) + 1 : 1
-    
+
     // 获取全局资产
     const globalRoleAssets = allRoles.filter(r => globalAssets.roles.includes(r.id)).map(r => ({ id: r.id, name: r.name, thumbnail: r.thumbnail, metadata: r.metadata }))
     const globalSceneAssets = allScenes.filter(s => globalAssets.scenes.includes(s.id)).map(s => ({ id: s.id, name: s.name, thumbnail: s.thumbnail, url: s.url, metadata: s.metadata }))
     const globalPropAssets = allProps.filter(p => globalAssets.props.includes(p.id)).map(p => ({ id: p.id, name: p.name, thumbnail: p.thumbnail, url: p.url, metadata: p.metadata }))
     const globalAudioAssets = allAudios.filter(a => globalAssets.audios.includes(a.id)).map(a => ({ id: a.id, name: a.name, thumbnail: a.thumbnail, url: a.url, metadata: a.metadata }))
-    
+
     const newShot: ScriptShot = {
+      shotId: generateShotId(), // 生成唯一ID
       shotIndex: newIndex,
       '画面': '',
       '景别/镜头': '',
@@ -979,7 +986,7 @@ export default function EpisodeDetailPageNew() {
     if (shots.length > 0) {
       await saveShots(shots)
     }
-    
+
     // 构建资产参数
     const assets: any[] = []
     if (currentShot?.selectedRoles) {
@@ -991,9 +998,11 @@ export default function EpisodeDetailPageNew() {
     if (currentShot?.selectedProps) {
       currentShot.selectedProps.forEach((p: any) => assets.push({ type: 'prop', ...p }))
     }
-    
+
     const assetsParam = assets.length > 0 ? `&assets=${encodeURIComponent(JSON.stringify(assets))}` : ''
-    navigate(`/projects/${projectId}/episodes/${episodeId}/workflow?scene=1&shot=${currentShotIndex}${assetsParam}`)
+    // 传递 shotId 用于关联工作流
+    const shotIdParam = currentShot?.shotId ? `&shotId=${currentShot.shotId}` : ''
+    navigate(`/projects/${projectId}/episodes/${episodeId}/workflow?scene=1&shot=${currentShotIndex}${shotIdParam}${assetsParam}`)
   }
 
   const projectName = project?.name || ''
@@ -1137,6 +1146,7 @@ export default function EpisodeDetailPageNew() {
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0])
           const newShots: ScriptShot[] = (parsed.shots || []).map((s: any, index: number) => ({
+            shotId: generateShotId(), // 生成唯一ID
             shotIndex: index + 1,
             '画面': s['画面'] || s.scene || '',
             '景别/镜头': s['景别/镜头'] || s.shotType || '',

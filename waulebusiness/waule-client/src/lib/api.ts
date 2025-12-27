@@ -306,14 +306,14 @@ export const apiClient = {
       apiClient.tenant.get(`/workflows/project/${projectId}`),
     getOrCreateByEpisode: (projectId: string, episodeId: string) =>
       apiClient.tenant.get(`/workflows/project/${projectId}/episode/${episodeId}`),
-    getOrCreateByShot: (projectId: string, episodeId: string, scene: number, shot: number) =>
-      apiClient.tenant.get(`/workflows/project/${projectId}/episode/${episodeId}/shot`, { params: { scene, shot } }),
+    getOrCreateByShot: (projectId: string, episodeId: string, scene: number, shot: number, shotId?: string) =>
+      apiClient.tenant.get(`/workflows/project/${projectId}/episode/${episodeId}/shot`, { params: { scene, shot, shotId } }),
     save: (projectId: string, data: any) =>
       apiClient.tenant.post(`/workflows/project/${projectId}`, data),
     saveEpisode: (projectId: string, episodeId: string, data: any) =>
       apiClient.tenant.post(`/workflows/project/${projectId}/episode/${episodeId}`, data),
-    saveShot: (projectId: string, episodeId: string, scene: number, shot: number, data: any) =>
-      apiClient.tenant.post(`/workflows/project/${projectId}/episode/${episodeId}/shot`, data, { params: { scene, shot } }),
+    saveShot: (projectId: string, episodeId: string, scene: number, shot: number, data: any, shotId?: string) =>
+      apiClient.tenant.post(`/workflows/project/${projectId}/episode/${episodeId}/shot`, data, { params: { scene, shot, shotId } }),
     create: (data: any) => apiClient.tenant.post('/workflows', data),
     update: (id: string, data: any) =>
       apiClient.tenant.put(`/workflows/${id}`, data),
