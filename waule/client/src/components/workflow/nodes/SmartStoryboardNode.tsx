@@ -388,13 +388,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           const blob = base64ToBlob(base64, 'image/png');
           const fileName = `storyboard_${id}_slice_${i + 1}_${Date.now()}.png`;
 
-          // 1. 保存到本地
-          const link = document.createElement('a');
-          link.href = base64;
-          link.download = fileName;
-          link.click();
-
-          // 2. 上传到OSS（带超时）
+          // 上传到服务器（带超时）
           const file = new File([blob], fileName, { type: 'image/png' });
           const uploadPromise = apiClient.assets.upload(file);
           const timeoutPromise = new Promise((_, reject) =>
@@ -418,9 +412,9 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       updateNodeData({ slicedImages: savedUrls });
 
       if (failedIndexes.length > 0) {
-        toast.error(`分镜 ${failedIndexes.join(', ')} 上传失败，已保存到本地`);
+        toast.error(`分镜 ${failedIndexes.join(', ')} 上传失败`);
       } else {
-        toast.success(`成功保存 ${savedUrls.length} 个分镜到本地`);
+        toast.success(`成功生成 ${savedUrls.length} 个分镜`);
       }
 
       // 只为成功上传的图片创建预览节点
