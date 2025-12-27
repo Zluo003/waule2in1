@@ -859,9 +859,9 @@ model TenantWorkflow {
   episode       TenantEpisode?               @relation(fields: [episodeId], references: [id], onDelete: Cascade)
   collaborators TenantWorkflowCollaborator[]
 
-  @@unique([projectId, episodeId, scene, shot])
+  @@unique([projectId, episodeId, shotId])
   @@index([tenantId, tenantUserId])
-  @@index([projectId, episodeId, shotId])
+  @@index([projectId, episodeId, scene, shot])
   @@map("tenant_workflows")
 }
 

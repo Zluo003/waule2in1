@@ -759,12 +759,35 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
 
     try {
       setIsAdding(true);
-      await apiClient.assetLibraries.addFromUrl(
-        selectedLibraryId,
-        data.imageUrl,
-        assetName.trim()
-      );
-      
+
+      // 获取选中的库信息
+      const selectedLib = libraries.find(lib => lib.id === selectedLibraryId);
+
+      if (selectedLib?.category === 'ROLE') {
+        // 角色库：先上传图片获取资产ID，然后创建角色
+        const uploadRes = await apiClient.assetLibraries.addFromUrl(
+          selectedLibraryId,
+          data.imageUrl,
+          `${assetName.trim()}_face`
+        );
+        const assetId = uploadRes?.data?.id;
+        if (!assetId) {
+          throw new Error('上传图片失败');
+        }
+        // 创建角色，使用上传的图片作为正面照
+        await apiClient.assetLibraries.roles.create(selectedLibraryId, {
+          name: assetName.trim(),
+          frontAssetId: assetId,
+        });
+      } else {
+        // 其他类型库：直接添加图片
+        await apiClient.assetLibraries.addFromUrl(
+          selectedLibraryId,
+          data.imageUrl,
+          assetName.trim()
+        );
+      }
+
       // 添加成功后，真正递增计数器（确保下次序号正确）
       const context = (window as any).__workflowContext;
       if (context && context.project && context.nodeGroups) {
@@ -781,8 +804,8 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
           });
         }
       }
-      
-      toast.success('已添加到资产库');
+
+      toast.success(selectedLib?.category === 'ROLE' ? '已创建角色' : '已添加到资产库');
       setShowLibrarySelector(false);
       setAssetName('');
       try {
@@ -793,7 +816,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
         window.dispatchEvent(evt);
       } catch { }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || '添加失败');
+      toast.error(error.response?.data?.message || error.message || '添加失败');
     } finally {
       setIsAdding(false);
     }
