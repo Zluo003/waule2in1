@@ -734,11 +734,10 @@ export const reorderShots = asyncHandler(async (req: Request, res: Response) => 
     return res.status(404).json({ success: false, message: '项目不存在' });
   }
 
-  // 检查权限
+  // 只有所有者可以排序分镜
   const isOwner = project.tenantUserId === tenantUser.id;
-  const collab = project.collaborators.find(c => c.tenantUserId === tenantUser.id);
-  if (!isOwner && collab?.permission !== 'EDIT') {
-    return res.status(403).json({ success: false, message: '无权排序分镜' });
+  if (!isOwner && !tenantUser.isAdmin) {
+    return res.status(403).json({ success: false, message: '只有项目所有者可以排序分镜' });
   }
 
   const episode = await prisma.tenantEpisode.findFirst({
@@ -2317,6 +2316,40 @@ export const addAssetFromUrl = asyncHandler(async (req: Request, res: Response) 
 
   if (!library) {
     return res.status(404).json({ success: false, message: '资产库不存在' });
+  }
+
+  // 检查权限：所有者、资产库协作者、或项目协作者（该项目的剧集配置了此资产库）
+  const isOwner = library.tenantUserId === tenantUser.id;
+  let hasAccess = isOwner || tenantUser.isAdmin;
+
+  if (!hasAccess) {
+    // 1. 检查是否是资产库协作者
+    const collaboration = await prisma.tenantAssetLibraryCollaborator.findUnique({
+      where: { libraryId_tenantUserId: { libraryId: id, tenantUserId: tenantUser.id } },
+    });
+    if (collaboration) {
+      hasAccess = true;
+    } else {
+      // 2. 检查是否是项目协作者，且该项目的剧集配置了此资产库
+      const projectCollabs = await prisma.tenantProjectCollaborator.findMany({
+        where: { tenantUserId: tenantUser.id },
+        select: { projectId: true },
+      });
+      if (projectCollabs.length > 0) {
+        const projectIds = projectCollabs.map(c => c.projectId);
+        const episodeWithLibrary = await prisma.tenantEpisode.findFirst({
+          where: {
+            projectId: { in: projectIds },
+            configuredLibraryIds: { has: id },
+          },
+        });
+        hasAccess = !!episodeWithLibrary;
+      }
+    }
+  }
+
+  if (!hasAccess) {
+    return res.status(403).json({ success: false, message: '无权访问此资产库' });
   }
 
   // 判断URL类型：本地存储URL / base64 / 远程URL
@@ -4636,15 +4669,38 @@ export const createRole = asyncHandler(async (req: Request, res: Response) => {
     return res.status(404).json({ message: '资产库不存在' });
   }
 
-  // 检查权限：所有者或协作者
+  // 检查权限：所有者、资产库协作者、或项目协作者（该项目的剧集配置了此资产库）
   const isOwner = library.tenantUserId === tenantUser.id;
-  if (!isOwner && !tenantUser.isAdmin) {
+  let hasAccess = isOwner || tenantUser.isAdmin;
+
+  if (!hasAccess) {
+    // 1. 检查是否是资产库协作者
     const collaboration = await prisma.tenantAssetLibraryCollaborator.findUnique({
       where: { libraryId_tenantUserId: { libraryId: id, tenantUserId: tenantUser.id } },
     });
-    if (!collaboration) {
-      return res.status(403).json({ success: false, message: '无权访问此资产库' });
+    if (collaboration) {
+      hasAccess = true;
+    } else {
+      // 2. 检查是否是项目协作者，且该项目的剧集配置了此资产库
+      const projectCollabs = await prisma.tenantProjectCollaborator.findMany({
+        where: { tenantUserId: tenantUser.id },
+        select: { projectId: true },
+      });
+      if (projectCollabs.length > 0) {
+        const projectIds = projectCollabs.map(c => c.projectId);
+        const episodeWithLibrary = await prisma.tenantEpisode.findFirst({
+          where: {
+            projectId: { in: projectIds },
+            configuredLibraryIds: { has: id },
+          },
+        });
+        hasAccess = !!episodeWithLibrary;
+      }
     }
+  }
+
+  if (!hasAccess) {
+    return res.status(403).json({ success: false, message: '无权访问此资产库' });
   }
 
   const hasAnyAsset = Boolean(faceAssetId || frontAssetId || sideAssetId || backAssetId || voiceAssetId || documentAssetId || faceUrl || frontUrl || sideUrl || backUrl);
@@ -4652,8 +4708,20 @@ export const createRole = asyncHandler(async (req: Request, res: Response) => {
     return res.status(400).json({ message: '至少上传一项素材' });
   }
 
-  // 优先使用直接传递的 URL，否则尝试从数据库查找
-  const thumb = faceUrl || frontUrl || sideUrl || backUrl || null;
+  // 如果传入的是 AssetId，从数据库查找对应的 URL
+  const findAssetUrl = async (assetId?: string | null) => {
+    if (!assetId) return null;
+    const asset = await prisma.tenantAsset.findFirst({ where: { id: assetId, tenantId: tenantUser.tenantId } });
+    return asset?.url || null;
+  };
+
+  const resolvedFaceUrl = faceUrl || await findAssetUrl(faceAssetId);
+  const resolvedFrontUrl = frontUrl || await findAssetUrl(frontAssetId);
+  const resolvedSideUrl = sideUrl || await findAssetUrl(sideAssetId);
+  const resolvedBackUrl = backUrl || await findAssetUrl(backAssetId);
+
+  // 优先使用直接传递的 URL，否则使用从 AssetId 解析的 URL
+  const thumb = resolvedFaceUrl || resolvedFrontUrl || resolvedSideUrl || resolvedBackUrl || null;
   const roleUrl = `role://${id}/${Date.now()}`;
   const metadata: any = {
     kind: 'ROLE',
@@ -4661,13 +4729,13 @@ export const createRole = asyncHandler(async (req: Request, res: Response) => {
     thumbnail: thumb,
     images: {
       faceAssetId: faceAssetId || null,
-      faceUrl: faceUrl || null,
+      faceUrl: resolvedFaceUrl,
       frontAssetId: frontAssetId || null,
-      frontUrl: frontUrl || null,
+      frontUrl: resolvedFrontUrl,
       sideAssetId: sideAssetId || null,
-      sideUrl: sideUrl || null,
+      sideUrl: resolvedSideUrl,
       backAssetId: backAssetId || null,
-      backUrl: backUrl || null,
+      backUrl: resolvedBackUrl,
     },
     voiceAssetId: voiceAssetId || null,
     documentAssetId: documentAssetId || null,
@@ -4815,16 +4883,20 @@ export const updateRole = asyncHandler(async (req: Request, res: Response) => {
   const voice = await findAsset(voiceAssetId);
   const doc = await findAsset(documentAssetId);
 
-  const thumb = face?.url || front?.url || m.thumbnail || null;
+  const thumb = face?.url || front?.url || side?.url || back?.url || m.thumbnail || null;
   const newMetadata: any = {
     ...m,
     name: name !== undefined ? String(name).trim() : m.name,
     thumbnail: thumb,
     images: {
       faceAssetId: faceAssetId !== undefined ? (face?.id || null) : m.images?.faceAssetId || null,
+      faceUrl: faceAssetId !== undefined ? (face?.url || null) : m.images?.faceUrl || null,
       frontAssetId: frontAssetId !== undefined ? (front?.id || null) : m.images?.frontAssetId || null,
+      frontUrl: frontAssetId !== undefined ? (front?.url || null) : m.images?.frontUrl || null,
       sideAssetId: sideAssetId !== undefined ? (side?.id || null) : m.images?.sideAssetId || null,
+      sideUrl: sideAssetId !== undefined ? (side?.url || null) : m.images?.sideUrl || null,
       backAssetId: backAssetId !== undefined ? (back?.id || null) : m.images?.backAssetId || null,
+      backUrl: backAssetId !== undefined ? (back?.url || null) : m.images?.backUrl || null,
     },
     voiceAssetId: voiceAssetId !== undefined ? (voice?.id || null) : m.voiceAssetId || null,
     documentAssetId: documentAssetId !== undefined ? (doc?.id || null) : m.documentAssetId || null,
