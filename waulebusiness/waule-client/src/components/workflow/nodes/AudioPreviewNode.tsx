@@ -54,22 +54,26 @@ const AudioPreviewNode = ({ data, id }: NodeProps<NodeData>) => {
         const sp = new URLSearchParams(window.location.search);
         const scene = Number(nodeGroup?.scene) || Number(sp.get('scene')) || 1;
         const shot = Number(nodeGroup?.shot) || Number(sp.get('shot')) || 1;
+        const shotId = nodeGroup?.shotId || sp.get('shotId') || '';
         const parts = location.pathname.split('/').filter(Boolean);
         const pIdx = parts.indexOf('projects');
         const eIdx = parts.indexOf('episodes');
         const projectId = ctx.project?.id || ep?.projectId || (pIdx >= 0 ? parts[pIdx + 1] : undefined);
         const episodeId = ep?.id || (eIdx >= 0 ? parts[eIdx + 1] : undefined);
         if (!projectId || !episodeId) return;
-        
+
         const res = await apiClient.episodes.getById(projectId, episodeId);
         const root: any = (res as any)?.data ?? res;
         const episodeObj: any = (root as any)?.data ?? root;
         const acts: any[] = Array.isArray(episodeObj?.scriptJson?.acts) ? episodeObj.scriptJson.acts : [];
         const act = acts.find((a: any) => Number(a.actIndex) === scene);
-        const shotItem = act?.shots?.find((s: any) => Number(s.shotIndex) === shot);
+        // 优先使用 shotId 查找分镜
+        const shotItem = act?.shots?.find((s: any) =>
+          shotId ? s.shotId === shotId : Number(s.shotIndex) === shot
+        );
         const mediaList = Array.isArray(shotItem?.mediaList) ? shotItem.mediaList : [];
         const isInList = mediaList.some((m: any) => m?.nodeId === id);
-        
+
         // 同步 addedToStoryboard 状态
         setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, addedToStoryboard: isInList } } : n));
       } catch {}
@@ -365,6 +369,7 @@ const AudioPreviewNode = ({ data, id }: NodeProps<NodeData>) => {
                 const sp = new URLSearchParams(window.location.search);
                 let scene = Number(sp.get('scene')) || 0;
                 let shot = Number(sp.get('shot')) || 0;
+                let shotId = sp.get('shotId') || '';
                 // 如果 URL 没有参数，从 nodeGroup 获取
                 if (!scene || !shot) {
                   let nodeGroup = ctx.nodeGroup;
@@ -376,6 +381,7 @@ const AudioPreviewNode = ({ data, id }: NodeProps<NodeData>) => {
                   }
                   scene = Number(nodeGroup?.scene) || 1;
                   shot = Number(nodeGroup?.shot) || 1;
+                  shotId = nodeGroup?.shotId || '';
                 }
                 // 从 URL 路径获取 projectId 和 episodeId
                 const parts = location.pathname.split('/').filter(Boolean);
@@ -395,10 +401,13 @@ const AudioPreviewNode = ({ data, id }: NodeProps<NodeData>) => {
                 let act = acts.find((a: any) => Number(a.actIndex) === scene);
                 if (!act) { act = { actIndex: scene, shots: [] }; acts.push(act); }
                 act.shots = Array.isArray(act.shots) ? [...act.shots] : [];
-                let shotItem = act.shots.find((s: any) => Number(s.shotIndex) === shot);
-                if (!shotItem) { 
-                  shotItem = { shotIndex: shot, mediaList: [] }; 
-                  act.shots.push(shotItem); 
+                // 优先使用 shotId 查找分镜
+                let shotItem = act.shots.find((s: any) =>
+                  shotId ? s.shotId === shotId : Number(s.shotIndex) === shot
+                );
+                if (!shotItem) {
+                  shotItem = { shotIndex: shot, shotId: shotId || undefined, mediaList: [] };
+                  act.shots.push(shotItem);
                 }
                 const list = Array.isArray(shotItem.mediaList) ? shotItem.mediaList.slice() : [];
                 // 获取音频时长
@@ -407,12 +416,12 @@ const AudioPreviewNode = ({ data, id }: NodeProps<NodeData>) => {
                 shotItem.mediaList = list;
                 const scriptJson = { ...(episodeObj.scriptJson || {}), acts };
                 await apiClient.episodes.update(projectId, episodeId, { scriptJson });
-                
+
                 // 标记为已添加到分镜脚本
                 try {
                   setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, addedToStoryboard: true } } : n));
                 } catch { }
-                
+
                 toast.success('已添加到分镜素材');
               } catch (e: any) {
                 toast.error(e?.message || '添加到分镜素材失败');

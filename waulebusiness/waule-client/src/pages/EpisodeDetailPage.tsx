@@ -524,7 +524,28 @@ export default function EpisodeDetailPageNew() {
     setShots(newShots)
   }
 
-  // 保存分镜数据（转换回acts格式以保持后端兼容）
+  // 保存单个分镜数据（增量更新）
+  const saveSingleShot = useCallback(async (shot: ScriptShot) => {
+    if (!shot.shotId) return
+    try {
+      setSaving(true)
+      await apiClient.episodes.updateShot(projectId!, episodeId!, shot.shotId, shot)
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || e?.message || '保存失败')
+    } finally {
+      setSaving(false)
+    }
+  }, [projectId, episodeId])
+
+  // 保存当前分镜
+  const saveCurrentShot = useCallback(() => {
+    const shot = shots.find(s => s.shotIndex === currentShotIndex)
+    if (shot) {
+      saveSingleShot(shot)
+    }
+  }, [shots, currentShotIndex, saveSingleShot])
+
+  // 保存分镜数据（整体保存，仅用于兼容旧逻辑）
   const saveShots = useCallback(async (newShots: ScriptShot[]) => {
     try {
       setSaving(true)
@@ -591,7 +612,7 @@ export default function EpisodeDetailPageNew() {
     ))
   }
 
-  // 新增镜头
+  // 新增镜头（使用增量 API）
   const addShot = async () => {
     const newIndex = shots.length > 0 ? Math.max(...shots.map(s => s.shotIndex)) + 1 : 1
 
@@ -616,27 +637,47 @@ export default function EpisodeDetailPageNew() {
       selectedProps: globalPropAssets,
       selectedAudios: globalAudioAssets,
     }
-    const newShots = [...shots, newShot]
-    setShots(newShots)
-    setCurrentShotIndex(newIndex)
-    await saveShots(newShots)
+
+    try {
+      // 使用增量 API 添加分镜
+      await apiClient.episodes.addShot(projectId!, episodeId!, newShot)
+      const newShots = [...shots, newShot]
+      setShots(newShots)
+      setCurrentShotIndex(newIndex)
+      lastSavedRef.current = JSON.stringify(newShots)
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || e?.message || '添加分镜失败')
+    }
   }
 
-  // 删除镜头
+  // 删除镜头（使用增量 API，只有所有者可以删除）
   const removeShot = async (shotIndex: number) => {
     if (!window.confirm('确认删除该镜头？')) return
-    
-    const newShots = shots
-      .filter(s => s.shotIndex !== shotIndex)
-      .map((s, i) => ({ ...s, shotIndex: i + 1 }))
-    
-    setShots(newShots)
-    if (currentShotIndex === shotIndex) {
-      setCurrentShotIndex(newShots.length > 0 ? newShots[0].shotIndex : 0)
-    } else if (currentShotIndex > shotIndex) {
-      setCurrentShotIndex(currentShotIndex - 1)
+
+    const shotToDelete = shots.find(s => s.shotIndex === shotIndex)
+    if (!shotToDelete?.shotId) {
+      toast.error('分镜数据异常')
+      return
     }
-    await saveShots(newShots)
+
+    try {
+      // 使用增量 API 删除分镜
+      await apiClient.episodes.deleteShot(projectId!, episodeId!, shotToDelete.shotId)
+
+      const newShots = shots
+        .filter(s => s.shotIndex !== shotIndex)
+        .map((s, i) => ({ ...s, shotIndex: i + 1 }))
+
+      setShots(newShots)
+      if (currentShotIndex === shotIndex) {
+        setCurrentShotIndex(newShots.length > 0 ? newShots[0].shotIndex : 0)
+      } else if (currentShotIndex > shotIndex) {
+        setCurrentShotIndex(currentShotIndex - 1)
+      }
+      lastSavedRef.current = JSON.stringify(newShots)
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || e?.message || '删除分镜失败')
+    }
   }
 
   // 拖拽排序处理
@@ -684,24 +725,32 @@ export default function EpisodeDetailPageNew() {
     const newShots = [...shots]
     const draggedIdx = newShots.findIndex(s => s.shotIndex === draggedShotIndex)
     const targetIdx = newShots.findIndex(s => s.shotIndex === targetIndex)
-    
+
     if (draggedIdx === -1 || targetIdx === -1) return
 
     const [removed] = newShots.splice(draggedIdx, 1)
     newShots.splice(targetIdx, 0, removed)
-    
+
     // 重新编号
     const reindexedShots = newShots.map((s, i) => ({ ...s, shotIndex: i + 1 }))
-    
+
     setShots(reindexedShots)
     // 更新当前选中的镜头索引
     if (currentShotIndex === draggedShotIndex) {
       setCurrentShotIndex(targetIndex)
     }
-    
+
     setDraggedShotIndex(null)
     setDragOverShotIndex(null)
-    await saveShots(reindexedShots)
+
+    try {
+      // 使用增量 API 更新排序
+      const shotIds = reindexedShots.map(s => s.shotId).filter(Boolean) as string[]
+      await apiClient.episodes.reorderShots(projectId!, episodeId!, shotIds)
+      lastSavedRef.current = JSON.stringify(reindexedShots)
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || e?.message || '排序失败')
+    }
   }
 
   const handleDragEnd = () => {
@@ -1496,7 +1545,7 @@ export default function EpisodeDetailPageNew() {
                   <textarea
                     value={currentShot['画面']}
                     onChange={canEdit ? (e) => updateShotField(currentShotIndex, '画面', e.target.value) : undefined}
-                    onBlur={canEdit ? () => saveShots(shots) : undefined}
+                    onBlur={canEdit ? saveCurrentShot : undefined}
                     readOnly={!canEdit}
                     className="flex-1 w-full bg-white/30 dark:bg-white/5 text-text-light-primary dark:text-text-dark-primary rounded-lg p-3 text-sm resize-none border border-slate-400 dark:border-white/20 focus:border-neutral-500 focus:outline-none backdrop-blur-sm"
                     placeholder="描述画面内容..."
@@ -1508,7 +1557,7 @@ export default function EpisodeDetailPageNew() {
                   <textarea
                     value={currentShot['内容/动作']}
                     onChange={canEdit ? (e) => updateShotField(currentShotIndex, '内容/动作', e.target.value) : undefined}
-                    onBlur={canEdit ? () => saveShots(shots) : undefined}
+                    onBlur={canEdit ? saveCurrentShot : undefined}
                     readOnly={!canEdit}
                     className="flex-1 w-full bg-white/30 dark:bg-white/5 text-text-light-primary dark:text-text-dark-primary rounded-lg p-3 text-sm resize-none border border-slate-400 dark:border-white/20 focus:border-neutral-500 focus:outline-none backdrop-blur-sm"
                     placeholder="描述角色动作..."
@@ -1520,7 +1569,7 @@ export default function EpisodeDetailPageNew() {
                   <textarea
                     value={currentShot['声音/对话']}
                     onChange={canEdit ? (e) => updateShotField(currentShotIndex, '声音/对话', e.target.value) : undefined}
-                    onBlur={canEdit ? () => saveShots(shots) : undefined}
+                    onBlur={canEdit ? saveCurrentShot : undefined}
                     readOnly={!canEdit}
                     className="flex-1 w-full bg-white/30 dark:bg-white/5 text-text-light-primary dark:text-text-dark-primary rounded-lg p-3 text-sm resize-none border border-slate-400 dark:border-white/20 focus:border-neutral-500 focus:outline-none backdrop-blur-sm"
                     placeholder="描述台词或旁白..."

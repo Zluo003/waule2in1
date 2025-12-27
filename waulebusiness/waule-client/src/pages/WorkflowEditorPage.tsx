@@ -1007,7 +1007,10 @@ const WorkflowEditorInner = () => {
     try {
       const acts = (episode as any)?.scriptJson?.acts || [];
       const act = Array.isArray(acts) ? acts.find((a: any) => Number(a.actIndex) === Number(sceneParam)) : null;
-      const shot = act ? (act.shots || []).find((s: any) => Number(s.shotIndex) === Number(shotParam)) : null;
+      // 优先使用 shotId 查找分镜，回退到 shotIndex
+      const shot = act ? (act.shots || []).find((s: any) =>
+        shotIdParam ? s.shotId === shotIdParam : Number(s.shotIndex) === Number(shotParam)
+      ) : null;
       const makeDocText = () => {
         if (!shot) return '';
         const lines = [
@@ -1333,8 +1336,11 @@ const WorkflowEditorInner = () => {
             try {
               const acts = episode.scriptJson.acts;
               const currentAct = acts.find((a: any) => Number(a.actIndex) === Number(sceneParam));
-              const currentShot = currentAct?.shots?.find((s: any) => Number(s.shotIndex) === Number(shotParam));
-              
+              // 优先使用 shotId 查找分镜
+              const currentShot = currentAct?.shots?.find((s: any) =>
+                shotIdParam ? s.shotId === shotIdParam : Number(s.shotIndex) === Number(shotParam)
+              );
+
               // 收集分镜脚本中所有视频的nodeId
               const videoNodeIdsInScript = new Set<string>();
               if (currentShot) {
@@ -1378,7 +1384,10 @@ const WorkflowEditorInner = () => {
             try {
               const acts = episode.scriptJson.acts;
               const currentAct = acts.find((a: any) => Number(a.actIndex) === Number(sceneParam));
-              const currentShot = currentAct?.shots?.find((s: any) => Number(s.shotIndex) === Number(shotParam));
+              // 优先使用 shotId 查找分镜
+              const currentShot = currentAct?.shots?.find((s: any) =>
+                shotIdParam ? s.shotId === shotIdParam : Number(s.shotIndex) === Number(shotParam)
+              );
               promptFromScript = currentShot?.['提示词'];
             } catch (error) {
               console.error('读取分镜脚本提示词失败:', error);

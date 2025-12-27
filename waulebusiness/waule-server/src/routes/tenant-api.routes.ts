@@ -84,6 +84,20 @@ router.put('/projects/:projectId/episodes/:episodeId', tenantApiController.updat
 // 删除剧集
 router.delete('/projects/:projectId/episodes/:episodeId', tenantApiController.deleteEpisode);
 
+// ==================== 分镜管理 ====================
+
+// 添加分镜
+router.post('/projects/:projectId/episodes/:episodeId/shots', tenantApiController.addShot);
+
+// 更新单个分镜
+router.put('/projects/:projectId/episodes/:episodeId/shots/:shotId', tenantApiController.updateShot);
+
+// 删除分镜（只有所有者可以删除）
+router.delete('/projects/:projectId/episodes/:episodeId/shots/:shotId', tenantApiController.deleteShot);
+
+// 批量更新分镜顺序
+router.post('/projects/:projectId/episodes/:episodeId/shots/reorder', tenantApiController.reorderShots);
+
 // ==================== 工作流管理 ====================
 
 // 获取工作流列表

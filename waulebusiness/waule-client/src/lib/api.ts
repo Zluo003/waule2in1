@@ -296,6 +296,15 @@ export const apiClient = {
     getCollaborators: (_projectId: string, _episodeId: string) => Promise.resolve({ success: true, data: [] }),
     updatePermission: (_projectId: string, _episodeId: string, _targetUserId: string, _permission: 'READ' | 'EDIT') =>
       Promise.resolve({ success: true }),
+    // 分镜增量更新 API
+    addShot: (projectId: string, episodeId: string, shot: any) =>
+      apiClient.tenant.post(`/projects/${projectId}/episodes/${episodeId}/shots`, { shot }),
+    updateShot: (projectId: string, episodeId: string, shotId: string, shot: any) =>
+      apiClient.tenant.put(`/projects/${projectId}/episodes/${episodeId}/shots/${shotId}`, { shot }),
+    deleteShot: (projectId: string, episodeId: string, shotId: string) =>
+      apiClient.tenant.delete(`/projects/${projectId}/episodes/${episodeId}/shots/${shotId}`),
+    reorderShots: (projectId: string, episodeId: string, shotIds: string[]) =>
+      apiClient.tenant.post(`/projects/${projectId}/episodes/${episodeId}/shots/reorder`, { shotIds }),
   },
 
   // 工作流API（商业版使用租户 API）

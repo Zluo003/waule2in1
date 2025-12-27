@@ -540,6 +540,253 @@ export const updateEpisode = asyncHandler(async (req: Request, res: Response) =>
   });
 });
 
+// ==================== 分镜增量更新 API ====================
+
+// 添加分镜
+export const addShot = asyncHandler(async (req: Request, res: Response) => {
+  const tenantUser = req.tenantUser!;
+  const { projectId, episodeId } = req.params;
+  const { shot } = req.body; // shot 包含 shotId, shotIndex 等字段
+
+  if (!shot || !shot.shotId) {
+    return res.status(400).json({ success: false, message: '缺少分镜数据或 shotId' });
+  }
+
+  const project = await prisma.tenantProject.findFirst({
+    where: { id: projectId, tenantId: tenantUser.tenantId },
+    include: { collaborators: true },
+  });
+
+  if (!project) {
+    return res.status(404).json({ success: false, message: '项目不存在' });
+  }
+
+  // 检查权限：所有者或有编辑权限的协作者
+  const isOwner = project.tenantUserId === tenantUser.id;
+  const collab = project.collaborators.find(c => c.tenantUserId === tenantUser.id);
+  if (!isOwner && collab?.permission !== 'EDIT') {
+    return res.status(403).json({ success: false, message: '无权添加分镜' });
+  }
+
+  const episode = await prisma.tenantEpisode.findFirst({
+    where: { id: episodeId, projectId },
+  });
+
+  if (!episode) {
+    return res.status(404).json({ success: false, message: '剧集不存在' });
+  }
+
+  // 获取当前 scriptJson
+  const scriptJson: any = (episode as any).scriptJson || { acts: [] };
+  const acts = Array.isArray(scriptJson.acts) ? scriptJson.acts : [];
+
+  // 确保有第一幕
+  let act = acts.find((a: any) => a.actIndex === 1);
+  if (!act) {
+    act = { actIndex: 1, shots: [] };
+    acts.push(act);
+  }
+  act.shots = Array.isArray(act.shots) ? act.shots : [];
+
+  // 检查 shotId 是否已存在
+  const existingShot = act.shots.find((s: any) => s.shotId === shot.shotId);
+  if (existingShot) {
+    return res.status(409).json({ success: false, message: '分镜已存在' });
+  }
+
+  // 添加新分镜
+  act.shots.push(shot);
+
+  // 保存
+  await prisma.tenantEpisode.update({
+    where: { id: episodeId },
+    data: { scriptJson: { acts } },
+  });
+
+  res.json({ success: true, data: shot });
+});
+
+// 更新单个分镜
+export const updateShot = asyncHandler(async (req: Request, res: Response) => {
+  const tenantUser = req.tenantUser!;
+  const { projectId, episodeId, shotId } = req.params;
+  const { shot } = req.body;
+
+  const project = await prisma.tenantProject.findFirst({
+    where: { id: projectId, tenantId: tenantUser.tenantId },
+    include: { collaborators: true },
+  });
+
+  if (!project) {
+    return res.status(404).json({ success: false, message: '项目不存在' });
+  }
+
+  // 检查权限
+  const isOwner = project.tenantUserId === tenantUser.id;
+  const collab = project.collaborators.find(c => c.tenantUserId === tenantUser.id);
+  if (!isOwner && collab?.permission !== 'EDIT') {
+    return res.status(403).json({ success: false, message: '无权更新分镜' });
+  }
+
+  const episode = await prisma.tenantEpisode.findFirst({
+    where: { id: episodeId, projectId },
+  });
+
+  if (!episode) {
+    return res.status(404).json({ success: false, message: '剧集不存在' });
+  }
+
+  const scriptJson: any = (episode as any).scriptJson || { acts: [] };
+  const acts = Array.isArray(scriptJson.acts) ? scriptJson.acts : [];
+  const act = acts.find((a: any) => a.actIndex === 1);
+
+  if (!act || !Array.isArray(act.shots)) {
+    return res.status(404).json({ success: false, message: '分镜不存在' });
+  }
+
+  const shotIndex = act.shots.findIndex((s: any) => s.shotId === shotId);
+  if (shotIndex === -1) {
+    return res.status(404).json({ success: false, message: '分镜不存在' });
+  }
+
+  // 更新分镜，保留 shotId
+  act.shots[shotIndex] = { ...shot, shotId };
+
+  await prisma.tenantEpisode.update({
+    where: { id: episodeId },
+    data: { scriptJson: { acts } },
+  });
+
+  res.json({ success: true, data: act.shots[shotIndex] });
+});
+
+// 删除分镜（只有所有者可以删除）
+export const deleteShot = asyncHandler(async (req: Request, res: Response) => {
+  const tenantUser = req.tenantUser!;
+  const { projectId, episodeId, shotId } = req.params;
+
+  const project = await prisma.tenantProject.findFirst({
+    where: { id: projectId, tenantId: tenantUser.tenantId },
+  });
+
+  if (!project) {
+    return res.status(404).json({ success: false, message: '项目不存在' });
+  }
+
+  // 只有所有者可以删除分镜
+  if (project.tenantUserId !== tenantUser.id) {
+    return res.status(403).json({ success: false, message: '只有项目所有者可以删除分镜' });
+  }
+
+  const episode = await prisma.tenantEpisode.findFirst({
+    where: { id: episodeId, projectId },
+  });
+
+  if (!episode) {
+    return res.status(404).json({ success: false, message: '剧集不存在' });
+  }
+
+  const scriptJson: any = (episode as any).scriptJson || { acts: [] };
+  const acts = Array.isArray(scriptJson.acts) ? scriptJson.acts : [];
+  const act = acts.find((a: any) => a.actIndex === 1);
+
+  if (!act || !Array.isArray(act.shots)) {
+    return res.status(404).json({ success: false, message: '分镜不存在' });
+  }
+
+  const shotIndex = act.shots.findIndex((s: any) => s.shotId === shotId);
+  if (shotIndex === -1) {
+    return res.status(404).json({ success: false, message: '分镜不存在' });
+  }
+
+  // 删除分镜
+  act.shots.splice(shotIndex, 1);
+
+  // 重新编号 shotIndex
+  act.shots.forEach((s: any, i: number) => {
+    s.shotIndex = i + 1;
+  });
+
+  await prisma.tenantEpisode.update({
+    where: { id: episodeId },
+    data: { scriptJson: { acts } },
+  });
+
+  res.json({ success: true, message: '分镜已删除' });
+});
+
+// 批量更新分镜顺序
+export const reorderShots = asyncHandler(async (req: Request, res: Response) => {
+  const tenantUser = req.tenantUser!;
+  const { projectId, episodeId } = req.params;
+  const { shotIds } = req.body; // 按新顺序排列的 shotId 数组
+
+  if (!Array.isArray(shotIds)) {
+    return res.status(400).json({ success: false, message: '缺少 shotIds 数组' });
+  }
+
+  const project = await prisma.tenantProject.findFirst({
+    where: { id: projectId, tenantId: tenantUser.tenantId },
+    include: { collaborators: true },
+  });
+
+  if (!project) {
+    return res.status(404).json({ success: false, message: '项目不存在' });
+  }
+
+  // 检查权限
+  const isOwner = project.tenantUserId === tenantUser.id;
+  const collab = project.collaborators.find(c => c.tenantUserId === tenantUser.id);
+  if (!isOwner && collab?.permission !== 'EDIT') {
+    return res.status(403).json({ success: false, message: '无权排序分镜' });
+  }
+
+  const episode = await prisma.tenantEpisode.findFirst({
+    where: { id: episodeId, projectId },
+  });
+
+  if (!episode) {
+    return res.status(404).json({ success: false, message: '剧集不存在' });
+  }
+
+  const scriptJson: any = (episode as any).scriptJson || { acts: [] };
+  const acts = Array.isArray(scriptJson.acts) ? scriptJson.acts : [];
+  const act = acts.find((a: any) => a.actIndex === 1);
+
+  if (!act || !Array.isArray(act.shots)) {
+    return res.status(400).json({ success: false, message: '没有分镜数据' });
+  }
+
+  // 按 shotIds 顺序重新排列
+  const shotMap = new Map(act.shots.map((s: any) => [s.shotId, s]));
+  const reorderedShots: any[] = [];
+
+  for (const shotId of shotIds) {
+    const shot = shotMap.get(shotId);
+    if (shot) {
+      reorderedShots.push(shot);
+      shotMap.delete(shotId);
+    }
+  }
+
+  // 添加任何未在 shotIds 中的分镜（可能是其他协作者新增的）
+  shotMap.forEach(shot => reorderedShots.push(shot));
+
+  // 重新编号
+  reorderedShots.forEach((s, i) => {
+    s.shotIndex = i + 1;
+  });
+
+  act.shots = reorderedShots;
+
+  await prisma.tenantEpisode.update({
+    where: { id: episodeId },
+    data: { scriptJson: { acts } },
+  });
+
+  res.json({ success: true, data: reorderedShots });
+});
+
 export const deleteEpisode = asyncHandler(async (req: Request, res: Response) => {
   const tenantUser = req.tenantUser!;
   const { projectId, episodeId } = req.params;
@@ -550,6 +797,11 @@ export const deleteEpisode = asyncHandler(async (req: Request, res: Response) =>
 
   if (!project) {
     return res.status(404).json({ success: false, message: '项目不存在' });
+  }
+
+  // 只有所有者可以删除剧集
+  if (project.tenantUserId !== tenantUser.id) {
+    return res.status(403).json({ success: false, message: '只有项目所有者可以删除剧集' });
   }
 
   await prisma.tenantEpisode.delete({ where: { id: episodeId } });

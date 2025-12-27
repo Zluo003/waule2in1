@@ -83,6 +83,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
         const sp = new URLSearchParams(window.location.search);
         const scene = Number(nodeGroup?.scene) || Number(sp.get('scene')) || 1;
         const shot = Number(nodeGroup?.shot) || Number(sp.get('shot')) || 1;
+        const shotId = nodeGroup?.shotId || sp.get('shotId') || '';
         const parts = location.pathname.split('/').filter(Boolean);
         const pIdx = parts.indexOf('projects');
         const eIdx = parts.indexOf('episodes');
@@ -95,7 +96,10 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
         const episodeObj: any = (root as any)?.data ?? root;
         const acts: any[] = Array.isArray(episodeObj?.scriptJson?.acts) ? episodeObj.scriptJson.acts : [];
         const act = acts.find((a: any) => Number(a.actIndex) === scene);
-        const shotItem = act?.shots?.find((s: any) => Number(s.shotIndex) === shot);
+        // 优先使用 shotId 查找分镜
+        const shotItem = act?.shots?.find((s: any) =>
+          shotId ? s.shotId === shotId : Number(s.shotIndex) === shot
+        );
         const mediaList = Array.isArray(shotItem?.mediaList) ? shotItem.mediaList : [];
         const isInList = mediaList.some((m: any) => m?.nodeId === id);
 
@@ -918,6 +922,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                 const sp = new URLSearchParams(window.location.search);
                 let scene = Number(sp.get('scene')) || 0;
                 let shot = Number(sp.get('shot')) || 0;
+                let shotId = sp.get('shotId') || '';
                 // 如果 URL 没有参数，从 nodeGroup 获取
                 if (!scene || !shot) {
                   let nodeGroup = ctx.nodeGroup;
@@ -933,8 +938,9 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                   }
                   scene = Number(nodeGroup?.scene) || 1;
                   shot = Number(nodeGroup?.shot) || 1;
+                  shotId = nodeGroup?.shotId || '';
                 }
-                console.log('[ImagePreviewNode] 添加到分镜:', { scene, shot, urlScene: sp.get('scene'), urlShot: sp.get('shot') });
+                console.log('[ImagePreviewNode] 添加到分镜:', { scene, shot, shotId, urlScene: sp.get('scene'), urlShot: sp.get('shot') });
                 // 从 URL 路径获取 projectId 和 episodeId
                 const parts = location.pathname.split('/').filter(Boolean);
                 const pIdx = parts.indexOf('projects');
@@ -950,25 +956,28 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                 const episodeObj: any = (root as any)?.data ?? root;
                 // 使用 acts 结构（与 EpisodeDetailPage 保持一致）
                 let acts: any[] = Array.isArray(episodeObj?.scriptJson?.acts) ? [...episodeObj.scriptJson.acts] : [];
-                console.log('[ImagePreviewNode] 服务器返回的 acts:', JSON.stringify(acts.map(a => ({ actIndex: a.actIndex, shots: a.shots?.map((s: any) => ({ shotIndex: s.shotIndex, mediaCount: s.mediaList?.length || 0 })) }))));
+                console.log('[ImagePreviewNode] 服务器返回的 acts:', JSON.stringify(acts.map(a => ({ actIndex: a.actIndex, shots: a.shots?.map((s: any) => ({ shotIndex: s.shotIndex, shotId: s.shotId, mediaCount: s.mediaList?.length || 0 })) }))));
                 let act = acts.find((a: any) => Number(a.actIndex) === scene);
                 if (!act) { act = { actIndex: scene, shots: [] }; acts.push(act); }
                 act.shots = Array.isArray(act.shots) ? [...act.shots] : [];
-                console.log('[ImagePreviewNode] 查找 shotIndex:', shot, '在 act.shots 中:', act.shots.map((s: any) => s.shotIndex));
-                let shotItem = act.shots.find((s: any) => Number(s.shotIndex) === shot);
+                console.log('[ImagePreviewNode] 查找 shotId:', shotId, 'shotIndex:', shot, '在 act.shots 中:', act.shots.map((s: any) => ({ shotIndex: s.shotIndex, shotId: s.shotId })));
+                // 优先使用 shotId 查找分镜
+                let shotItem = act.shots.find((s: any) =>
+                  shotId ? s.shotId === shotId : Number(s.shotIndex) === shot
+                );
                 if (!shotItem) {
-                  shotItem = { shotIndex: shot, mediaList: [] };
+                  shotItem = { shotIndex: shot, shotId: shotId || undefined, mediaList: [] };
                   act.shots.push(shotItem);
-                  console.log('[ImagePreviewNode] 创建新的 shotItem:', shot);
+                  console.log('[ImagePreviewNode] 创建新的 shotItem:', shot, shotId);
                 }
                 const list = Array.isArray(shotItem.mediaList) ? shotItem.mediaList.slice() : [];
                 // 图片默认时长5秒
                 list.push({ type: 'image', url, nodeId: id, duration: 5 });
                 shotItem.mediaList = list;
-                console.log('[ImagePreviewNode] 添加素材到 shotIndex:', shotItem.shotIndex, '当前 mediaList 长度:', list.length);
+                console.log('[ImagePreviewNode] 添加素材到 shotIndex:', shotItem.shotIndex, 'shotId:', shotItem.shotId, '当前 mediaList 长度:', list.length);
                 const scriptJson = { ...(episodeObj.scriptJson || {}), acts };
                 await apiClient.episodes.update(projectId, episodeId, { scriptJson });
-                
+
                 // 标记为已添加到分镜脚本
                 try {
                   setNodes((nds) => nds.map((n) => n.id === id ? { ...n, data: { ...n.data, addedToStoryboard: true } } : n));
