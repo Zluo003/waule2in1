@@ -934,18 +934,22 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
                 const episodeObj: any = (root as any)?.data ?? root;
                 // 使用 acts 结构（与 EpisodeDetailPage 保持一致）
                 let acts: any[] = Array.isArray(episodeObj?.scriptJson?.acts) ? [...episodeObj.scriptJson.acts] : [];
+                console.log('[ImagePreviewNode] 服务器返回的 acts:', JSON.stringify(acts.map(a => ({ actIndex: a.actIndex, shots: a.shots?.map((s: any) => ({ shotIndex: s.shotIndex, mediaCount: s.mediaList?.length || 0 })) }))));
                 let act = acts.find((a: any) => Number(a.actIndex) === scene);
                 if (!act) { act = { actIndex: scene, shots: [] }; acts.push(act); }
                 act.shots = Array.isArray(act.shots) ? [...act.shots] : [];
+                console.log('[ImagePreviewNode] 查找 shotIndex:', shot, '在 act.shots 中:', act.shots.map((s: any) => s.shotIndex));
                 let shotItem = act.shots.find((s: any) => Number(s.shotIndex) === shot);
-                if (!shotItem) { 
-                  shotItem = { shotIndex: shot, mediaList: [] }; 
-                  act.shots.push(shotItem); 
+                if (!shotItem) {
+                  shotItem = { shotIndex: shot, mediaList: [] };
+                  act.shots.push(shotItem);
+                  console.log('[ImagePreviewNode] 创建新的 shotItem:', shot);
                 }
                 const list = Array.isArray(shotItem.mediaList) ? shotItem.mediaList.slice() : [];
                 // 图片默认时长5秒
                 list.push({ type: 'image', url, nodeId: id, duration: 5 });
                 shotItem.mediaList = list;
+                console.log('[ImagePreviewNode] 添加素材到 shotIndex:', shotItem.shotIndex, '当前 mediaList 长度:', list.length);
                 const scriptJson = { ...(episodeObj.scriptJson || {}), acts };
                 await apiClient.episodes.update(projectId, episodeId, { scriptJson });
                 
