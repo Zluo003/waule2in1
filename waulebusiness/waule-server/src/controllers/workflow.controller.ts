@@ -775,6 +775,8 @@ export const getOrCreateShotWorkflow = asyncHandler(async (req: Request, res: Re
 
   const displayName = `${project.name} - ${episode.name} - 第${scene}幕第${shot}镜 - 工作流`;
 
+  console.log('[getOrCreateShotWorkflow] 查找工作流:', { shotId, scene, shot, episodeId });
+
   // 优先通过 shotId 查找工作流（新逻辑）
   let workflow = null;
   if (shotId) {
@@ -789,6 +791,7 @@ export const getOrCreateShotWorkflow = asyncHandler(async (req: Request, res: Re
         _count: { select: { shares: true } },
       },
     });
+    console.log('[getOrCreateShotWorkflow] 通过 shotId 查找结果:', workflow ? workflow.id : 'null');
   }
 
   // 如果没有 shotId 或未找到，回退到旧逻辑（通过名称查找）
@@ -805,6 +808,7 @@ export const getOrCreateShotWorkflow = asyncHandler(async (req: Request, res: Re
         _count: { select: { shares: true } },
       },
     });
+    console.log('[getOrCreateShotWorkflow] 通过名称查找结果:', workflow ? workflow.id : 'null', expectedName);
   }
 
   // 如果不存在，创建新工作流（由项目所有者拥有，所有协作者共享）

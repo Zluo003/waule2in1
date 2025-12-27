@@ -847,6 +847,7 @@ model TenantWorkflow {
   episodeId     String?
   scene         Int?                         // 分镜场次
   shot          Int?                         // 分镜镜头
+  shotId        String?                      // 分镜唯一ID（用于拖拽排序后保持关联）
   name          String
   nodes         Json                         @default("[]")
   edges         Json                         @default("[]")
@@ -860,6 +861,7 @@ model TenantWorkflow {
 
   @@unique([projectId, episodeId, scene, shot])
   @@index([tenantId, tenantUserId])
+  @@index([projectId, episodeId, shotId])
   @@map("tenant_workflows")
 }
 

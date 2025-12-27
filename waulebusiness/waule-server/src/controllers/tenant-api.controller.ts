@@ -1140,6 +1140,7 @@ export const getOrCreateShotWorkflow = asyncHandler(async (req: Request, res: Re
   const { projectId, episodeId } = req.params;
   const scene = Number(req.query.scene as string);
   const shot = Number(req.query.shot as string);
+  const shotId = (req.query.shotId as string) || ''; // 分镜唯一ID
 
   if (!Number.isFinite(scene) || scene <= 0 || !Number.isFinite(shot) || shot <= 0) {
     return res.status(400).json({ success: false, message: '无效的分镜参数' });
@@ -1158,7 +1159,7 @@ export const getOrCreateShotWorkflow = asyncHandler(async (req: Request, res: Re
   // 检查项目级别权限
   const isProjectOwner = project.tenantUserId === tenantUser.id;
   const projectCollab = project.collaborators.find(c => c.tenantUserId === tenantUser.id);
-  
+
   if (!isProjectOwner && !projectCollab) {
     return res.status(403).json({ success: false, message: '无权访问此项目' });
   }
@@ -1171,10 +1172,22 @@ export const getOrCreateShotWorkflow = asyncHandler(async (req: Request, res: Re
     return res.status(404).json({ success: false, message: '剧集不存在' });
   }
 
-  let workflow = await prisma.tenantWorkflow.findFirst({
-    where: { projectId, episodeId, scene, shot },
-    include: { collaborators: { select: { id: true } } },
-  });
+  // 优先通过 shotId 查找工作流
+  let workflow = null;
+  if (shotId) {
+    workflow = await prisma.tenantWorkflow.findFirst({
+      where: { projectId, episodeId, shotId },
+      include: { collaborators: { select: { id: true } } },
+    });
+  }
+
+  // 如果没有 shotId 或未找到，回退到旧逻辑
+  if (!workflow) {
+    workflow = await prisma.tenantWorkflow.findFirst({
+      where: { projectId, episodeId, scene, shot },
+      include: { collaborators: { select: { id: true } } },
+    });
+  }
 
   if (!workflow) {
     // 项目所有者或有编辑权限的协作者可以创建工作流
@@ -1188,12 +1201,27 @@ export const getOrCreateShotWorkflow = asyncHandler(async (req: Request, res: Re
         episodeId,
         scene,
         shot,
+        shotId: shotId || undefined, // 保存 shotId
         tenantId: tenantUser.tenantId,
         tenantUserId: project.tenantUserId, // 使用项目所有者作为工作流所有者
         name: `${episode.title} - 第${scene}幕第${shot}镜`,
         nodes: [],
         edges: [],
       },
+      include: { collaborators: { select: { id: true } } },
+    });
+  } else if (shotId && !workflow.shotId) {
+    // 如果工作流存在但没有 shotId，更新它
+    workflow = await prisma.tenantWorkflow.update({
+      where: { id: workflow.id },
+      data: { shotId, scene, shot, name: `${episode.title} - 第${scene}幕第${shot}镜` },
+      include: { collaborators: { select: { id: true } } },
+    });
+  } else if (shotId && workflow.shotId === shotId && (workflow.scene !== scene || workflow.shot !== shot)) {
+    // 如果 shotId 匹配但 scene/shot 变了（拖拽排序），更新名称
+    workflow = await prisma.tenantWorkflow.update({
+      where: { id: workflow.id },
+      data: { scene, shot, name: `${episode.title} - 第${scene}幕第${shot}镜` },
       include: { collaborators: { select: { id: true } } },
     });
   }
@@ -1236,6 +1264,7 @@ export const saveShotWorkflow = asyncHandler(async (req: Request, res: Response)
   const { projectId, episodeId } = req.params;
   const scene = Number(req.query.scene as string);
   const shot = Number(req.query.shot as string);
+  const shotId = (req.query.shotId as string) || ''; // 分镜唯一ID
   const { nodes, edges, nodeGroups, viewport } = req.body;
 
   if (!Number.isFinite(scene) || scene <= 0 || !Number.isFinite(shot) || shot <= 0) {
@@ -1269,30 +1298,58 @@ export const saveShotWorkflow = asyncHandler(async (req: Request, res: Response)
     return res.status(404).json({ success: false, message: '剧集不存在' });
   }
 
-  const workflow = await prisma.tenantWorkflow.upsert({
-    where: {
-      projectId_episodeId_scene_shot: { projectId, episodeId, scene, shot },
-    },
-    create: {
-      projectId,
-      episodeId,
-      scene,
-      shot,
-      tenantId: project.tenantId,
-      tenantUserId: project.tenantUserId,
-      name: `${episode.title} - 第${scene}幕第${shot}镜`,
-      nodes: nodes || [],
-      edges: edges || [],
-      nodeGroups: nodeGroups || [],
-      viewport: viewport || {},
-    },
-    update: {
-      nodes: nodes || [],
-      edges: edges || [],
-      nodeGroups: nodeGroups || [],
-      viewport: viewport || {},
-    },
-  });
+  // 优先通过 shotId 查找工作流
+  let existingWorkflow = null;
+  if (shotId) {
+    existingWorkflow = await prisma.tenantWorkflow.findFirst({
+      where: { projectId, episodeId, shotId },
+    });
+  }
+
+  let workflow;
+  if (existingWorkflow) {
+    // 通过 shotId 找到了，更新它
+    workflow = await prisma.tenantWorkflow.update({
+      where: { id: existingWorkflow.id },
+      data: {
+        scene,
+        shot,
+        name: `${episode.title} - 第${scene}幕第${shot}镜`,
+        nodes: nodes || [],
+        edges: edges || [],
+        nodeGroups: nodeGroups || [],
+        viewport: viewport || {},
+      },
+    });
+  } else {
+    // 回退到旧逻辑：通过 scene+shot 查找或创建
+    workflow = await prisma.tenantWorkflow.upsert({
+      where: {
+        projectId_episodeId_scene_shot: { projectId, episodeId, scene, shot },
+      },
+      create: {
+        projectId,
+        episodeId,
+        scene,
+        shot,
+        shotId: shotId || undefined,
+        tenantId: project.tenantId,
+        tenantUserId: project.tenantUserId,
+        name: `${episode.title} - 第${scene}幕第${shot}镜`,
+        nodes: nodes || [],
+        edges: edges || [],
+        nodeGroups: nodeGroups || [],
+        viewport: viewport || {},
+      },
+      update: {
+        shotId: shotId || undefined,
+        nodes: nodes || [],
+        edges: edges || [],
+        nodeGroups: nodeGroups || [],
+        viewport: viewport || {},
+      },
+    });
+  }
 
   res.json({
     success: true,
