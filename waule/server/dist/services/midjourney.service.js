@@ -1,8 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getMidjourneyService = getMidjourneyService;
 const midjourney_config_1 = require("../config/midjourney.config");
 const waule_api_client_1 = require("./waule-api.client");
+const storage_service_1 = require("./storage.service");
+const logger_1 = __importDefault(require("../utils/logger"));
 /**
  * Midjourney服务（仅 waule-api 模式）
  */
@@ -15,6 +20,31 @@ class MidjourneyService {
         }
         else {
             console.warn('⚠️ [Midjourney] WAULEAPI_URL 未配置，Midjourney 功能不可用');
+        }
+    }
+    /**
+     * 处理Discord CDN图片URL，下载到本地服务器
+     */
+    async processImageUrl(imageUrl) {
+        if (!imageUrl)
+            return imageUrl;
+        // 检测是否是Discord CDN链接
+        const isDiscordCdn = /cdn\.discordapp\.com|media\.discordapp\.net/i.test(imageUrl);
+        if (!isDiscordCdn) {
+            return imageUrl; // 不是Discord CDN，直接返回
+        }
+        try {
+            logger_1.default.info(`[Midjourney] 检测到Discord CDN链接，开始下载到本地: ${imageUrl.substring(0, 80)}...`);
+            // 使用storageService的ensureStoredUrl方法处理URL
+            // 这个方法会根据存储模式自动选择保存到本地或OSS
+            const localUrl = await storage_service_1.storageService.ensureStoredUrl(imageUrl);
+            logger_1.default.info(`[Midjourney] 图片已转存: ${localUrl?.substring(0, 80)}...`);
+            return localUrl;
+        }
+        catch (error) {
+            logger_1.default.error(`[Midjourney] 图片转存失败: ${error.message}`);
+            // 转存失败，返回原始URL
+            return imageUrl;
         }
     }
     /**
@@ -69,12 +99,14 @@ class MidjourneyService {
             else if (result.status === 'SUBMITTED') {
                 status = midjourney_config_1.MIDJOURNEY_TASK_STATUS.SUBMITTED;
             }
+            // 处理Discord CDN图片URL
+            const processedImageUrl = await this.processImageUrl(result.imageUrl);
             return {
                 id: result.taskId || taskId,
                 action: 'IMAGINE',
                 status,
                 progress: result.progress !== undefined ? String(result.progress) : undefined,
-                imageUrl: result.imageUrl,
+                imageUrl: processedImageUrl,
                 failReason: result.failReason,
                 properties: {
                     messageId: result.messageId,
@@ -106,11 +138,13 @@ class MidjourneyService {
             console.log(`🔍 [Midjourney] 任务 ${taskId}, 状态: ${result.status}`);
             if (result.status === 'SUCCESS' || result.status === 'COMPLETED') {
                 console.log('✅ [Midjourney] 任务完成！');
+                // 处理Discord CDN图片URL
+                const processedImageUrl = await this.processImageUrl(result.imageUrl);
                 return {
                     id: result.taskId,
                     action: 'IMAGINE',
                     status: midjourney_config_1.MIDJOURNEY_TASK_STATUS.SUCCESS,
-                    imageUrl: result.imageUrl,
+                    imageUrl: processedImageUrl,
                     properties: {
                         messageId: result.messageId,
                         messageHash: result.messageHash,

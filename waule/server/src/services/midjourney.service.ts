@@ -1,5 +1,7 @@
 import { MIDJOURNEY_TASK_STATUS, MidjourneyTaskStatus } from '../config/midjourney.config';
 import { getGlobalWauleApiClient, WauleApiClient } from './waule-api.client';
+import { storageService } from './storage.service';
+import logger from '../utils/logger';
 
 interface ImagineRequest {
   prompt: string;
@@ -70,6 +72,35 @@ class MidjourneyService {
   }
 
   /**
+   * 处理Discord CDN图片URL，下载到本地服务器
+   */
+  private async processImageUrl(imageUrl?: string): Promise<string | undefined> {
+    if (!imageUrl) return imageUrl;
+
+    // 检测是否是Discord CDN链接
+    const isDiscordCdn = /cdn\.discordapp\.com|media\.discordapp\.net/i.test(imageUrl);
+
+    if (!isDiscordCdn) {
+      return imageUrl; // 不是Discord CDN，直接返回
+    }
+
+    try {
+      logger.info(`[Midjourney] 检测到Discord CDN链接，开始下载到本地: ${imageUrl.substring(0, 80)}...`);
+
+      // 使用storageService的ensureStoredUrl方法处理URL
+      // 这个方法会根据存储模式自动选择保存到本地或OSS
+      const localUrl = await storageService.ensureStoredUrl(imageUrl);
+
+      logger.info(`[Midjourney] 图片已转存: ${localUrl?.substring(0, 80)}...`);
+      return localUrl;
+    } catch (error: any) {
+      logger.error(`[Midjourney] 图片转存失败: ${error.message}`);
+      // 转存失败，返回原始URL
+      return imageUrl;
+    }
+  }
+
+  /**
    * 提交 Imagine 任务（文生图）
    */
   async imagine(params: ImagineRequest): Promise<TaskResponse> {
@@ -124,12 +155,15 @@ class MidjourneyService {
         status = MIDJOURNEY_TASK_STATUS.SUBMITTED;
       }
 
+      // 处理Discord CDN图片URL
+      const processedImageUrl = await this.processImageUrl(result.imageUrl);
+
       return {
         id: result.taskId || taskId,
         action: 'IMAGINE',
         status,
         progress: result.progress !== undefined ? String(result.progress) : undefined,
-        imageUrl: result.imageUrl,
+        imageUrl: processedImageUrl,
         failReason: result.failReason,
         properties: {
           messageId: result.messageId,
@@ -164,11 +198,15 @@ class MidjourneyService {
 
       if (result.status === 'SUCCESS' || result.status === 'COMPLETED') {
         console.log('✅ [Midjourney] 任务完成！');
+
+        // 处理Discord CDN图片URL
+        const processedImageUrl = await this.processImageUrl(result.imageUrl);
+
         return {
           id: result.taskId,
           action: 'IMAGINE',
           status: MIDJOURNEY_TASK_STATUS.SUCCESS,
-          imageUrl: result.imageUrl,
+          imageUrl: processedImageUrl,
           properties: {
             messageId: result.messageId,
             messageHash: result.messageHash,

@@ -55,6 +55,10 @@ declare class MidjourneyService {
     private wauleApiClient;
     constructor();
     /**
+     * 处理Discord CDN图片URL，下载到本地服务器
+     */
+    private processImageUrl;
+    /**
      * 提交 Imagine 任务（文生图）
      */
     imagine(params: ImagineRequest): Promise<TaskResponse>;
