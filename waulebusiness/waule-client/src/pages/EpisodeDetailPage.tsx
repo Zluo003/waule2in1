@@ -75,6 +75,8 @@ export default function EpisodeDetailPageNew() {
   const [loading, setLoading] = useState(true)
   const [shots, setShots] = useState<ScriptShot[]>([])
   const [currentShotIndex, setCurrentShotIndex] = useState(1)
+  // 全局索引到原始 scene/shot 的映射
+  const [globalToSceneShot, setGlobalToSceneShot] = useState<Record<number, { scene: number; shot: number }>>({})
   const [saving, setSaving] = useState(false)
   const [shotListOffset, setShotListOffset] = useState(0)
   const shotItemWidth = 140 // 每个镜头卡片宽度 + 间距
@@ -221,14 +223,19 @@ export default function EpisodeDetailPageNew() {
       if (Array.isArray(acts) && acts.length > 0) {
         const allShots: ScriptShot[] = []
         let shotCounter = 1
+        const globalToScene: Record<number, { scene: number; shot: number }> = {}
         acts.forEach((act: any) => {
+          const actIndex = Number(act.actIndex) || 1
           if (Array.isArray(act.shots)) {
             act.shots.forEach((shot: any) => {
+              const origShotIndex = Number(shot.shotIndex) || shotCounter
+              globalToScene[shotCounter] = { scene: actIndex, shot: origShotIndex }
               allShots.push({ ...shot, shotIndex: shotCounter++ })
             })
           }
         })
         setShots(allShots)
+        setGlobalToSceneShot(globalToScene)
         lastSavedRef.current = JSON.stringify(allShots)
       }
       toast.success('刷新成功')
@@ -254,17 +261,20 @@ export default function EpisodeDetailPageNew() {
           const allShots: ScriptShot[] = []
           let shotCounter = 1
           const sceneToGlobalIndex: Record<string, number> = {} // scene-shot -> globalIndex
+          const globalToScene: Record<number, { scene: number; shot: number }> = {} // globalIndex -> {scene, shot}
           acts.forEach((act: any) => {
             const actIndex = Number(act.actIndex) || 1
             if (Array.isArray(act.shots)) {
               act.shots.forEach((shot: any) => {
                 const origShotIndex = Number(shot.shotIndex) || shotCounter
                 sceneToGlobalIndex[`${actIndex}-${origShotIndex}`] = shotCounter
+                globalToScene[shotCounter] = { scene: actIndex, shot: origShotIndex }
                 allShots.push({ ...shot, shotIndex: shotCounter++ })
               })
             }
           })
           setShots(allShots)
+          setGlobalToSceneShot(globalToScene)
           lastSavedRef.current = JSON.stringify(allShots) // 记录初始数据
           if (allShots.length > 0) {
             // 如果 URL 有 scene+shot 参数，计算全局索引；否则仅用 shot 或默认第一个
@@ -1000,7 +1010,9 @@ export default function EpisodeDetailPageNew() {
     }
     
     const assetsParam = assets.length > 0 ? `&assets=${encodeURIComponent(JSON.stringify(assets))}` : ''
-    navigate(`/projects/${projectId}/episodes/${episodeId}/workflow?scene=1&shot=${currentShotIndex}${assetsParam}`)
+    // 获取原始的 scene 和 shot 索引
+    const originalSceneShot = globalToSceneShot[currentShotIndex] || { scene: 1, shot: currentShotIndex }
+    navigate(`/projects/${projectId}/episodes/${episodeId}/workflow?scene=${originalSceneShot.scene}&shot=${originalSceneShot.shot}${assetsParam}`)
   }
 
   const projectName = project?.name || ''
