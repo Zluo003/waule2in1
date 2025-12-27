@@ -773,7 +773,7 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
 
       // 生成下载文件名
       let fileName = `image-${Date.now()}.jpg`;
-      
+
       // 尝试使用自动命名
       const context = (window as any).__workflowContext;
       if (context && context.project && context.nodeGroups) {
@@ -799,29 +799,42 @@ const ImagePreviewNode = ({ data, id }: NodeProps<ImagePreviewNodeData>) => {
         }
       }
 
-      // 直接从 OSS 下载，速度更快
       toast.info('正在下载图片...');
-      
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error(`下载失败: ${response.status}`);
+
+      try {
+        // 尝试直接下载
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+          throw new Error(`下载失败: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 100);
+
+        toast.success(`图片下载成功：${fileName}`);
+      } catch (directError) {
+        // 直接下载失败，使用服务器代理下载
+        console.warn('直接下载失败，尝试代理下载:', directError);
+        const proxyUrl = `/api/assets/proxy-download-with-name?url=${encodeURIComponent(imageUrl)}&filename=${encodeURIComponent(fileName)}`;
+        const link = document.createElement('a');
+        link.href = proxyUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success(`图片下载成功：${fileName}`);
       }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-      }, 100);
-
-      toast.success(`图片下载成功：${fileName}`);
     } catch (error) {
       toast.error(`操作失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }

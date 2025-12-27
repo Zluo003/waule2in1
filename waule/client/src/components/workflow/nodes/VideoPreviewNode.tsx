@@ -236,10 +236,10 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
   const handleDownload = async () => {
     try {
       const videoUrl = data.videoUrl;
-      
+
       // 生成下载文件名
       let fileName = `video-${Date.now()}.mp4`;
-      
+
       // 尝试使用自动命名
       const context = (window as any).__workflowContext;
       if (context && context.project && context.nodeGroups) {
@@ -264,30 +264,43 @@ const VideoPreviewNode = ({ data, id }: NodeProps<VideoPreviewNodeData>) => {
           }
         }
       }
-      
-      // 直接从 OSS 下载，速度更快
+
       toast.info('正在下载视频...');
-      
-      const response = await fetch(videoUrl);
-      if (!response.ok) {
-        throw new Error(`下载失败: ${response.status}`);
+
+      try {
+        // 尝试直接下载
+        const response = await fetch(videoUrl);
+        if (!response.ok) {
+          throw new Error(`下载失败: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 100);
+
+        toast.success(`视频下载成功：${fileName}`);
+      } catch (directError) {
+        // 直接下载失败，使用服务器代理下载
+        console.warn('直接下载失败，尝试代理下载:', directError);
+        const proxyUrl = `/api/assets/proxy-download-with-name?url=${encodeURIComponent(videoUrl)}&filename=${encodeURIComponent(fileName)}`;
+        const link = document.createElement('a');
+        link.href = proxyUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success(`视频下载成功：${fileName}`);
       }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-      }, 100);
-
-      toast.success(`视频下载成功：${fileName}`);
     } catch (error) {
       toast.error(`操作失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
