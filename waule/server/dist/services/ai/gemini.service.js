@@ -257,50 +257,47 @@ const generateImage = async (options) => {
         if (referenceImages && referenceImages.length > 0) {
             for (const imageInput of referenceImages) {
                 console.log(`🖼️  [Gemini] 处理参考图: ${imageInput.substring(0, 50)}...`);
-                let mimeType = 'image/jpeg';
-                let base64Data = null;
                 if (imageInput.startsWith('data:')) {
-                    // 直接 data URL
+                    // Base64格式：使用inlineData
                     const matches = imageInput.match(/^data:([^;]+);base64,(.+)$/);
                     if (matches) {
-                        mimeType = matches[1];
-                        base64Data = matches[2];
+                        parts.push({
+                            inlineData: {
+                                mimeType: matches[1],
+                                data: matches[2],
+                            },
+                        });
+                        console.log(`✅ [Gemini] 参考图已添加（base64）: ${matches[1]}`);
                     }
                 }
-                else {
-                    // 是 URL 或本地路径，先下载/读取为 base64
-                    try {
-                        let fileBuffer;
-                        if (imageInput.startsWith('http://') || imageInput.startsWith('https://')) {
-                            const resp = await axios_1.default.get(imageInput, { responseType: 'arraybuffer' });
-                            fileBuffer = Buffer.from(resp.data);
-                            mimeType = resp.headers['content-type'] || mimeType;
-                        }
-                        else {
-                            // 相对路径（例如 /uploads/...）
-                            const fullPath = path_1.default.join(process.cwd(), imageInput);
-                            fileBuffer = await fs_1.default.promises.readFile(fullPath);
-                            const ext = path_1.default.extname(fullPath).toLowerCase();
-                            const mimeMap = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' };
-                            mimeType = mimeMap[ext] || mimeType;
-                        }
-                        base64Data = fileBuffer.toString('base64');
-                    }
-                    catch (e) {
-                        console.error('❌ 无法获取参考图:', imageInput, e.message);
-                    }
-                }
-                if (base64Data) {
+                else if (imageInput.startsWith('http://') || imageInput.startsWith('https://')) {
+                    // 公网URL：直接使用fileData传递URL
                     parts.push({
-                        inlineData: {
-                            mimeType,
-                            data: base64Data,
+                        fileData: {
+                            fileUri: imageInput,
                         },
                     });
-                    console.log(`✅ [Gemini] 参考图已添加到请求: ${mimeType}, 大小: ${base64Data.length} 字符`);
+                    console.log(`✅ [Gemini] 参考图已添加（URL）: ${imageInput.substring(0, 80)}`);
                 }
                 else {
-                    console.warn(`⚠️  [Gemini] 无法获取参考图的base64数据: ${imageInput}`);
+                    // 本地路径：读取为base64
+                    try {
+                        const fullPath = path_1.default.join(process.cwd(), imageInput);
+                        const fileBuffer = await fs_1.default.promises.readFile(fullPath);
+                        const ext = path_1.default.extname(fullPath).toLowerCase();
+                        const mimeMap = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' };
+                        const mimeType = mimeMap[ext] || 'image/jpeg';
+                        parts.push({
+                            inlineData: {
+                                mimeType,
+                                data: fileBuffer.toString('base64'),
+                            },
+                        });
+                        console.log(`✅ [Gemini] 参考图已添加（本地）: ${mimeType}`);
+                    }
+                    catch (e) {
+                        console.error('❌ 无法读取本地参考图:', imageInput, e.message);
+                    }
                 }
             }
             console.log(`📦 [Gemini] 总共添加 ${parts.length} 个图片到 parts 数组`);

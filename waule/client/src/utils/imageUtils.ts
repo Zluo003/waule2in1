@@ -107,14 +107,20 @@ export const convertLocalImageToBase64 = async (url: string): Promise<string> =>
  * 处理图片URL
  * - OSS/公网 URL：直接返回（第三方 AI 服务可以直接访问）
  * - 本地 URL：转 base64（第三方无法访问本地服务器）
+ * @param url 图片URL
+ * @param options.skipCompression 跳过压缩检查，直接返回URL（用于支持原生URL的AI服务）
  */
-export const processImageUrl = async (url: string): Promise<string> => {
+export const processImageUrl = async (url: string, options?: { skipCompression?: boolean }): Promise<string> => {
   if (!url) {
     throw new Error('Image URL is required');
   }
-  
+
   // 如果已经是base64，检查是否需要压缩
   if (url.startsWith('data:image/')) {
+    // 跳过压缩模式下，直接返回
+    if (options?.skipCompression) {
+      return url;
+    }
     // 如果 base64 太大（超过 500KB），进行压缩
     if (url.length > 500 * 1024) {
       console.log(`[ImageUtils] Base64 太大 (${Math.round(url.length / 1024)} KB)，进行压缩...`);
@@ -129,18 +135,24 @@ export const processImageUrl = async (url: string): Promise<string> => {
     }
     return url;
   }
-  
+
   // OSS URL 或公网 HTTPS URL：检查是否需要压缩
   const isOssUrl = url.includes('aliyuncs.com') || url.includes('oss-cn-');
   const isPublicUrl = url.startsWith('https://') && !isLocalUrl(url);
-  
+
   if (isOssUrl || isPublicUrl) {
+    // 跳过压缩模式：直接返回URL，不下载检查
+    if (options?.skipCompression) {
+      console.log(`[ImageUtils] 跳过压缩检查，直接使用URL:`, url.substring(0, 60));
+      return url;
+    }
+
     // 先用 HEAD 请求快速获取文件大小，决定是否需要下载压缩
     try {
       // 30秒超时
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
-      
+
       // 先检查文件大小
       let fileSizeMB = 0;
       try {
@@ -152,32 +164,32 @@ export const processImageUrl = async (url: string): Promise<string> => {
       } catch {
         // HEAD 请求失败，继续下载
       }
-      
+
       // 如果文件小于等于10MB且不需要检查尺寸，直接返回URL（优化性能）
       // 但为了确保尺寸检查，还是需要下载
       console.log(`[ImageUtils] 开始下载图片 (${fileSizeMB.toFixed(1)}MB)...`);
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
-      
+
       const blob = await response.blob();
       const actualSizeMB = blob.size / (1024 * 1024);
       console.log(`[ImageUtils] 图片下载完成，实际大小: ${actualSizeMB.toFixed(1)}MB`);
-      
+
       // 如果文件大于10MB，强制压缩
       if (actualSizeMB > MAX_FILE_SIZE_MB) {
         console.log(`[ImageUtils] 图片过大 (${actualSizeMB.toFixed(1)}MB > ${MAX_FILE_SIZE_MB}MB)，进行压缩...`);
         return await compressImage(blob, MAX_DIMENSION, 0.85);
       }
-      
+
       // 检查图片尺寸是否需要压缩
       const dimensions = await getImageDimensionsFromBlob(blob);
       const minDimension = Math.min(dimensions.width, dimensions.height);
-      
+
       if (minDimension > MAX_DIMENSION) {
         console.log(`[ImageUtils] 图片尺寸过大 (${dimensions.width}x${dimensions.height}，最小边${minDimension} > ${MAX_DIMENSION})，进行压缩...`);
         return await compressImage(blob, MAX_DIMENSION, 0.9);
       }
-      
+
       // 不需要压缩，直接返回原URL
       console.log(`Using ${isOssUrl ? 'OSS' : 'public'} URL directly:`, url.substring(0, 60));
       return url;
@@ -190,13 +202,13 @@ export const processImageUrl = async (url: string): Promise<string> => {
       return url;
     }
   }
-  
+
   // 本地地址，转换为base64（因为第三方AI服务无法访问）
   if (isLocalUrl(url)) {
     console.log('Converting local image to base64:', url);
     return await convertLocalImageToBase64(url);
   }
-  
+
   // 其他情况直接返回
   return url;
 };

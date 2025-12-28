@@ -688,13 +688,18 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
 
       if (referenceImages.length > 0) {
         console.log('[AIImageNode] 🖼️ 开始处理参考图片...');
+        // Gemini 3 Pro Image 支持直接提交URL，跳过压缩检查
+        const skipCompression = selectedModel.modelId === 'gemini-3-pro-image-preview';
+        if (skipCompression) {
+          console.log('[AIImageNode] Gemini 3 Pro Image 模型，直接使用URL');
+        }
         try {
           for (let i = 0; i < referenceImages.length; i++) {
             const imageUrl = referenceImages[i];
             console.log(`[AIImageNode] 处理参考图 ${i + 1}/${referenceImages.length}:`, imageUrl?.substring(0, 50));
             // processImageUrl 会自动处理：超时、压缩大图、转换本地图
             try {
-              const processedUrl = await processImageUrl(imageUrl);
+              const processedUrl = await processImageUrl(imageUrl, { skipCompression });
               console.log('[AIImageNode] processImageUrl完成');
               processedReferenceImages.push(processedUrl);
             } catch (processError) {

@@ -227,9 +227,9 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     setGeneratingStep('text');
 
     try {
-      // 处理所有输入图片
+      // 处理所有输入图片（使用URL而非base64）
       const processedImages = await Promise.all(
-        inputImages.map(img => processImageUrl(img))
+        inputImages.map(img => processImageUrl(img, { skipCompression: true }))
       );
 
       // 使用默认提示词

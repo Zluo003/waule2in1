@@ -12,7 +12,7 @@ exports.getFileCategory = getFileCategory;
 const FILE_SIGNATURES = {
     // 图片
     jpeg: {
-        signatures: [[0xFF, 0xD8, 0xFF]],
+        signatures: [[0xFF, 0xD8]],
         mimeTypes: ['image/jpeg', 'image/jpg'],
     },
     png: {
@@ -71,6 +71,7 @@ const FILE_SIGNATURES = {
  */
 function validateFileMagicBytes(buffer, declaredMimeType) {
     if (buffer.length < 8) {
+        console.log(`[FileValidator] Buffer too small: ${buffer.length} bytes`);
         return false; // 文件太小，无法验证
     }
     // 纯文本文件特殊处理
@@ -88,6 +89,8 @@ function validateFileMagicBytes(buffer, declaredMimeType) {
                 }
             }
             // 声明的类型在我们的签名库中，但签名不匹配
+            const first16Bytes = Array.from(buffer.slice(0, 16)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            console.log(`[FileValidator] Signature mismatch for ${declaredMimeType}. First 16 bytes: ${first16Bytes}`);
             return false;
         }
     }

@@ -212,8 +212,8 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
     setIsGenerating(true);
 
     try {
-      // 处理输入图片
-      const processedImage = await processImageUrl(inputImage);
+      // 处理输入图片 - 跳过压缩，直接使用URL
+      const processedImage = await processImageUrl(inputImage, { skipCompression: true });
 
       // 计算输入图片的比例
       let detectedRatio = '1:1';
