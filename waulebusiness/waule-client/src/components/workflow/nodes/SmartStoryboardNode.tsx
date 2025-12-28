@@ -475,7 +475,6 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           console.log('[SmartStoryboardNode] 图片已转换为base64，长度:', imageToSlice.length);
         } catch (fetchError: any) {
           console.error('[SmartStoryboardNode] 无法转换为base64:', fetchError.message);
-          // 如果无法获取远程图片，抛出错误而不是继续
           throw new Error(`无法获取图片: ${fetchError.message}`);
         }
       }
@@ -489,41 +488,58 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
       console.log('[SmartStoryboardNode] 切割完成，共', result.slices.length, '个片段');
 
-      // 如果启用了本地存储，将base64图片上传到本地服务器
-      let finalSlices = result.slices;
-      if (isLocalStorageEnabled()) {
-        console.log('[SmartStoryboardNode] 正在上传分割图片到本地存储...');
-        const userId = data.createdBy?.id || 'default';
-        const uploadPromises = result.slices.map(async (base64, index) => {
-          const filename = `storyboard_${id}_slice_${index + 1}_${Date.now()}.png`;
-          try {
+      // 并行上传并逐个创建预览节点
+      const userId = data.createdBy?.id || 'default';
+      const batchId = Date.now();
+      let successCount = 0;
+
+      // 并行上传所有切片
+      const uploadPromises = result.slices.map(async (base64, index) => {
+        try {
+          let finalUrl = base64;
+
+          // 如果启用本地存储，上传到本地服务器
+          if (isLocalStorageEnabled()) {
+            const filename = `storyboard_${id}_slice_${index + 1}_${batchId}.png`;
             const uploadResult = await uploadBase64ToLocal(base64, userId, filename);
             if (uploadResult.success && uploadResult.localUrl) {
+              finalUrl = uploadResult.localUrl;
               console.log(`[SmartStoryboardNode] 分镜 ${index + 1} 已上传:`, uploadResult.localUrl);
-              return uploadResult.localUrl;
+            } else {
+              console.warn(`[SmartStoryboardNode] 分镜 ${index + 1} 上传失败，使用base64`);
             }
-          } catch (uploadError) {
-            console.warn(`[SmartStoryboardNode] 分镜 ${index + 1} 上传异常:`, uploadError);
           }
-          console.warn(`[SmartStoryboardNode] 分镜 ${index + 1} 上传失败，使用base64`);
-          return base64;
-        });
-        finalSlices = await Promise.all(uploadPromises);
-        console.log('[SmartStoryboardNode] 所有分割图片已上传到本地存储');
+
+          // 上传成功后立即创建预览节点
+          createSinglePreviewNode(finalUrl, aspectRatio, index, batchId);
+          successCount++;
+          console.log(`[SmartStoryboardNode] 预览节点 ${index + 1} 已创建`);
+
+          return { index, url: finalUrl, success: true };
+        } catch (error: any) {
+          console.error(`[SmartStoryboardNode] 分镜 ${index + 1} 处理失败:`, error);
+          return { index, url: base64, success: false };
+        }
+      });
+
+      // 等待所有上传完成
+      const results = await Promise.all(uploadPromises);
+      const successResults = results.filter(r => r.success);
+
+      console.log(`[SmartStoryboardNode] 完成: ${successResults.length}/9 个预览节点已创建`);
+
+      if (successResults.length === 0) {
+        throw new Error('所有切片上传失败');
       }
 
-      // 验证最终切片
-      const validSlices = finalSlices.filter(s => s && s.length > 100);
-      if (validSlices.length !== 9) {
-        throw new Error(`有效切片数量不足: ${validSlices.length}/9`);
+      // 保存成功的切片URL
+      updateNodeData({ slicedImages: results.map(r => r.url) });
+
+      if (successResults.length < 9) {
+        toast.error(`部分预览节点创建失败 (${successResults.length}/9)`);
+      } else {
+        toast.success('所有预览节点创建成功');
       }
-
-      updateNodeData({ slicedImages: finalSlices });
-
-      // 批量创建9个预览节点（避免状态覆盖）
-      createAllPreviewNodes(finalSlices, aspectRatio);
-
-      console.log('[SmartStoryboardNode] 已创建', finalSlices.length, '个预览节点');
     } catch (error: any) {
       console.error(`[SmartStoryboardNode] 切割失败 (尝试 ${retryCount + 1}):`, error);
 
@@ -539,56 +555,44 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     }
   };
 
-  // 批量创建所有预览节点（一次性添加，避免状态覆盖）
-  const createAllPreviewNodes = (slices: string[], ratio: string) => {
+  // 创建单个预览节点
+  const createSinglePreviewNode = (imageUrl: string, ratio: string, index: number, batchId: number) => {
     const currentNode = getNode(id);
     if (!currentNode) return;
 
-    const nodeHeight = 220;  // 每个预览节点的高度
-    const gap = 20;          // 节点之间的间距
-    const batchId = Date.now(); // 唯一批次ID，确保每次生成的节点不会覆盖之前的
-
-    // 起始位置：在当前节点右侧，垂直居中对齐
+    const nodeHeight = 220;
+    const gap = 20;
     const baseX = currentNode.position.x + 350;
-    const totalHeight = slices.length * nodeHeight + (slices.length - 1) * gap;
-    const baseY = currentNode.position.y - totalHeight / 2 + 150;  // 居中偏移
+    const totalHeight = 9 * nodeHeight + 8 * gap;
+    const baseY = currentNode.position.y - totalHeight / 2 + 150;
 
-    const newNodes: any[] = [];
-    const newEdges: any[] = [];
+    const newNode = {
+      id: `${id}-slice-${batchId}-${index}`,
+      type: 'imagePreview',
+      position: {
+        x: baseX,
+        y: baseY + index * (nodeHeight + gap),
+      },
+      data: {
+        imageUrl,
+        ratio,
+        label: `分镜 ${index + 1}`,
+        fromStoryboard: true,
+        sourceNodeId: id,
+        createdBy: currentNode.data.createdBy,
+      },
+    };
 
-    slices.forEach((imageUrl, index) => {
-      const newNode = {
-        id: `${id}-slice-${batchId}-${index}`,
-        type: 'imagePreview',
-        position: {
-          x: baseX,
-          y: baseY + index * (nodeHeight + gap),  // 纵向排列
-        },
-        data: {
-          imageUrl,
-          ratio,
-          label: `分镜 ${index + 1}`,
-          fromStoryboard: true,
-          sourceNodeId: id,
-          createdBy: currentNode.data.createdBy,
-        },
-      };
+    const newEdge = {
+      id: `edge-${id}-to-slice-${batchId}-${index}`,
+      source: id,
+      target: newNode.id,
+      sourceHandle: `${id}-source`,
+      type: 'aurora',
+    };
 
-      const newEdge = {
-        id: `edge-${id}-to-slice-${batchId}-${index}`,
-        source: id,
-        target: newNode.id,
-        sourceHandle: `${id}-source`,
-        type: 'aurora',
-      };
-
-      newNodes.push(newNode);
-      newEdges.push(newEdge);
-    });
-
-    // 一次性添加所有节点和边
-    setNodes((nodes) => [...nodes, ...newNodes]);
-    setEdges((edges) => [...edges, ...newEdges]);
+    setNodes((nodes) => [...nodes, newNode]);
+    setEdges((edges) => [...edges, newEdge]);
   };
 
   return (

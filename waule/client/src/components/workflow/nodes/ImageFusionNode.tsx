@@ -327,7 +327,7 @@ const ImageFusionNode = ({ data, selected, id }: NodeProps<ImageFusionNodeData>)
       const processedImages = await Promise.all(
         allReferenceImages.map(async (url) => {
           try {
-            return await processImageUrl(url);
+            return await processImageUrl(url, { skipCompression: true });
           } catch {
             return url;
           }
