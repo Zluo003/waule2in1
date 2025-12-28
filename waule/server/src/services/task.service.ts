@@ -1008,6 +1008,74 @@ Requirements:
 
       logger.info(`[TaskService] ✅ Vidu 视频生成完成:`, videoUrl);
       return videoUrl;
+    } else if (provider === 'google') {
+      // Google Veo 3.1 系列视频生成（通过 waule-api 中转）
+      logger.info(`[TaskService] 🎬 开始处理 Veo 视频生成任务`);
+
+      const meta: any = task.metadata || {};
+      const aspectRatio = task.ratio || '16:9';
+      const enableUpsample = meta.enableUpsample !== false;
+      const enhancePrompt = meta.enhancePrompt !== false;
+
+      // 收集所有图片：从 referenceImages 和 subjects 中获取
+      let allImages: string[] = [...(referenceImages || [])];
+      
+      // 从 subjects 中提取图片（参考图模式）
+      const frontendSubjects = meta.subjects;
+      if (frontendSubjects && frontendSubjects.length > 0) {
+        for (const s of frontendSubjects) {
+          if (s.images && s.images.length > 0) {
+            allImages.push(...s.images);
+          }
+        }
+        logger.info(`[TaskService] Veo 从 subjects 获取图片: ${frontendSubjects.length}个角色`);
+      }
+
+      // waule-api 地址
+      const apiUrl = model.apiUrl || process.env.WAULEAPI_URL || 'http://localhost:9000';
+      const apiSecret = process.env.WAULEAPI_SECRET || '';
+
+      logger.info(`[TaskService] Veo 参数:`, {
+        model: model.modelId,
+        aspectRatio,
+        enableUpsample,
+        enhancePrompt,
+        apiUrl,
+        imagesCount: allImages.length,
+        images: allImages.map(u => u.substring(0, 50) + '...'),
+      });
+
+      // 调用 waule-api 的 /v1/videos 接口
+      const response = await fetch(`${apiUrl}/v1/videos/generations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiSecret}`,
+        },
+        body: JSON.stringify({
+          model: model.modelId,
+          prompt: task.prompt || '',
+          aspect_ratio: aspectRatio,
+          reference_images: allImages,
+          enable_upsample: enableUpsample,
+          enhance_prompt: enhancePrompt,
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Veo API 错误: ${response.status} ${errText}`);
+      }
+
+      const result = await response.json() as { data?: { url: string }[] };
+      const videoUrl = result.data?.[0]?.url;
+
+      if (!videoUrl) {
+        throw new Error('Veo API 未返回视频 URL');
+      }
+
+      logger.info(`[TaskService] ✅ Veo 视频生成完成:`, videoUrl);
+      return videoUrl;
     } else {
       throw new Error(`不支持的视频生成提供商: ${provider}`);
     }

@@ -8,6 +8,7 @@ import * as doubao from '../providers/doubao';
 import * as vidu from '../providers/vidu';
 import * as wanx from '../providers/wanx';
 import * as minimax from '../providers/minimax';
+import * as veo from '../providers/veo';
 
 const router = Router();
 
@@ -107,17 +108,27 @@ router.post('/generations', async (req: Request, res: Response) => {
       });
       result = { url: retalkResult.url, duration: 0 };
     } else if (modelLower.includes('wanx') || modelLower.includes('tongyi') || modelLower.includes('wan2')) {
-      result = await wanx.generateVideo({ 
-        model, 
-        prompt: finalPrompt, 
-        duration, 
-        resolution, 
-        aspectRatio: aspect_ratio, 
+      result = await wanx.generateVideo({
+        model,
+        prompt: finalPrompt,
+        duration,
+        resolution,
+        aspectRatio: aspect_ratio,
         referenceImages: refImages,
         useIntl: use_intl,
         replaceImageUrl: replace_image_url,
         replaceVideoUrl: replace_video_url,
         mode,
+      });
+    } else if (veo.isVeoModel(model)) {
+      // Veo 3.1 系列模型
+      result = await veo.generateVideo({
+        model,
+        prompt: finalPrompt,
+        aspectRatio: aspect_ratio,
+        images: refImages,
+        enableUpsample: req.body.enable_upsample,
+        enhancePrompt: req.body.enhance_prompt,
       });
     } else {
       return res.status(400).json({

@@ -8,6 +8,7 @@ const StorageSettingsPage = () => {
   const [mode, setMode] = useState<'oss' | 'local'>('oss');
   const [originalMode, setOriginalMode] = useState<'oss' | 'local'>('oss');
   const [localBaseUrl, setLocalBaseUrl] = useState('');
+  const [originalLocalBaseUrl, setOriginalLocalBaseUrl] = useState('');
 
   useEffect(() => {
     fetchConfig();
@@ -21,6 +22,7 @@ const StorageSettingsPage = () => {
       setMode(fetchedMode);
       setOriginalMode(fetchedMode);
       setLocalBaseUrl(fetchedUrl || '');
+      setOriginalLocalBaseUrl(fetchedUrl || '');
     } catch (error: any) {
       toast.error(error.response?.data?.message || '获取配置失败');
     } finally {
@@ -41,6 +43,7 @@ const StorageSettingsPage = () => {
         localBaseUrl: localBaseUrl.trim(),
       });
       setOriginalMode(mode);
+      setOriginalLocalBaseUrl(localBaseUrl.trim());
       toast.success('存储配置已更新');
     } catch (error: any) {
       toast.error(error.response?.data?.message || '保存失败');
@@ -155,7 +158,7 @@ const StorageSettingsPage = () => {
         <div className="flex gap-3 pt-4">
           <button
             onClick={handleSave}
-            disabled={loading || (mode === originalMode && localBaseUrl === (originalMode === 'local' ? localBaseUrl : ''))}
+            disabled={loading || (mode === originalMode && localBaseUrl === originalLocalBaseUrl)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? '保存中...' : '保存配置'}
@@ -163,7 +166,7 @@ const StorageSettingsPage = () => {
           <button
             onClick={() => {
               setMode(originalMode);
-              fetchConfig();
+              setLocalBaseUrl(originalLocalBaseUrl);
             }}
             disabled={loading}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"

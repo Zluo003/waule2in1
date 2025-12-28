@@ -136,6 +136,26 @@ export function initDatabase() {
   // 初始化Gemini 3 Pro中转API配置行
   database.exec(`INSERT OR IGNORE INTO gemini3_proxy_config (id) VALUES (1)`);
 
+  // Veo 视频生成API配置表
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS veo_proxy_config (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      provider TEXT DEFAULT 'future-api',
+      base_url TEXT DEFAULT 'https://future-api.vodeshop.com',
+      api_key TEXT,
+      is_active INTEGER DEFAULT 0,
+      request_count INTEGER DEFAULT 0,
+      error_count INTEGER DEFAULT 0,
+      last_used_at TEXT,
+      last_error TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // 初始化Veo配置行
+  database.exec(`INSERT OR IGNORE INTO veo_proxy_config (id) VALUES (1)`);
+
   // Midjourney 任务表
   database.exec(`
     CREATE TABLE IF NOT EXISTS mj_tasks (
@@ -760,17 +780,80 @@ export function recordGemini3ProxyUsage(success: boolean, error?: string) {
   const db = getDatabase();
   if (success) {
     db.prepare(`
-      UPDATE gemini3_proxy_config 
-      SET request_count = request_count + 1, 
+      UPDATE gemini3_proxy_config
+      SET request_count = request_count + 1,
           last_used_at = CURRENT_TIMESTAMP,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = 1
     `).run();
   } else {
     db.prepare(`
-      UPDATE gemini3_proxy_config 
+      UPDATE gemini3_proxy_config
       SET request_count = request_count + 1,
-          error_count = error_count + 1, 
+          error_count = error_count + 1,
+          last_used_at = CURRENT_TIMESTAMP,
+          last_error = ?,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = 1
+    `).run(error || 'Unknown error');
+  }
+}
+
+// ========== Veo 视频生成API配置管理 ==========
+
+export interface VeoProxyConfig {
+  id: number;
+  provider: string;
+  base_url: string;
+  api_key: string | null;
+  is_active: number;
+  request_count: number;
+  error_count: number;
+  last_used_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export function getVeoProxyConfig(): VeoProxyConfig | null {
+  const db = getDatabase();
+  return db.prepare('SELECT * FROM veo_proxy_config WHERE id = 1').get() as VeoProxyConfig | null;
+}
+
+export function updateVeoProxyConfig(config: Partial<VeoProxyConfig>): boolean {
+  const db = getDatabase();
+  const fields: string[] = [];
+  const values: any[] = [];
+
+  if (config.provider !== undefined) { fields.push('provider = ?'); values.push(config.provider); }
+  if (config.base_url !== undefined) { fields.push('base_url = ?'); values.push(config.base_url); }
+  if (config.api_key !== undefined) { fields.push('api_key = ?'); values.push(config.api_key); }
+  if (config.is_active !== undefined) { fields.push('is_active = ?'); values.push(config.is_active); }
+
+  if (fields.length === 0) return false;
+
+  fields.push('updated_at = CURRENT_TIMESTAMP');
+
+  const stmt = db.prepare(`UPDATE veo_proxy_config SET ${fields.join(', ')} WHERE id = 1`);
+  const result = stmt.run(...values);
+  return result.changes > 0;
+}
+
+export function recordVeoProxyUsage(success: boolean, error?: string) {
+  const db = getDatabase();
+  if (success) {
+    db.prepare(`
+      UPDATE veo_proxy_config
+      SET request_count = request_count + 1,
+          last_used_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = 1
+    `).run();
+  } else {
+    db.prepare(`
+      UPDATE veo_proxy_config
+      SET request_count = request_count + 1,
+          error_count = error_count + 1,
           last_used_at = CURRENT_TIMESTAMP,
           last_error = ?,
           updated_at = CURRENT_TIMESTAMP

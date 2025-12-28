@@ -49,6 +49,7 @@
                 <button onclick="switchTab('oss')" id="tabOss" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">平台OSS</button>
                 <button onclick="switchTab('proxyapi')" id="tabProxyapi" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">图片中转API</button>
                 <button onclick="switchTab('soraproxy')" id="tabSoraproxy" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">Sora中转</button>
+                <button onclick="switchTab('veoconfig')" id="tabVeoconfig" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">Veo配置</button>
                 <button onclick="switchTab('settings')" id="tabSettings" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">系统配置</button>
                 <button onclick="switchTab('logs')" id="tabLogs" class="tab-btn border-b-2 border-transparent text-sm font-medium py-3 px-1">请求日志</button>
             </nav>
@@ -613,6 +614,79 @@
                         <button onclick="saveSoraProxyConfig()" class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4">保存配置</button>
                         <button onclick="loadSoraProxyConfig()" class="inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent h-9 px-4">刷新</button>
                         <button onclick="testSoraProxyConnection()" class="inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent h-9 px-4">测试连接</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Veo视频生成API配置面板 -->
+        <div id="panelVeoconfig" class="hidden">
+            <!-- 说明卡片 -->
+            <div class="rounded-lg border border-green-200 bg-green-50 p-4 mb-6">
+                <h3 class="font-semibold text-green-800 mb-2">🎬 Veo 3.1 视频生成配置</h3>
+                <p class="text-sm text-green-700 mb-2">配置 Google Veo 3.1 系列视频生成API服务（通过 future-api.vodeshop.com 中转）</p>
+                <ul class="text-sm text-green-700 list-disc list-inside space-y-1">
+                    <li><code class="bg-green-100 px-1 rounded">veo3.1</code> - 文生视频、图生视频（1张首帧）</li>
+                    <li><code class="bg-green-100 px-1 rounded">veo3.1-pro</code> - 高质量文生视频、图生视频（1张首帧）</li>
+                    <li><code class="bg-green-100 px-1 rounded">veo3.1-components</code> - 参考图生视频（1-3张参考图）</li>
+                </ul>
+            </div>
+
+            <div class="rounded-lg border border-border bg-background p-6">
+                <h3 class="text-lg font-semibold mb-6">Veo API 配置</h3>
+                <div class="space-y-6">
+                    <!-- API配置 -->
+                    <div>
+                        <h4 class="text-sm font-semibold mb-4">API服务配置</h4>
+                        <div class="grid gap-4 md:grid-cols-2">
+                            <div class="md:col-span-2">
+                                <label class="text-sm font-medium mb-2 block">API 地址</label>
+                                <input id="veoBaseUrl" type="text" value="https://future-api.vodeshop.com" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="https://future-api.vodeshop.com">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-sm font-medium mb-2 block">API Key</label>
+                                <input id="veoApiKey" type="password" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="输入Veo API的密钥（留空则不修改）">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 统计信息 -->
+                    <div class="grid gap-4 grid-cols-2 md:grid-cols-4">
+                        <div class="rounded-lg border border-border bg-background p-3">
+                            <p class="text-xs text-muted-foreground mb-1">请求次数</p>
+                            <h4 class="text-lg font-bold" id="veoRequestCount">-</h4>
+                        </div>
+                        <div class="rounded-lg border border-border bg-background p-3">
+                            <p class="text-xs text-muted-foreground mb-1">错误次数</p>
+                            <h4 class="text-lg font-bold text-destructive" id="veoErrorCount">-</h4>
+                        </div>
+                        <div class="rounded-lg border border-border bg-background p-3">
+                            <p class="text-xs text-muted-foreground mb-1">最后使用</p>
+                            <h4 class="text-sm font-medium" id="veoLastUsed">-</h4>
+                        </div>
+                        <div class="rounded-lg border border-border bg-background p-3">
+                            <p class="text-xs text-muted-foreground mb-1">最后错误</p>
+                            <h4 class="text-sm font-medium text-destructive truncate" id="veoLastError" title="">-</h4>
+                        </div>
+                    </div>
+
+                    <!-- 启用状态 -->
+                    <div class="flex items-center justify-between p-4 rounded-lg border border-border">
+                        <div>
+                            <span class="text-sm font-medium">启用 Veo API</span>
+                            <p class="text-xs text-muted-foreground mt-1">关闭后将无法使用 Veo 3.1 系列模型生成视频</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="veoIsActive" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+
+                    <!-- 保存按钮 -->
+                    <div class="flex gap-3">
+                        <button onclick="saveVeoConfig()" class="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4">保存配置</button>
+                        <button onclick="loadVeoConfig()" class="inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent h-9 px-4">刷新</button>
+                        <button onclick="testVeoConnection()" class="inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent h-9 px-4">测试连接</button>
                     </div>
                 </div>
             </div>
@@ -1185,7 +1259,7 @@
         refreshLogs=async()=>{await loadLogs()},
         showToast=(m,t='info')=>{const d=document.createElement('div'),bc={success:'bg-green-600',error:'bg-destructive',info:'bg-primary'};d.className=`fixed bottom-4 right-4 ${bc[t]||bc.info} text-white px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium z-50 animate-slide-up`;d.textContent=m;document.body.appendChild(d);setTimeout(()=>{d.style.opacity='0';d.style.transition='opacity .3s';setTimeout(()=>d.parentNode&&document.body.removeChild(d),300)},2000)},
         logout=()=>{if(!confirm('确定要退出登录吗?'))return;localStorage.removeItem('adminToken');location.href='/login'},
-        switchTab=t=>{const cap=n=>n.charAt(0).toUpperCase()+n.slice(1);['tokens','apikeys','discord','oss','proxyapi','soraproxy','settings','logs'].forEach(n=>{const active=n===t;$(`panel${cap(n)}`).classList.toggle('hidden',!active);$(`tab${cap(n)}`).classList.toggle('border-primary',active);$(`tab${cap(n)}`).classList.toggle('text-primary',active);$(`tab${cap(n)}`).classList.toggle('border-transparent',!active);$(`tab${cap(n)}`).classList.toggle('text-muted-foreground',!active)});if(t==='settings'){loadAdminConfig();loadProxyConfig();loadWatermarkFreeConfig();loadCacheConfig();loadGenerationTimeout();loadATAutoRefreshConfig()}else if(t==='logs'){loadLogs()}else if(t==='apikeys'){loadProviderKeys()}else if(t==='discord'){loadDiscordAccounts();loadMjConfig()}else if(t==='oss'){loadOssConfig()}else if(t==='proxyapi'){loadImageProxyConfig()}else if(t==='soraproxy'){loadSoraProxyConfig()}},
+        switchTab=t=>{const cap=n=>n.charAt(0).toUpperCase()+n.slice(1);['tokens','apikeys','discord','oss','proxyapi','soraproxy','veoconfig','settings','logs'].forEach(n=>{const active=n===t;$(`panel${cap(n)}`).classList.toggle('hidden',!active);$(`tab${cap(n)}`).classList.toggle('border-primary',active);$(`tab${cap(n)}`).classList.toggle('text-primary',active);$(`tab${cap(n)}`).classList.toggle('border-transparent',!active);$(`tab${cap(n)}`).classList.toggle('text-muted-foreground',!active)});if(t==='settings'){loadAdminConfig();loadProxyConfig();loadWatermarkFreeConfig();loadCacheConfig();loadGenerationTimeout();loadATAutoRefreshConfig()}else if(t==='logs'){loadLogs()}else if(t==='apikeys'){loadProviderKeys()}else if(t==='discord'){loadDiscordAccounts();loadMjConfig()}else if(t==='oss'){loadOssConfig()}else if(t==='proxyapi'){loadImageProxyConfig()}else if(t==='soraproxy'){loadSoraProxyConfig()}else if(t==='veoconfig'){loadVeoConfig()}},
         // ========== Gemini API Keys 管理 ==========
         geminiApiRequest=async(url,opts={})=>{try{const r=await fetch(`${GEMINI_API_BASE}${url}`,{...opts,headers:{...opts.headers,'Content-Type':'application/json'}});return r}catch(e){console.error('Gemini API请求失败:',e);return null}},
         loadGeminiStats=async()=>{try{const r=await geminiApiRequest('/api/gemini-keys/stats');if(!r)return;const d=await r.json();if(d.success&&d.stats){$('geminiStatTotal').textContent=d.stats.total||0;$('geminiStatActive').textContent=d.stats.active||0;$('geminiStatRequests').textContent=d.stats.total_requests||0;$('geminiStatErrors').textContent=d.stats.total_errors||0}}catch(e){console.error('加载Gemini统计失败:',e)}},
@@ -1337,8 +1411,12 @@
         // ========== Midjourney 配置 ==========
         getMjConfigUrl=()=>GATEWAY_API_BASE,
         loadMjConfig=async()=>{try{const base=getMjConfigUrl();const[cmdRes,verRes]=await Promise.all([fetch(`${base}/api/config/mj_command_id`),fetch(`${base}/api/config/mj_version_id`)]);const cmdData=await cmdRes.json(),verData=await verRes.json();$('cfgMjCommandId').value=cmdData.value||'';$('cfgMjVersionId').value=verData.value||''}catch(e){console.error('加载MJ配置失败:',e)}},
-        saveMjConfig=async()=>{const commandId=$('cfgMjCommandId').value.trim(),versionId=$('cfgMjVersionId').value.trim();if(!commandId||!versionId){showToast('请填写 Command ID 和 Version ID','error');return}try{const base=getMjConfigUrl();const[r1,r2]=await Promise.all([fetch(`${base}/api/config/mj_command_id`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:commandId})}),fetch(`${base}/api/config/mj_version_id`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:versionId})})]);const d1=await r1.json(),d2=await r2.json();if(d1.success&&d2.success){showToast('Midjourney 配置保存成功','success')}else{showToast('保存失败','error')}}catch(e){showToast('保存失败: '+e.message,'error')}};
-        window.addEventListener('DOMContentLoaded',()=>{checkAuth();refreshTokens();loadATAutoRefreshConfig();loadImageProxyConfig()});
+        saveMjConfig=async()=>{const commandId=$('cfgMjCommandId').value.trim(),versionId=$('cfgMjVersionId').value.trim();if(!commandId||!versionId){showToast('请填写 Command ID 和 Version ID','error');return}try{const base=getMjConfigUrl();const[r1,r2]=await Promise.all([fetch(`${base}/api/config/mj_command_id`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:commandId})}),fetch(`${base}/api/config/mj_version_id`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:versionId})})]);const d1=await r1.json(),d2=await r2.json();if(d1.success&&d2.success){showToast('Midjourney 配置保存成功','success')}else{showToast('保存失败','error')}}catch(e){showToast('保存失败: '+e.message,'error')}},
+        // ========== Veo 视频生成API配置 ==========
+        loadVeoConfig=async()=>{try{const r=await gatewayApiRequest('/api/veo-config');if(!r)return;const d=await r.json();if(d.success&&d.data){const config=d.data;$('veoBaseUrl').value=config.base_url||'https://future-api.vodeshop.com';$('veoApiKey').value='';$('veoIsActive').checked=!!config.is_active;$('veoRequestCount').textContent=config.request_count||0;$('veoErrorCount').textContent=config.error_count||0;$('veoLastUsed').textContent=config.last_used_at?new Date(config.last_used_at).toLocaleString():'-';const lastErr=config.last_error||'-';$('veoLastError').textContent=lastErr;$('veoLastError').title=lastErr}}catch(e){console.error('加载Veo配置失败:',e)}},
+        saveVeoConfig=async()=>{try{const baseUrl=$('veoBaseUrl').value.trim();const apiKey=$('veoApiKey').value.trim();const isActive=$('veoIsActive').checked?1:0;const body={base_url:baseUrl,is_active:isActive};if(apiKey)body.api_key=apiKey;const r=await gatewayApiRequest('/api/veo-config',{method:'PUT',body:JSON.stringify(body)});if(!r)return showToast('保存失败：网络错误','error');const d=await r.json();if(d.success){showToast('Veo配置保存成功','success');$('veoApiKey').value='';await loadVeoConfig()}else{showToast('保存失败: '+(d.error||'未知错误'),'error')}}catch(e){showToast('保存失败: '+e.message,'error')}},
+        testVeoConnection=async()=>{try{showToast('正在测试连接...','info');const r=await gatewayApiRequest('/api/veo-config/test',{method:'POST'});if(!r)return showToast('测试失败：网络错误','error');const d=await r.json();if(d.success){showToast('连接成功','success')}else{showToast('连接失败: '+(d.error||'未知错误'),'error')}}catch(e){showToast('测试失败: '+e.message,'error')}};
+        window.addEventListener('DOMContentLoaded',()=>{checkAuth();refreshTokens();loadATAutoRefreshConfig();loadImageProxyConfig();loadVeoConfig()});
     </script>
 </body>
 </html>

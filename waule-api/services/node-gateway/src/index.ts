@@ -18,6 +18,7 @@ import v1SoraRouter from './routes/v1-sora';
 import v1MidjourneyRouter from './routes/v1-midjourney';
 import internalOssRouter from './routes/internal-oss';
 import soraProxyConfigRouter from './routes/sora-proxy-config';
+import veoConfigRouter from './routes/veo-config';
 import futureSoraApiRouter from './routes/future-sora-api';
 import { initDatabase, getConfig, setConfig } from './db';
 import { midjourneyService } from './services/midjourney';
@@ -88,6 +89,7 @@ async function start() {
   gatewayApp.use('/api/proxy-api-config', proxyApiConfigRouter);
   gatewayApp.use('/api/gemini3-proxy-config', gemini3ProxyConfigRouter);
   gatewayApp.use('/api/sora-proxy-config', soraProxyConfigRouter);
+  gatewayApp.use('/api/veo-config', veoConfigRouter);
   gatewayApp.use('/api/gemini', authMiddleware, geminiRouter);
   
   // Future Sora API 中转路由
