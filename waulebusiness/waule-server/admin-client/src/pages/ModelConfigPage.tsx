@@ -15,6 +15,7 @@ interface AIModel {
   apiUrl?: string
   isActive: boolean
   pricePerUse?: string
+  wauleApiServerId?: string | null
   capabilities?: Array<{ capability: string; supported: boolean }>
 }
 
@@ -414,12 +415,12 @@ const ModelConfigPage = () => {
   // 可复用的服务器选择组件
   const ServerSelect = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
     <div className="mt-4">
-      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Waule API 服务器</label>
+      <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Waule API 服务器 <span className="text-red-500">*</span></label>
       <select value={value} onChange={e => onChange(e.target.value)} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white">
-        <option value="">使用默认服务器</option>
+        <option value="">请选择服务器</option>
         {wauleServers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.url}){s.isDefault ? ' [默认]' : ''}</option>)}
       </select>
-      {wauleServers.length === 0 && <div className="text-xs text-amber-500 mt-1">请先在上方添加 Waule API 服务器</div>}
+      {wauleServers.length === 0 && <div className="text-xs text-red-500 mt-1">⚠️ 请先在上方添加 Waule API 服务器</div>}
     </div>
   )
 
@@ -485,6 +486,7 @@ const ModelConfigPage = () => {
           setProPrice(gPro.pricePerUse || '')
           setProApiKey(gPro.apiKey || '')
           setProApiUrl(gPro.apiUrl || defaultGoogleApiUrl(GOOGLE_PRO_ID))
+          setProServerId(gPro.wauleApiServerId || '')
           setProAccepted(Array.isArray(gPro.config?.acceptedInputs) ? gPro.config.acceptedInputs : ['TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'])
           setProTextConfig({
             maxTokens: gPro.config?.maxTokens ?? 8192,
@@ -501,6 +503,7 @@ const ModelConfigPage = () => {
           setProPrice('')
           setProApiKey('')
           setProApiUrl(defaultGoogleApiUrl(GOOGLE_PRO_ID))
+          setProServerId('')
           setProAccepted(['TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'])
           setProTextConfig({ maxTokens: 8192, temperature: 0.7, topP: 0.95, topK: 40, frequencyPenalty: 0, presencePenalty: 0 })
         }
@@ -513,6 +516,7 @@ const ModelConfigPage = () => {
           setFlashTextPrice(gFlashText.pricePerUse || '')
           setFlashTextApiKey(gFlashText.apiKey || '')
           setFlashTextApiUrl(gFlashText.apiUrl || defaultGoogleApiUrl(GOOGLE_FLASH_TEXT_ID))
+          setFlashTextServerId(gFlashText.wauleApiServerId || '')
           setFlashTextAccepted(Array.isArray(gFlashText.config?.acceptedInputs) ? gFlashText.config.acceptedInputs : ['TEXT', 'IMAGE', 'VIDEO'])
           setFlashTextConfig({
             maxTokens: gFlashText.config?.maxTokens ?? 8192,
@@ -527,6 +531,7 @@ const ModelConfigPage = () => {
           setFlashTextPrice('')
           setFlashTextApiKey('')
           setFlashTextApiUrl(defaultGoogleApiUrl(GOOGLE_FLASH_TEXT_ID))
+          setFlashTextServerId('')
           setFlashTextAccepted(['TEXT', 'IMAGE', 'VIDEO'])
           setFlashTextConfig({ maxTokens: 8192, temperature: 0.7, topP: 0.95, topK: 40 })
         }
@@ -539,6 +544,7 @@ const ModelConfigPage = () => {
           setFlashPrice(gFlash.pricePerUse || '')
           setFlashApiKey(gFlash.apiKey || '')
           setFlashApiUrl(gFlash.apiUrl || defaultGoogleApiUrl(GOOGLE_FLASH_IMAGE_ID))
+          setFlashServerId(gFlash.wauleApiServerId || '')
           setFlashAccepted(Array.isArray(gFlash.config?.acceptedInputs) ? gFlash.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setFlashImageConfig({
             supportedRatios: gFlash.config?.supportedRatios || ASPECT_RATIOS.map(r => r.value),
@@ -564,6 +570,7 @@ const ModelConfigPage = () => {
           setGemini3Price(gGemini3.pricePerUse || '')
           setGemini3ApiKey(gGemini3.apiKey || '')
           setGemini3ApiUrl(gGemini3.apiUrl || defaultGoogleApiUrl(GOOGLE_GEMINI_3_ID))
+          setGemini3ServerId(gGemini3.wauleApiServerId || '')
           setGemini3Accepted(Array.isArray(gGemini3.config?.acceptedInputs) ? gGemini3.config.acceptedInputs : ['TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'])
           setGemini3TextConfig({
             maxTokens: gGemini3.config?.maxTokens ?? 8192,
@@ -589,6 +596,7 @@ const ModelConfigPage = () => {
           setGemini3Price('')
           setGemini3ApiKey('')
           setGemini3ApiUrl(defaultGoogleApiUrl(GOOGLE_GEMINI_3_ID))
+          setGemini3ServerId('')
           setGemini3Accepted(['TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'])
           setGemini3TextConfig({ maxTokens: 8192, temperature: 0.7, topP: 0.95, topK: 40, frequencyPenalty: 0, presencePenalty: 0 })
           setGemini3ThinkingConfig({ enableThinkingMode: true, thinkingLevel: 'medium' })
@@ -603,6 +611,7 @@ const ModelConfigPage = () => {
           setGemini3ImagePrice(gGemini3Image.pricePerUse || '')
           setGemini3ImageApiKey(gGemini3Image.apiKey || '')
           setGemini3ImageApiUrl(gGemini3Image.apiUrl || defaultGoogleApiUrl(GOOGLE_GEMINI_3_IMAGE_ID))
+          setGemini3ImageServerId(gGemini3Image.wauleApiServerId || '')
           setGemini3ImageAccepted(Array.isArray(gGemini3Image.config?.acceptedInputs) ? gGemini3Image.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setGemini3ImageConfig({
             supportedRatios: gGemini3Image.config?.supportedRatios || ASPECT_RATIOS.map(r => r.value),
@@ -618,6 +627,7 @@ const ModelConfigPage = () => {
           setGemini3ImagePrice('')
           setGemini3ImageApiKey('')
           setGemini3ImageApiUrl(defaultGoogleApiUrl(GOOGLE_GEMINI_3_IMAGE_ID))
+          setGemini3ImageServerId('')
           setGemini3ImageAccepted(['TEXT', 'IMAGE'])
           setGemini3ImageConfig({ supportedRatios: ASPECT_RATIOS.map(r => r.value), supportedResolutions: ['2K', '4K'], supportsImageToImage: true, maxReferenceImages: 1, capabilities: ['google_search', 'reasoning', 'text_rendering'] })
         }
@@ -630,6 +640,7 @@ const ModelConfigPage = () => {
           setSdProPrice(sdPro.pricePerUse || '')
           setSdProApiKey(sdPro.apiKey || '')
           setSdProApiUrl(sdPro.apiUrl || defaultDoubaoApiUrl)
+          setSdProServerId(sdPro.wauleApiServerId || '')
           setSdProAccepted(Array.isArray(sdPro.config?.acceptedInputs) ? sdPro.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setSdProVideoConfig({
             supportedRatios: sdPro.config?.supportedRatios || ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
@@ -644,6 +655,7 @@ const ModelConfigPage = () => {
           setSdProPrice('')
           setSdProApiKey('')
           setSdProApiUrl(defaultDoubaoApiUrl)
+          setSdProServerId('')
           setSdProAccepted(['TEXT', 'IMAGE'])
           setSdProVideoConfig({ supportedRatios: ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'], supportedResolutions: ['720P', '1080P', '2K', '4K'], supportedGenerationTypes: ['文生视频', '参考图', '主体参考', '首帧', '尾帧', '首尾帧'], supportedDurations: [5, 6, 8, 10, 15, 30] })
         }
@@ -656,6 +668,7 @@ const ModelConfigPage = () => {
           setSdFastPrice(sdFast.pricePerUse || '')
           setSdFastApiKey(sdFast.apiKey || '')
           setSdFastApiUrl(sdFast.apiUrl || defaultDoubaoApiUrl)
+          setSdFastServerId(sdFast.wauleApiServerId || '')
           setSdFastAccepted(Array.isArray(sdFast.config?.acceptedInputs) ? sdFast.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setSdFastVideoConfig({
             supportedRatios: sdFast.config?.supportedRatios || ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
@@ -670,6 +683,7 @@ const ModelConfigPage = () => {
           setSdFastPrice('')
           setSdFastApiKey('')
           setSdFastApiUrl(defaultDoubaoApiUrl)
+          setSdFastServerId('')
           setSdFastAccepted(['TEXT', 'IMAGE'])
           setSdFastVideoConfig({ supportedRatios: ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'], supportedResolutions: ['720P', '1080P'], supportedGenerationTypes: ['文生视频', '首帧'], supportedDurations: [5, 6, 8, 10] })
         }
@@ -682,6 +696,7 @@ const ModelConfigPage = () => {
           setSdreamPrice(sdream.pricePerUse || '')
           setSdreamApiKey(sdream.apiKey || '')
           setSdreamApiUrl(sdream.apiUrl || defaultDoubaoApiUrl)
+          setSdreamServerId(sdream.wauleApiServerId || '')
           setSdreamAccepted(Array.isArray(sdream.config?.acceptedInputs) ? sdream.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setSdreamImageConfig({
             supportedRatios: sdream.config?.supportedRatios || ASPECT_RATIOS.map(r => r.value),
@@ -695,6 +710,7 @@ const ModelConfigPage = () => {
           setSdreamPrice('')
           setSdreamApiKey('')
           setSdreamApiUrl(defaultDoubaoApiUrl)
+          setSdreamServerId('')
           setSdreamAccepted(['TEXT', 'IMAGE'])
           setSdreamImageConfig({ supportedRatios: ASPECT_RATIOS.map(r => r.value), supportsImageToImage: true, maxReferenceImages: 10 })
         }
@@ -707,6 +723,7 @@ const ModelConfigPage = () => {
           setSdream45Price(sdream45.pricePerUse || '')
           setSdream45ApiKey(sdream45.apiKey || '')
           setSdream45ApiUrl(sdream45.apiUrl || defaultDoubaoApiUrl)
+          setSdream45ServerId(sdream45.wauleApiServerId || '')
           setSdream45Accepted(Array.isArray(sdream45.config?.acceptedInputs) ? sdream45.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setSdream45ImageConfig({
             supportedRatios: sdream45.config?.supportedRatios || ASPECT_RATIOS.map(r => r.value),
@@ -720,6 +737,7 @@ const ModelConfigPage = () => {
           setSdream45Price('')
           setSdream45ApiKey('')
           setSdream45ApiUrl(defaultDoubaoApiUrl)
+          setSdream45ServerId('')
           setSdream45Accepted(['TEXT', 'IMAGE'])
           setSdream45ImageConfig({ supportedRatios: ASPECT_RATIOS.map(r => r.value), supportsImageToImage: true, maxReferenceImages: 10 })
         }
@@ -757,6 +775,7 @@ const ModelConfigPage = () => {
           setAliMovePrice(aliMove.pricePerUse || '')
           setAliMoveApiKey(aliMove.apiKey || '')
           setAliMoveApiUrl(aliMove.apiUrl || defaultAliyunImage2Video)
+          setAliMoveServerId(aliMove.wauleApiServerId || '')
           setAliMoveModes(Array.isArray(aliMove.config?.serviceModes) ? aliMove.config.serviceModes : ['wan-std', 'wan-pro'])
         } else {
           setAliMoveId(null)
@@ -776,6 +795,7 @@ const ModelConfigPage = () => {
           setAliMixPrice(aliMix.pricePerUse || '')
           setAliMixApiKey(aliMix.apiKey || '')
           setAliMixApiUrl(aliMix.apiUrl || defaultAliyunImage2Video)
+          setAliMixServerId(aliMix.wauleApiServerId || '')
           setAliMixModes(Array.isArray(aliMix.config?.serviceModes) ? aliMix.config.serviceModes : ['wan-std', 'wan-pro'])
         } else {
           setAliMixId(null)
@@ -795,6 +815,7 @@ const ModelConfigPage = () => {
           setAliStylePrice(aliStyle.pricePerUse || '')
           setAliStyleApiKey(aliStyle.apiKey || '')
           setAliStyleApiUrl(aliStyle.apiUrl || defaultAliyunVideoGeneration)
+          setAliStyleServerId(aliStyle.wauleApiServerId || '')
           setAliStyleSupportedStyles(Array.isArray(aliStyle.config?.supportedStyles) ? aliStyle.config.supportedStyles : [0, 1, 2, 3, 4, 5, 6, 7])
           setAliStyleFps(aliStyle.config?.video_fps ?? 15)
         } else {
@@ -816,6 +837,7 @@ const ModelConfigPage = () => {
           setAliRetalkPrice(aliRetalk.pricePerUse || '')
           setAliRetalkApiKey(aliRetalk.apiKey || '')
           setAliRetalkApiUrl(aliRetalk.apiUrl || `${defaultAliyunImage2Video}/`)
+          setAliRetalkServerId(aliRetalk.wauleApiServerId || '')
           setAliRetalkAccepted(Array.isArray(aliRetalk.config?.acceptedInputs) ? aliRetalk.config.acceptedInputs : ['VIDEO', 'AUDIO', 'IMAGE'])
           setAliRetalkParams({ video_extension: !!aliRetalk.config?.video_extension })
         } else {
@@ -837,6 +859,7 @@ const ModelConfigPage = () => {
           setMm23Price(mm23.pricePerUse || '')
           setMm23ApiKey(mm23.apiKey || '')
           setMm23ApiUrl(mm23.apiUrl || 'https://api.minimaxi.com/v1')
+          setMm23ServerId(mm23.wauleApiServerId || '')
           setMm23Accepted(Array.isArray(mm23.config?.acceptedInputs) ? mm23.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setMm23VideoConfig({
             supportedRatios: mm23.config?.supportedRatios || ['16:9', '9:16', '1:1'],
@@ -863,6 +886,7 @@ const ModelConfigPage = () => {
           setMm23FastPrice(mm23Fast.pricePerUse || '')
           setMm23FastApiKey(mm23Fast.apiKey || '')
           setMm23FastApiUrl(mm23Fast.apiUrl || 'https://api.minimaxi.com/v1')
+          setMm23FastServerId(mm23Fast.wauleApiServerId || '')
           setMm23FastAccepted(Array.isArray(mm23Fast.config?.acceptedInputs) ? mm23Fast.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setMm23FastVideoConfig({
             supportedRatios: mm23Fast.config?.supportedRatios || ['16:9', '9:16', '1:1'],
@@ -889,6 +913,7 @@ const ModelConfigPage = () => {
           setMm02Price(mm02.pricePerUse || '')
           setMm02ApiKey(mm02.apiKey || '')
           setMm02ApiUrl(mm02.apiUrl || 'https://api.minimaxi.com/v1')
+          setMm02ServerId(mm02.wauleApiServerId || '')
           setMm02Accepted(Array.isArray(mm02.config?.acceptedInputs) ? mm02.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setMm02VideoConfig({
             supportedRatios: mm02.config?.supportedRatios || ['16:9', '9:16', '1:1'],
@@ -915,6 +940,7 @@ const ModelConfigPage = () => {
           setMmSpeechPrice(mmSpeech.pricePerUse || '')
           setMmSpeechApiKey(mmSpeech.apiKey || '')
           setMmSpeechApiUrl(mmSpeech.apiUrl || 'https://api.minimaxi.com/v1')
+          setMmSpeechServerId(mmSpeech.wauleApiServerId || '')
           setMmSpeechAccepted(Array.isArray(mmSpeech.config?.acceptedInputs) ? mmSpeech.config.acceptedInputs : ['TEXT', 'AUDIO'])
           setMmSpeechConfig({
             supportedFormats: mmSpeech.config?.supportedFormats || ['mp3', 'wav'],
@@ -950,6 +976,7 @@ const ModelConfigPage = () => {
           setSoraImagePrice(soraImage.pricePerUse || '')
           setSoraImageApiKey(soraImage.apiKey || '')
           setSoraImageApiUrl(soraImage.apiUrl || defaultSoraApiUrl)
+          setSoraImageServerId(soraImage.wauleApiServerId || '')
           setSoraImageAccepted(Array.isArray(soraImage.config?.acceptedInputs) ? soraImage.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setSoraImageConfig({
             supportedRatios: soraImage.config?.supportedRatios || ASPECT_RATIOS.map(r => r.value),
@@ -963,6 +990,7 @@ const ModelConfigPage = () => {
           setSoraImagePrice('')
           setSoraImageApiKey('')
           setSoraImageApiUrl(defaultSoraApiUrl)
+          setSoraImageServerId('')
           setSoraImageAccepted(['TEXT', 'IMAGE'])
           setSoraImageConfig({ supportedRatios: ASPECT_RATIOS.map(r => r.value), supportsImageToImage: true, maxReferenceImages: 5 })
         }
@@ -975,6 +1003,7 @@ const ModelConfigPage = () => {
           setSoraVideoPrice(soraVideo.pricePerUse || '')
           setSoraVideoApiKey(soraVideo.apiKey || '')
           setSoraVideoApiUrl(soraVideo.apiUrl || defaultSoraApiUrl)
+          setSoraVideoServerId(soraVideo.wauleApiServerId || '')
           setSoraVideoAccepted(Array.isArray(soraVideo.config?.acceptedInputs) ? soraVideo.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setSoraVideoConfig({
             supportedRatios: soraVideo.config?.supportedRatios || ['landscape', 'portrait'],
@@ -990,6 +1019,7 @@ const ModelConfigPage = () => {
           setSoraVideoPrice('')
           setSoraVideoApiKey('')
           setSoraVideoApiUrl(defaultSoraApiUrl)
+          setSoraVideoServerId('')
           setSoraVideoAccepted(['TEXT', 'IMAGE', 'VIDEO'])
           setSoraVideoConfig({ supportedRatios: ['landscape', 'portrait'], supportsImageToVideo: true, maxReferenceImages: 1, supportedGenerationTypes: ['文生视频', '图生视频', '视频生视频'], supportedDurations: [10, 15, 25] })
         }
@@ -1002,6 +1032,7 @@ const ModelConfigPage = () => {
           setViduQ2ProPrice(viduQ2Pro.pricePerUse || '')
           setViduQ2ProApiKey(viduQ2Pro.apiKey || '')
           setViduQ2ProApiUrl(viduQ2Pro.apiUrl || defaultViduApiUrl)
+          setViduQ2ProServerId(viduQ2Pro.wauleApiServerId || '')
           setViduQ2ProAccepted(Array.isArray(viduQ2Pro.config?.acceptedInputs) ? viduQ2Pro.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setViduQ2ProVideoConfig({
             supportedRatios: viduQ2Pro.config?.supportedRatios || ['16:9', '9:16', '1:1', '4:3', '3:4'],
@@ -1023,6 +1054,7 @@ const ModelConfigPage = () => {
           setViduQ2ProPrice('')
           setViduQ2ProApiKey('')
           setViduQ2ProApiUrl(defaultViduApiUrl)
+          setViduQ2ProServerId('')
           setViduQ2ProAccepted(['TEXT', 'IMAGE'])
           setViduQ2ProVideoConfig({ supportedRatios: ['16:9', '9:16', '1:1', '4:3', '3:4'], supportedResolutions: ['540p', '720p', '1080p'], supportedGenerationTypes: ['文生视频', '主体参考', '首帧', '尾帧', '首尾帧'], supportedDurations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], maxDuration: 10, supportedFps: [24, 30], maxResolution: '1920x1080', supportsImageToVideo: true, maxReferenceImages: 2, supportsSubjects: true, supportsAudioOutput: true })
         }
@@ -1035,6 +1067,7 @@ const ModelConfigPage = () => {
           setViduQ2ProFastPrice(viduQ2ProFast.pricePerUse || '')
           setViduQ2ProFastApiKey(viduQ2ProFast.apiKey || '')
           setViduQ2ProFastApiUrl(viduQ2ProFast.apiUrl || defaultViduApiUrl)
+          setViduQ2ProFastServerId(viduQ2ProFast.wauleApiServerId || '')
           setViduQ2ProFastAccepted(Array.isArray(viduQ2ProFast.config?.acceptedInputs) ? viduQ2ProFast.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setViduQ2ProFastVideoConfig({
             supportedRatios: viduQ2ProFast.config?.supportedRatios || ['16:9', '9:16', '1:1', '4:3', '3:4'],
@@ -1068,6 +1101,7 @@ const ModelConfigPage = () => {
           setViduQ2TurboPrice(viduQ2Turbo.pricePerUse || '')
           setViduQ2TurboApiKey(viduQ2Turbo.apiKey || '')
           setViduQ2TurboApiUrl(viduQ2Turbo.apiUrl || defaultViduApiUrl)
+          setViduQ2TurboServerId(viduQ2Turbo.wauleApiServerId || '')
           setViduQ2TurboAccepted(Array.isArray(viduQ2Turbo.config?.acceptedInputs) ? viduQ2Turbo.config.acceptedInputs : ['TEXT', 'IMAGE'])
           setViduQ2TurboVideoConfig({
             supportedRatios: viduQ2Turbo.config?.supportedRatios || ['16:9', '9:16', '1:1', '4:3', '3:4'],
@@ -1089,6 +1123,7 @@ const ModelConfigPage = () => {
           setViduQ2TurboPrice('')
           setViduQ2TurboApiKey('')
           setViduQ2TurboApiUrl(defaultViduApiUrl)
+          setViduQ2TurboServerId('')
           setViduQ2TurboAccepted(['TEXT', 'IMAGE'])
           setViduQ2TurboVideoConfig({ supportedRatios: ['16:9', '9:16', '1:1', '4:3', '3:4'], supportedResolutions: ['540p', '720p', '1080p'], supportedGenerationTypes: ['文生视频', '主体参考', '首帧', '尾帧', '首尾帧'], supportedDurations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], maxDuration: 10, supportedFps: [24, 30], maxResolution: '1920x1080', supportsImageToVideo: true, maxReferenceImages: 2, supportsSubjects: true, supportsAudioOutput: true })
         }
@@ -1101,6 +1136,7 @@ const ModelConfigPage = () => {
           setViduQ2Price(viduQ2.pricePerUse || '')
           setViduQ2ApiKey(viduQ2.apiKey || '')
           setViduQ2ApiUrl(viduQ2.apiUrl || defaultViduApiUrl)
+          setViduQ2ServerId(viduQ2.wauleApiServerId || '')
           setViduQ2Accepted(Array.isArray(viduQ2.config?.acceptedInputs) ? viduQ2.config.acceptedInputs : ['IMAGE'])
           setViduQ2VideoConfig({
             supportedRatios: viduQ2.config?.supportedRatios || ['16:9', '9:16', '1:1', '4:3', '3:4'],
@@ -1123,6 +1159,7 @@ const ModelConfigPage = () => {
           setViduQ2Price('')
           setViduQ2ApiKey('')
           setViduQ2ApiUrl(defaultViduApiUrl)
+          setViduQ2ServerId('')
           setViduQ2Accepted(['IMAGE'])
           setViduQ2VideoConfig({ supportedRatios: ['16:9', '9:16', '1:1', '4:3', '3:4'], supportedResolutions: ['540p', '720p', '1080p'], supportedGenerationTypes: ['参考图生视频'], supportedDurations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], maxDuration: 10, supportedFps: [24, 30], maxResolution: '1920x1080', supportsImageToVideo: true, maxReferenceImages: 7, supportsSubjects: true, supportsAudioOutput: true, supportsBgm: true })
         }
@@ -1169,7 +1206,7 @@ const ModelConfigPage = () => {
         apiUrl: proApiUrl,
         isActive: proIsActive,
         pricePerUse: proPrice ? parseFloat(proPrice) : undefined,
-        config: { ...proTextConfig, acceptedInputs: proAccepted },
+        config: { ...proTextConfig, acceptedInputs: proAccepted }, wauleApiServerId: proServerId || null
       }
       const existing = existingModels.find(m => m.provider === 'google' && m.modelId === GOOGLE_PRO_ID)
       const targetId = proId || existing?.id
@@ -1213,7 +1250,7 @@ const ModelConfigPage = () => {
         apiUrl: flashTextApiUrl,
         isActive: flashTextIsActive,
         pricePerUse: flashTextPrice ? parseFloat(flashTextPrice) : undefined,
-        config: { ...flashTextConfig, acceptedInputs: flashTextAccepted },
+        config: { ...flashTextConfig, acceptedInputs: flashTextAccepted }, wauleApiServerId: flashTextServerId || null
       }
       const existing = existingModels.find(m => m.provider === 'google' && m.modelId === GOOGLE_FLASH_TEXT_ID)
       const targetId = flashTextId || existing?.id
@@ -1257,7 +1294,7 @@ const ModelConfigPage = () => {
         apiUrl: flashApiUrl,
         isActive: flashIsActive,
         pricePerUse: flashPrice ? parseFloat(flashPrice) : undefined,
-        config: { ...flashImageConfig, acceptedInputs: flashAccepted },
+        config: { ...flashImageConfig, acceptedInputs: flashAccepted }, wauleApiServerId: flashServerId || null
       }
       const existing = existingModels.find(m => m.provider === 'google' && m.modelId === GOOGLE_FLASH_IMAGE_ID)
       const targetId = flashId || existing?.id
@@ -1301,7 +1338,7 @@ const ModelConfigPage = () => {
         apiUrl: gemini3ApiUrl,
         isActive: gemini3IsActive,
         pricePerUse: gemini3Price ? parseFloat(gemini3Price) : undefined,
-        config: { ...gemini3TextConfig, ...gemini3ThinkingConfig, ...gemini3MediaConfig, acceptedInputs: gemini3Accepted },
+        config: { ...gemini3TextConfig, ...gemini3ThinkingConfig, ...gemini3MediaConfig, acceptedInputs: gemini3Accepted }, wauleApiServerId: gemini3ServerId || null,
       }
       const existing = existingModels.find(m => m.provider === 'google' && m.modelId === GOOGLE_GEMINI_3_ID)
       const targetId = gemini3Id || existing?.id
@@ -1345,7 +1382,7 @@ const ModelConfigPage = () => {
         apiUrl: gemini3ImageApiUrl,
         isActive: gemini3ImageIsActive,
         pricePerUse: gemini3ImagePrice ? parseFloat(gemini3ImagePrice) : undefined,
-        config: { ...gemini3ImageConfig, acceptedInputs: gemini3ImageAccepted },
+        config: { ...gemini3ImageConfig, acceptedInputs: gemini3ImageAccepted }, wauleApiServerId: gemini3ImageServerId || null,
       }
       const existing = existingModels.find(m => m.provider === 'google' && m.modelId === GOOGLE_GEMINI_3_IMAGE_ID)
       const targetId = gemini3ImageId || existing?.id
@@ -1389,7 +1426,7 @@ const ModelConfigPage = () => {
         apiUrl: aliQwenImageEditApiUrl,
         isActive: aliQwenImageEditIsActive,
         pricePerUse: aliQwenImageEditPrice ? parseFloat(aliQwenImageEditPrice) : undefined,
-        config: { ...aliQwenImageEditConfig, acceptedInputs: aliQwenImageEditAccepted },
+        config: { ...aliQwenImageEditConfig, acceptedInputs: aliQwenImageEditAccepted }, wauleApiServerId: aliQwenServerId || null,
       }
       const existing = existingModels.find(m => m.provider === 'aliyun' && m.modelId === ALI_QWEN_IMAGE_EDIT_ID)
       const targetId = aliQwenImageEditId || existing?.id
@@ -1455,7 +1492,7 @@ const ModelConfigPage = () => {
         apiUrl: aliMoveApiUrl,
         isActive: aliMoveIsActive,
         pricePerUse: aliMovePrice ? parseFloat(aliMovePrice) : undefined,
-        config: { serviceModes: aliMoveModes, acceptedInputs: aliMoveAccepted, supportedEditingCapabilities: ['动作克隆'] },
+        config: { serviceModes: aliMoveModes, acceptedInputs: aliMoveAccepted, supportedEditingCapabilities: ['动作克隆'] }, wauleApiServerId: aliMoveServerId || null,
       }
       const existing = existingModels.find(m => m.provider === 'aliyun' && m.modelId === ALI_WAN_ANIMATE_MOVE_ID)
       const targetId = aliMoveId || existing?.id
@@ -1516,7 +1553,7 @@ const ModelConfigPage = () => {
         apiUrl: aliMixApiUrl,
         isActive: aliMixIsActive,
         pricePerUse: aliMixPrice ? parseFloat(aliMixPrice) : undefined,
-        config: { serviceModes: aliMixModes, acceptedInputs: aliMixAccepted, supportedEditingCapabilities: ['视频换人'] },
+        config: { serviceModes: aliMixModes, acceptedInputs: aliMixAccepted, supportedEditingCapabilities: ['视频换人'] }, wauleApiServerId: aliMixServerId || null,
       }
       const existing = existingModels.find(m => m.provider === 'aliyun' && m.modelId === ALI_WAN_ANIMATE_MIX_ID)
       const targetId = aliMixId || existing?.id
@@ -1577,7 +1614,7 @@ const ModelConfigPage = () => {
         apiUrl: aliStyleApiUrl,
         isActive: aliStyleIsActive,
         pricePerUse: aliStylePrice ? parseFloat(aliStylePrice) : undefined,
-        config: { supportedStyles: aliStyleSupportedStyles, video_fps: aliStyleFps, acceptedInputs: aliStyleAccepted, supportedEditingCapabilities: ['风格转换'] },
+        config: { supportedStyles: aliStyleSupportedStyles, video_fps: aliStyleFps, acceptedInputs: aliStyleAccepted, supportedEditingCapabilities: ['风格转换'] }, wauleApiServerId: aliStyleServerId || null,
       }
       const existing = existingModels.find(m => m.provider === 'aliyun' && m.modelId === ALI_VIDEO_STYLE_ID)
       const targetId = aliStyleId || existing?.id
@@ -1639,7 +1676,7 @@ const ModelConfigPage = () => {
         apiUrl: aliRetalkApiUrl,
         isActive: aliRetalkIsActive,
         pricePerUse: aliRetalkPrice ? parseFloat(aliRetalkPrice) : undefined,
-        config: { ...aliRetalkParams, acceptedInputs: aliRetalkAccepted, supportedEditingCapabilities: ['对口型'] },
+        config: { ...aliRetalkParams, acceptedInputs: aliRetalkAccepted, supportedEditingCapabilities: ['对口型'] }, wauleApiServerId: aliRetalkServerId || null,
       }
       const existing = existingModels.find(m => m.provider === 'aliyun' && m.modelId === ALI_VIDEOTALK_ID)
       const targetId = aliRetalkId || existing?.id
@@ -1701,7 +1738,7 @@ const ModelConfigPage = () => {
         apiUrl: sdProApiUrl,
         isActive: sdProIsActive,
         pricePerUse: sdProPrice ? parseFloat(sdProPrice) : undefined,
-        config: { ...sdProVideoConfig, acceptedInputs: sdProAccepted },
+        config: { ...sdProVideoConfig, acceptedInputs: sdProAccepted }, wauleApiServerId: sdProServerId || null,
       }
       if (sdProId) {
         const resp = await apiClient.admin.updateAIModel(sdProId, payload)
@@ -1731,7 +1768,7 @@ const ModelConfigPage = () => {
         apiUrl: sdFastApiUrl,
         isActive: sdFastIsActive,
         pricePerUse: sdFastPrice ? parseFloat(sdFastPrice) : undefined,
-        config: { ...sdFastVideoConfig, acceptedInputs: sdFastAccepted },
+        config: { ...sdFastVideoConfig, acceptedInputs: sdFastAccepted }, wauleApiServerId: sdFastServerId || null,
       }
       if (sdFastId) {
         const resp = await apiClient.admin.updateAIModel(sdFastId, payload)
@@ -1761,7 +1798,7 @@ const ModelConfigPage = () => {
         apiUrl: sdreamApiUrl,
         isActive: sdreamIsActive,
         pricePerUse: sdreamPrice ? parseFloat(sdreamPrice) : undefined,
-        config: { ...sdreamImageConfig, acceptedInputs: sdreamAccepted },
+        config: { ...sdreamImageConfig, acceptedInputs: sdreamAccepted }, wauleApiServerId: sdreamServerId || null,
       }
       if (sdreamId) {
         const resp = await apiClient.admin.updateAIModel(sdreamId, payload)
@@ -1791,7 +1828,7 @@ const ModelConfigPage = () => {
         apiUrl: sdream45ApiUrl,
         isActive: sdream45IsActive,
         pricePerUse: sdream45Price ? parseFloat(sdream45Price) : undefined,
-        config: { ...sdream45ImageConfig, acceptedInputs: sdream45Accepted },
+        config: { ...sdream45ImageConfig, acceptedInputs: sdream45Accepted }, wauleApiServerId: sdream45ServerId || null,
       }
       if (sdream45Id) {
         const resp = await apiClient.admin.updateAIModel(sdream45Id, payload)
@@ -1921,7 +1958,7 @@ const ModelConfigPage = () => {
               disabled={mjSettingsLoading}
               className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white"
             >
-              <option value="">使用默认服务器</option>
+              <option value="">请选择服务器</option>
               {wauleServers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.url}){s.isDefault ? ' [默认]' : ''}</option>)}
             </select>
             {wauleServers.length === 0 && <div className="text-xs text-amber-500 mt-1">请先在上方添加 Waule API 服务器</div>}
@@ -3074,7 +3111,7 @@ const ModelConfigPage = () => {
                 </div>
                 <button onClick={async () => {
                   try {
-                    const payload = { name: mm23Name, provider: 'minimaxi', modelId: MINIMAX_HAILUO_23_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: mm23ApiKey, apiUrl: mm23ApiUrl, isActive: mm23IsActive, pricePerUse: mm23Price ? parseFloat(mm23Price) : undefined, config: { ...mm23VideoConfig, acceptedInputs: mm23Accepted } }
+                    const payload = { name: mm23Name, provider: 'minimaxi', modelId: MINIMAX_HAILUO_23_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: mm23ApiKey, apiUrl: mm23ApiUrl, isActive: mm23IsActive, pricePerUse: mm23Price ? parseFloat(mm23Price) : undefined, config: { ...mm23VideoConfig, acceptedInputs: mm23Accepted }, wauleApiServerId: mm23ServerId || null }
                     const existing = existingModels.find(m => m.provider === 'minimaxi' && m.modelId === MINIMAX_HAILUO_23_ID)
                     const targetId = mm23Id || existing?.id
                     if (targetId) {
@@ -3199,7 +3236,7 @@ const ModelConfigPage = () => {
                 </div>
                 <button onClick={async () => {
                   try {
-                    const payload = { name: mm23FastName, provider: 'minimaxi', modelId: MINIMAX_HAILUO_23_FAST_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: mm23FastApiKey, apiUrl: mm23FastApiUrl, isActive: mm23FastIsActive, pricePerUse: mm23FastPrice ? parseFloat(mm23FastPrice) : undefined, config: { ...mm23FastVideoConfig, acceptedInputs: mm23FastAccepted } }
+                    const payload = { name: mm23FastName, provider: 'minimaxi', modelId: MINIMAX_HAILUO_23_FAST_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: mm23FastApiKey, apiUrl: mm23FastApiUrl, isActive: mm23FastIsActive, pricePerUse: mm23FastPrice ? parseFloat(mm23FastPrice) : undefined, config: { ...mm23FastVideoConfig, acceptedInputs: mm23FastAccepted }, wauleApiServerId: mm23FastServerId || null }
                     const existing = existingModels.find(m => m.provider === 'minimaxi' && m.modelId === MINIMAX_HAILUO_23_FAST_ID)
                     const targetId = mm23FastId || existing?.id
                     if (targetId) {
@@ -3312,7 +3349,7 @@ const ModelConfigPage = () => {
                 </div>
                 <button onClick={async () => {
                   try {
-                    const payload = { name: mm02Name, provider: 'minimaxi', modelId: MINIMAX_HAILUO_02_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: mm02ApiKey, apiUrl: mm02ApiUrl, isActive: mm02IsActive, pricePerUse: mm02Price ? parseFloat(mm02Price) : undefined, config: { ...mm02VideoConfig, acceptedInputs: mm02Accepted } }
+                    const payload = { name: mm02Name, provider: 'minimaxi', modelId: MINIMAX_HAILUO_02_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: mm02ApiKey, apiUrl: mm02ApiUrl, isActive: mm02IsActive, pricePerUse: mm02Price ? parseFloat(mm02Price) : undefined, config: { ...mm02VideoConfig, acceptedInputs: mm02Accepted }, wauleApiServerId: mm02ServerId || null }
                     const existing = existingModels.find(m => m.provider === 'minimaxi' && m.modelId === MINIMAX_HAILUO_02_ID)
                     const targetId = mm02Id || existing?.id
                     if (targetId) {
@@ -3416,7 +3453,7 @@ const ModelConfigPage = () => {
                 </div>
                 <button onClick={async () => {
                   try {
-                    const payload = { name: mmSpeechName, provider: 'minimaxi', modelId: MINIMAX_SPEECH_26_HD_ID, type: 'AUDIO_SYNTHESIS' as ModelType, apiKey: mmSpeechApiKey, apiUrl: mmSpeechApiUrl, isActive: mmSpeechIsActive, pricePerUse: mmSpeechPrice ? parseFloat(mmSpeechPrice) : undefined, config: { ...mmSpeechConfig, acceptedInputs: mmSpeechAccepted } }
+                    const payload = { name: mmSpeechName, provider: 'minimaxi', modelId: MINIMAX_SPEECH_26_HD_ID, type: 'AUDIO_SYNTHESIS' as ModelType, apiKey: mmSpeechApiKey, apiUrl: mmSpeechApiUrl, isActive: mmSpeechIsActive, pricePerUse: mmSpeechPrice ? parseFloat(mmSpeechPrice) : undefined, config: { ...mmSpeechConfig, acceptedInputs: mmSpeechAccepted }, wauleApiServerId: mmSpeechServerId || null }
                     const existing = existingModels.find(m => m.provider === 'minimaxi' && m.modelId === MINIMAX_SPEECH_26_HD_ID)
                     const targetId = mmSpeechId || existing?.id
                     if (targetId) {
@@ -3480,7 +3517,7 @@ const ModelConfigPage = () => {
               <div className="mt-4">
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Waule API 服务器</label>
                 <select value={soraImageServerId} onChange={e => setSoraImageServerId(e.target.value)} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white">
-                  <option value="">使用默认服务器</option>
+                  <option value="">请选择服务器</option>
                   {wauleServers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.url}){s.isDefault ? ' [默认]' : ''}</option>)}
                 </select>
                 {wauleServers.length === 0 && <div className="text-xs text-amber-500 mt-1">请先在上方添加 Waule API 服务器</div>}
@@ -3575,7 +3612,7 @@ const ModelConfigPage = () => {
               <div className="mt-4">
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Waule API 服务器</label>
                 <select value={soraVideoServerId} onChange={e => setSoraVideoServerId(e.target.value)} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white">
-                  <option value="">使用默认服务器</option>
+                  <option value="">请选择服务器</option>
                   {wauleServers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.url}){s.isDefault ? ' [默认]' : ''}</option>)}
                 </select>
                 {wauleServers.length === 0 && <div className="text-xs text-amber-500 mt-1">请先在上方添加 Waule API 服务器</div>}
@@ -3744,7 +3781,7 @@ const ModelConfigPage = () => {
                 </div>
                 <button onClick={async () => {
                   try {
-                    const payload = { name: viduQ2ProName, provider: 'vidu', modelId: VIDU_Q2_PRO_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: viduQ2ProApiKey, apiUrl: viduQ2ProApiUrl, isActive: viduQ2ProIsActive, pricePerUse: viduQ2ProPrice ? parseFloat(viduQ2ProPrice) : undefined, config: { ...viduQ2ProVideoConfig, acceptedInputs: viduQ2ProAccepted } }
+                    const payload = { name: viduQ2ProName, provider: 'vidu', modelId: VIDU_Q2_PRO_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: viduQ2ProApiKey, apiUrl: viduQ2ProApiUrl, isActive: viduQ2ProIsActive, pricePerUse: viduQ2ProPrice ? parseFloat(viduQ2ProPrice) : undefined, config: { ...viduQ2ProVideoConfig, acceptedInputs: viduQ2ProAccepted }, wauleApiServerId: viduQ2ProServerId || null }
                     const existing = existingModels.find(m => m.provider === 'vidu' && m.modelId === VIDU_Q2_PRO_ID)
                     const targetId = viduQ2ProId || existing?.id
                     if (targetId) {
@@ -3856,7 +3893,7 @@ const ModelConfigPage = () => {
                 </div>
                 <button onClick={async () => {
                   try {
-                    const payload = { name: viduQ2ProFastName, provider: 'vidu', modelId: VIDU_Q2_PRO_FAST_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: viduQ2ProFastApiKey, apiUrl: viduQ2ProFastApiUrl, isActive: viduQ2ProFastIsActive, pricePerUse: viduQ2ProFastPrice ? parseFloat(viduQ2ProFastPrice) : undefined, config: { ...viduQ2ProFastVideoConfig, acceptedInputs: viduQ2ProFastAccepted } }
+                    const payload = { name: viduQ2ProFastName, provider: 'vidu', modelId: VIDU_Q2_PRO_FAST_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: viduQ2ProFastApiKey, apiUrl: viduQ2ProFastApiUrl, isActive: viduQ2ProFastIsActive, pricePerUse: viduQ2ProFastPrice ? parseFloat(viduQ2ProFastPrice) : undefined, config: { ...viduQ2ProFastVideoConfig, acceptedInputs: viduQ2ProFastAccepted }, wauleApiServerId: viduQ2ProFastServerId || null }
                     const existing = existingModels.find(m => m.provider === 'vidu' && m.modelId === VIDU_Q2_PRO_FAST_ID)
                     const targetId = viduQ2ProFastId || existing?.id
                     if (targetId) {
@@ -3968,7 +4005,7 @@ const ModelConfigPage = () => {
                 </div>
                 <button onClick={async () => {
                   try {
-                    const payload = { name: viduQ2TurboName, provider: 'vidu', modelId: VIDU_Q2_TURBO_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: viduQ2TurboApiKey, apiUrl: viduQ2TurboApiUrl, isActive: viduQ2TurboIsActive, pricePerUse: viduQ2TurboPrice ? parseFloat(viduQ2TurboPrice) : undefined, config: { ...viduQ2TurboVideoConfig, acceptedInputs: viduQ2TurboAccepted } }
+                    const payload = { name: viduQ2TurboName, provider: 'vidu', modelId: VIDU_Q2_TURBO_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: viduQ2TurboApiKey, apiUrl: viduQ2TurboApiUrl, isActive: viduQ2TurboIsActive, pricePerUse: viduQ2TurboPrice ? parseFloat(viduQ2TurboPrice) : undefined, config: { ...viduQ2TurboVideoConfig, acceptedInputs: viduQ2TurboAccepted }, wauleApiServerId: viduQ2TurboServerId || null }
                     const existing = existingModels.find(m => m.provider === 'vidu' && m.modelId === VIDU_Q2_TURBO_ID)
                     const targetId = viduQ2TurboId || existing?.id
                     if (targetId) {
@@ -4069,7 +4106,7 @@ const ModelConfigPage = () => {
                 </div>
                 <button onClick={async () => {
                   try {
-                    const payload = { name: viduQ2Name, provider: 'vidu', modelId: VIDU_Q2_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: viduQ2ApiKey, apiUrl: viduQ2ApiUrl, isActive: viduQ2IsActive, pricePerUse: viduQ2Price ? parseFloat(viduQ2Price) : undefined, config: { ...viduQ2VideoConfig, acceptedInputs: viduQ2Accepted } }
+                    const payload = { name: viduQ2Name, provider: 'vidu', modelId: VIDU_Q2_ID, type: 'VIDEO_GENERATION' as ModelType, apiKey: viduQ2ApiKey, apiUrl: viduQ2ApiUrl, isActive: viduQ2IsActive, pricePerUse: viduQ2Price ? parseFloat(viduQ2Price) : undefined, config: { ...viduQ2VideoConfig, acceptedInputs: viduQ2Accepted }, wauleApiServerId: viduQ2ServerId || null }
                     const existing = existingModels.find(m => m.provider === 'vidu' && m.modelId === VIDU_Q2_ID)
                     const targetId = viduQ2Id || existing?.id
                     if (targetId) {

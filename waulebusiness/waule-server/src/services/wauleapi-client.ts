@@ -400,21 +400,8 @@ export async function getServerConfigByModelId(modelIdOrProvider: string): Promi
       };
     }
 
-    // 如果模型没有指定服务器，尝试获取默认服务器
-    const defaultServer = await prisma.wauleApiServer.findFirst({
-      where: { isDefault: true, isActive: true },
-    });
-
-    if (defaultServer) {
-      console.log(`[getServerConfigByModelId] 使用默认服务器: ${defaultServer.url}`);
-      return {
-        url: defaultServer.url,
-        authToken: defaultServer.authToken,
-      };
-    }
-
-    console.log(`[getServerConfigByModelId] 未找到服务器配置，返回 undefined`);
-    return undefined;
+    console.log(`[getServerConfigByModelId] ❌ 模型未配置 WauleAPI 服务器: ${modelIdOrProvider}`);
+    throw new Error(`模型 ${modelIdOrProvider} 未配置 WauleAPI 服务器，请在管理后台配置`);
   } finally {
     await prisma.$disconnect();
   }
