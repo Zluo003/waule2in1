@@ -384,6 +384,21 @@ export async function getServerConfigByModelId(modelIdOrProvider: string): Promi
       include: { wauleApiServer: true },
     });
 
+    // 如果没找到，尝试匹配基础模型ID（处理 sora-video-portrait-10s -> sora-video 等情况）
+    if (!model) {
+      const baseModelId = modelIdOrProvider
+        .replace(/-landscape-\d+s$/, '')
+        .replace(/-portrait-\d+s$/, '')
+        .replace(/-\d+s$/, '');
+      if (baseModelId !== modelIdOrProvider) {
+        console.log(`[getServerConfigByModelId] 尝试匹配基础模型: ${baseModelId}`);
+        model = await prisma.aIModel.findFirst({
+          where: { modelId: baseModelId },
+          include: { wauleApiServer: true },
+        });
+      }
+    }
+
     // 如果没找到，按 provider 查询（支持 midjourney 等特殊模块）
     if (!model) {
       model = await prisma.aIModel.findFirst({
