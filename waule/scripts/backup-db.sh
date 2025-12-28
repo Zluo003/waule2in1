@@ -35,10 +35,31 @@ if [ $? -eq 0 ]; then
     
     if [ $? -eq 0 ]; then
         echo "[$(date)] OSS 上传成功: oss://${OSS_BUCKET}/${OSS_PATH}/$(basename $BACKUP_FILE)"
+
+        # 删除7天前的OSS备份
+        echo "[$(date)] 开始清理7天前的OSS备份..."
+        SEVEN_DAYS_AGO=$(date -d '7 days ago' +%Y%m%d)
+        ossutil64 ls "oss://${OSS_BUCKET}/${OSS_PATH}/" \
+            -e "$OSS_ENDPOINT" \
+            -i "$OSS_ACCESS_KEY_ID" \
+            -k "$OSS_ACCESS_KEY_SECRET" | \
+        grep "\.dump$" | \
+        awk '{print $NF}' | \
+        while read file; do
+            filename=$(basename "$file")
+            file_date=$(echo "$filename" | grep -oP '\d{8}' | head -1)
+            if [ ! -z "$file_date" ] && [ "$file_date" -lt "$SEVEN_DAYS_AGO" ]; then
+                echo "[$(date)] 删除旧备份: $file"
+                ossutil64 rm "$file" \
+                    -e "$OSS_ENDPOINT" \
+                    -i "$OSS_ACCESS_KEY_ID" \
+                    -k "$OSS_ACCESS_KEY_SECRET" -f
+            fi
+        done
     else
         echo "[$(date)] OSS 上传失败!" >&2
     fi
-    
+
     # 删除7天前的本地备份
     find "$BACKUP_DIR" -name "*.dump" -mtime +7 -delete
     echo "[$(date)] 已清理7天前的本地旧备份"
