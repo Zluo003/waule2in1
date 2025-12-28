@@ -634,7 +634,7 @@ export const apiClient = {
         roleIds?: string[]; // 兼容旧代码，也支持在 metadata 中传递
         [key: string]: any;
       };
-    }) => apiClient.tenant.post('/tasks/video', data),
+    }) => apiClient.tenant.post('/tasks/video', data, { timeout: 1800000 }), // 30分钟超时
 
     // 查询任务状态
     getTaskStatus: (taskId: string) => apiClient.tenant.get(`/tasks/${taskId}`),

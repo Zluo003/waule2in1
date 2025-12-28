@@ -307,7 +307,9 @@ class WauleApiClient {
     const client = this.createClient('sora', serverConfig);
     const actualUrl = serverConfig?.url || this.getUrl('sora');
     console.log(`[WauleAPI] Sora ChatCompletions: model=${params.model}, url=${actualUrl}`);
-    const response = await client.post('/v1/sora/chat/completions', params);
+    const response = await client.post('/v1/sora/chat/completions', params, {
+      timeout: 1200000, // 20分钟超时（Sora视频生成可能需要很长时间）
+    });
     return response.data;
   }
 

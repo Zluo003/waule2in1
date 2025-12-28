@@ -288,64 +288,73 @@ export const smartCompressImage = async (imageUrl: string): Promise<string> => {
  * 将本地/内网URL上传到OSS，返回公网URL
  * 用于将租户本地服务器的文件传给AI模型
  */
-export const uploadLocalUrlToOss = async (url: string): Promise<string> => {
+export const uploadLocalUrlToOss = async (url: string, timeout: number = 60000): Promise<string> => {
   // 已经是OSS链接，直接返回
   if (url.includes('aliyuncs.com') || url.includes('oss-cn-')) {
     console.log('[uploadLocalUrlToOss] 已是OSS链接，直接返回:', url.substring(0, 60));
     return url;
   }
-  
+
   // 公网HTTPS链接，直接返回
   if (url.startsWith('https://') && !isLocalUrl(url)) {
     console.log('[uploadLocalUrlToOss] 公网链接，直接返回:', url.substring(0, 60));
     return url;
   }
-  
+
   // base64 数据，直接返回（后端会处理）
   if (url.startsWith('data:')) {
     console.log('[uploadLocalUrlToOss] base64数据，直接返回');
     return url;
   }
-  
+
   // 本地/内网URL，需要下载并上传到OSS
   console.log('[uploadLocalUrlToOss] 检测到本地/内网URL，开始上传到OSS:', url.substring(0, 60));
-  
+
   try {
-    // 动态导入API客户端
-    const { apiClient } = await import('../lib/api');
-    
-    // 下载文件
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`下载失败: ${response.status}`);
-    }
-    const blob = await response.blob();
-    
-    // 获取文件扩展名
-    const urlPath = new URL(url).pathname;
-    const ext = urlPath.substring(urlPath.lastIndexOf('.')) || '.mp4';
-    const contentType = blob.type || 'video/mp4';
-    const fileName = `upload-${Date.now()}${ext}`;
-    
-    // 获取预签名URL
-    const presignedRes = await apiClient.assets.getPresignedUrl(fileName, contentType);
-    const { uploadUrl, publicUrl } = presignedRes.data || presignedRes;
-    
-    if (!uploadUrl || !publicUrl) {
-      throw new Error('获取预签名URL失败');
-    }
-    
-    // 上传到OSS
-    await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': contentType },
-      body: blob,
+    // 使用 Promise.race 实现超时
+    const uploadPromise = (async () => {
+      // 动态导入API客户端
+      const { apiClient } = await import('../lib/api');
+
+      // 下载文件
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`下载失败: ${response.status}`);
+      }
+      const blob = await response.blob();
+
+      // 获取文件扩展名
+      const urlPath = new URL(url).pathname;
+      const ext = urlPath.substring(urlPath.lastIndexOf('.')) || '.mp4';
+      const contentType = blob.type || 'video/mp4';
+      const fileName = `upload-${Date.now()}${ext}`;
+
+      // 获取预签名URL
+      const presignedRes = await apiClient.assets.getPresignedUrl(fileName, contentType);
+      const { uploadUrl, publicUrl } = presignedRes.data || presignedRes;
+
+      if (!uploadUrl || !publicUrl) {
+        throw new Error('获取预签名URL失败');
+      }
+
+      // 上传到OSS
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': contentType },
+        body: blob,
+      });
+
+      console.log('[uploadLocalUrlToOss] 上传成功:', publicUrl.substring(0, 60));
+      return publicUrl;
+    })();
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('上传超时')), timeout);
     });
-    
-    console.log('[uploadLocalUrlToOss] 上传成功:', publicUrl.substring(0, 60));
-    return publicUrl;
+
+    return await Promise.race([uploadPromise, timeoutPromise]);
   } catch (error: any) {
-    console.error('[uploadLocalUrlToOss] 上传失败:', error);
+    console.error('[uploadLocalUrlToOss] 上传失败:', error.message);
     // 上传失败，返回原URL（让服务端尝试处理）
     return url;
   }

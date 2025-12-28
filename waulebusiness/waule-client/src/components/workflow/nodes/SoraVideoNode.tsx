@@ -1416,9 +1416,12 @@ const SoraVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
   };
 
   const handleGenerate = async () => {
+    console.log('[SoraVideoNode] handleGenerate 开始执行');
     const g = normalizeGenType(generationType);
+    console.log('[SoraVideoNode] 生成模式:', g);
     const latestInputs = computeInputImages();
     const imgCount = latestInputs.length;
+    console.log('[SoraVideoNode] 输入图片数量:', imgCount);
     const hasSubjects = (() => {
       const connectedEdgesSubjects = edges.filter(e => e.target === id);
       for (const edge of connectedEdgesSubjects) {
