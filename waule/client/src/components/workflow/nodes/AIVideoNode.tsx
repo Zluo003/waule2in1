@@ -408,11 +408,53 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
     if (g === '文生视频') result = [];
     else if (g === '首帧' || g === '尾帧') result = dedup.slice(0, 1);
     else if (g === '首尾帧') result = dedup.slice(0, 2);
-    else if (g === '参考图') result = dedup.slice(0, 7);
+    else if (g === '参考图') {
+      // veo 3.1 components 模型最多支持3张参考图
+      const isVeoComponents = selectedModel?.modelId === 'veo3.1-components';
+      const maxImages = isVeoComponents ? 3 : 7;
+      result = dedup.slice(0, maxImages);
+    }
     else result = dedup;
     return result;
   };
-  const inputImages = useMemo(() => computeInputImages(), [edges, allNodes, generationType, id]);
+  const inputImages = useMemo(() => computeInputImages(), [edges, allNodes, generationType, id, selectedModel?.modelId]);
+  
+  // 追踪上次的图片数量，用于检测超限
+  const lastImageCountRef = useRef<number>(0);
+  
+  // 监听图片数量变化，超过限制时提示用户
+  useEffect(() => {
+    const isVeoComponents = selectedModel?.modelId === 'veo3.1-components';
+    const g = normalizeGenType(generationType);
+    
+    if (isVeoComponents && g === '参考图') {
+      const connectedEdges = edges.filter(edge => edge.target === id);
+      let totalImages = 0;
+      
+      connectedEdges.forEach(edge => {
+        const sourceNode = getNode(edge.source);
+        if (sourceNode?.type === 'upload') {
+          const uploadedFiles = sourceNode.data.config?.uploadedFiles || [];
+          totalImages += uploadedFiles.filter((f: any) => {
+            const fileType = f.type || f.mimeType || '';
+            return fileType === 'IMAGE' || fileType.startsWith('image/');
+          }).length;
+        } else if (sourceNode?.type === 'imagePreview' && sourceNode.data.imageUrl) {
+          totalImages += 1;
+        } else if (sourceNode?.type === 'assetSelector') {
+          const conf = sourceNode.data.config || {};
+          if (conf.selectedAsset?.type === 'IMAGE') totalImages += 1;
+          if (conf.subjects?.[0]?.images) totalImages += conf.subjects[0].images.length;
+        }
+      });
+      
+      // 只在图片数量增加且超过限制时提示
+      if (totalImages > 3 && totalImages > lastImageCountRef.current) {
+        toast.error('Veo 3.1 Components 模型最多支持 3 张参考图，多余的图片将被忽略');
+      }
+      lastImageCountRef.current = totalImages;
+    }
+  }, [edges, selectedModel?.modelId, generationType, id, getNode, normalizeGenType]);
 
   // 点击缩略图时在光标位置插入 @图1
   const handleThumbnailClick = (imageName: string) => {
@@ -1273,6 +1315,10 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
           processedReferenceImages = processedReferenceImages.slice(0, 2);
         }
       } else if (payloadGenerationType === '参考图' || payloadGenerationType === '主体参考') {
+        // veo 3.1 components 模型最多支持3张参考图
+        const isVeoComponents = selectedModel?.modelId === 'veo3.1-components';
+        const maxRefImages = isVeoComponents ? 3 : 7;
+        
         if (effectiveImageCount < 1 && !hasRoleInput) {
           toast.error('参考生成需要至少1张图片或角色');
           setIsGenerating(false);
@@ -1281,23 +1327,23 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
         }
         if (subjectsPayload && subjectsPayload.length > 0) {
           const total = subjectsPayload.reduce((acc, r) => acc + (r.images?.length || 0), 0);
-          if (total > 7) {
-            // 按已有顺序裁剪至7张（跨角色）
-            let remain = 7;
+          if (total > maxRefImages) {
+            // 按已有顺序裁剪至最大数量（跨角色）
+            let remain = maxRefImages;
             subjectsPayload = subjectsPayload.map((r) => ({ ...r, images: r.images.slice(0, Math.max(0, remain -= r.images.length, r.images.length)) }));
             // 重新计算裁剪后的 images（修正上面的 slice 逻辑）
-            remain = 7;
+            remain = maxRefImages;
             subjectsPayload = subjectsPayload.map((r) => {
               const use = r.images.slice(0, Math.min(r.images.length, remain));
               remain -= use.length;
               return { ...r, images: use };
             }).filter((r) => r.images.length > 0);
-            toast.info('已限制参考图为前7张');
+            toast.info(`已限制参考图为前${maxRefImages}张`);
           }
         } else {
-          if (processedReferenceImages.length > 7) {
-            processedReferenceImages = processedReferenceImages.slice(0, 7);
-            toast.info('已限制参考图为前7张');
+          if (processedReferenceImages.length > maxRefImages) {
+            processedReferenceImages = processedReferenceImages.slice(0, maxRefImages);
+            toast.info(`已限制参考图为前${maxRefImages}张`);
           }
         }
       }
@@ -1668,8 +1714,10 @@ const AIVideoNode = ({ data, selected, id }: NodeProps<AIVideoNodeData>) => {
             return !(hasAgent && imageCount >= 2);
           }
           if (isReference) {
-            // 参考图：上限 1 智能体 + 7 图片；仅当智能体+图片达到上限时禁用
-            return !(hasAgent && imageCount >= 7);
+            // 参考图：veo 3.1 components 最多3张，其他模型最多7张
+            const isVeoComponents = selectedModel?.modelId === 'veo3.1-components';
+            const maxRefImages = isVeoComponents ? 3 : 7;
+            return !(hasAgent && imageCount >= maxRefImages);
           }
           return true;
         })()}
