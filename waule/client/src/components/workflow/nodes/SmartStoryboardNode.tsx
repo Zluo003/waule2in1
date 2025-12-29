@@ -543,34 +543,59 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
   // 设置 ref
   createSinglePreviewNodeRef.current = createSinglePreviewNode;
 
-  // 批量创建所有预览节点（一次性添加，避免状态覆盖）
+  // 批量创建所有预览节点（一次性添加，九宫格排列）
   const createAllPreviewNodes = (slices: string[], ratio: string) => {
     const currentNode = getNode(id);
     if (!currentNode) return;
 
-    const nodeHeight = 220;  // 每个预览节点的高度
-    const gap = 20;          // 节点之间的间距
+    // 九宫格布局：3列3行
+    const cols = 3;
+    const gap = 20; // 节点之间的间距
     const batchId = Date.now(); // 唯一批次ID
 
-    // 起始位置：在当前节点右侧，垂直居中对齐
+    // 根据宽高比计算每个预览节点的尺寸
+    // 16:9 时每个图片分辨率是 1835 x 1024
+    // 9:16 时每个图片分辨率是 1024 x 1835
+    // 缩放到合适的预览尺寸
+    const scale = 0.15; // 缩放比例
+    let nodeWidth: number;
+    let nodeHeight: number;
+    
+    if (ratio === '16:9') {
+      nodeWidth = Math.round(1835 * scale);   // ~275
+      nodeHeight = Math.round(1024 * scale);  // ~154
+    } else {
+      // 9:16
+      nodeWidth = Math.round(1024 * scale);   // ~154
+      nodeHeight = Math.round(1835 * scale);  // ~275
+    }
+
+    // 起始位置：在当前节点右侧
     const baseX = currentNode.position.x + 350;
-    const totalHeight = slices.length * nodeHeight + (slices.length - 1) * gap;
-    const baseY = currentNode.position.y - totalHeight / 2 + 150;
+    // 垂直居中对齐
+    const totalGridHeight = 3 * nodeHeight + 2 * gap;
+    const baseY = currentNode.position.y - totalGridHeight / 2 + 150;
 
     const newNodes: any[] = [];
     const newEdges: any[] = [];
 
     slices.forEach((imageUrl, index) => {
+      // 计算九宫格位置：行和列
+      const row = Math.floor(index / cols);
+      const col = index % cols;
+
       const newNode = {
         id: `${id}-slice-${batchId}-${index}`,
         type: 'imagePreview',
         position: {
-          x: baseX,
-          y: baseY + index * (nodeHeight + gap),
+          x: baseX + col * (nodeWidth + gap),
+          y: baseY + row * (nodeHeight + gap),
         },
         data: {
           imageUrl,
           ratio,
+          width: nodeWidth,
+          height: nodeHeight,
           label: `分镜 ${index + 1}`,
           fromStoryboard: true,
           sourceNodeId: id,
