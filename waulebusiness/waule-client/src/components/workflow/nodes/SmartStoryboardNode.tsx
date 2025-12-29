@@ -481,6 +481,77 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     throw lastError || new Error('获取图片失败');
   };
 
+  // 批量创建所有预览节点（避免并发 setNodes 竞态条件）
+  const createAllPreviewNodes = (
+    results: Array<{ index: number; url: string; success: boolean }>,
+    ratio: string,
+    batchId: number
+  ) => {
+    const currentNode = getNode(id);
+    if (!currentNode) return;
+
+    const cols = 3;
+    const gap = 20;
+    const scale = 0.15;
+    let nodeWidth: number;
+    let nodeHeight: number;
+
+    if (ratio === '16:9') {
+      nodeWidth = Math.round(1835 * scale);
+      nodeHeight = Math.round(1024 * scale);
+    } else {
+      nodeWidth = Math.round(1024 * scale);
+      nodeHeight = Math.round(1835 * scale);
+    }
+
+    const baseX = currentNode.position.x + 350;
+    const totalGridHeight = 3 * nodeHeight + 2 * gap;
+    const baseY = currentNode.position.y - totalGridHeight / 2 + 150;
+
+    const newNodes: any[] = [];
+    const newEdges: any[] = [];
+
+    for (const { index, url } of results) {
+      const row = Math.floor(index / cols);
+      const col = index % cols;
+
+      const newNode = {
+        id: `${id}-slice-${batchId}-${index}`,
+        type: 'imagePreview',
+        position: {
+          x: baseX + col * (nodeWidth + gap),
+          y: baseY + row * (nodeHeight + gap),
+        },
+        data: {
+          imageUrl: url,
+          ratio,
+          width: nodeWidth,
+          height: nodeHeight,
+          label: `分镜 ${index + 1}`,
+          fromStoryboard: true,
+          sourceNodeId: id,
+          createdBy: currentNode.data.createdBy,
+        },
+      };
+
+      const newEdge = {
+        id: `edge-${id}-to-slice-${batchId}-${index}`,
+        source: id,
+        target: newNode.id,
+        sourceHandle: `${id}-source`,
+        type: 'aurora',
+      };
+
+      newNodes.push(newNode);
+      newEdges.push(newEdge);
+    }
+
+    // 一次性添加所有节点和边
+    setNodes((nodes) => [...nodes, ...newNodes]);
+    setEdges((edges) => [...edges, ...newEdges]);
+    console.log(`[SmartStoryboardNode] 已创建 ${newNodes.length} 个预览节点`);
+  };
+
   const handleSliceAndCreatePreviews = async (imageUrl: string, retryCount: number = 0) => {
     const MAX_RETRIES = 3;
 
@@ -572,77 +643,6 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
       toast.error('图片切割失败: ' + error.message + '，请重新生成');
     }
-  };
-
-  // 批量创建所有预览节点（避免并发 setNodes 竞态条件）
-  const createAllPreviewNodes = (
-    results: Array<{ index: number; url: string; success: boolean }>,
-    ratio: string,
-    batchId: number
-  ) => {
-    const currentNode = getNode(id);
-    if (!currentNode) return;
-
-    const cols = 3;
-    const gap = 20;
-    const scale = 0.15;
-    let nodeWidth: number;
-    let nodeHeight: number;
-
-    if (ratio === '16:9') {
-      nodeWidth = Math.round(1835 * scale);
-      nodeHeight = Math.round(1024 * scale);
-    } else {
-      nodeWidth = Math.round(1024 * scale);
-      nodeHeight = Math.round(1835 * scale);
-    }
-
-    const baseX = currentNode.position.x + 350;
-    const totalGridHeight = 3 * nodeHeight + 2 * gap;
-    const baseY = currentNode.position.y - totalGridHeight / 2 + 150;
-
-    const newNodes: any[] = [];
-    const newEdges: any[] = [];
-
-    for (const { index, url } of results) {
-      const row = Math.floor(index / cols);
-      const col = index % cols;
-
-      const newNode = {
-        id: `${id}-slice-${batchId}-${index}`,
-        type: 'imagePreview',
-        position: {
-          x: baseX + col * (nodeWidth + gap),
-          y: baseY + row * (nodeHeight + gap),
-        },
-        data: {
-          imageUrl: url,
-          ratio,
-          width: nodeWidth,
-          height: nodeHeight,
-          label: `分镜 ${index + 1}`,
-          fromStoryboard: true,
-          sourceNodeId: id,
-          createdBy: currentNode.data.createdBy,
-        },
-      };
-
-      const newEdge = {
-        id: `edge-${id}-to-slice-${batchId}-${index}`,
-        source: id,
-        target: newNode.id,
-        sourceHandle: `${id}-source`,
-        type: 'aurora',
-      };
-
-      newNodes.push(newNode);
-      newEdges.push(newEdge);
-    }
-
-    // 一次性添加所有节点和边
-    setNodes((nodes) => [...nodes, ...newNodes]);
-    setEdges((edges) => [...edges, ...newEdges]);
-    console.log(`[SmartStoryboardNode] 已创建 ${newNodes.length} 个预览节点`);
   };
 
   // 创建单个预览节点（不切割时使用）
