@@ -14,6 +14,8 @@ interface SmartStoryboardNodeData {
     imageSize?: string;
     inputImages?: string[]; // 支持多图输入（最多5张）
     userPrompt?: string; // 用户剧情简述
+    imageStyle?: string; // 图片风格
+    autoSlice?: boolean; // 自动切割开关
     generatedImageUrl?: string;
     taskId?: string;
     slicedImages?: string[];
@@ -24,7 +26,7 @@ interface SmartStoryboardNodeData {
   _canEdit?: boolean;
 }
 
-const ASPECT_RATIOS = ['16:9', '21:9', '1:1', '9:16', '9:21', '4:3', '3:4', '3:2', '2:3'];
+const ASPECT_RATIOS = ['16:9', '9:16'];
 
 // 模型ID
 const TEXT_MODEL_ID = 'gemini-3-pro-preview'; // 第一步：文字生成
@@ -32,9 +34,11 @@ const IMAGE_MODEL_ID = 'gemini-3-pro-image-preview'; // 第二步：图片生成
 const MAX_INPUT_IMAGES = 5; // 最多输入图片数
 
 const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNodeData>) => {
-  const [aspectRatio, setAspectRatio] = useState(data.config.aspectRatio || '1:1');
+  const [aspectRatio, setAspectRatio] = useState(data.config.aspectRatio || '16:9');
   const [inputImages, setInputImages] = useState<string[]>(data.config.inputImages || []);
   const [userPrompt, setUserPrompt] = useState(data.config.userPrompt || '');
+  const [imageStyle, setImageStyle] = useState(data.config.imageStyle || '');
+  const [autoSlice, setAutoSlice] = useState(data.config.autoSlice !== false); // 默认开启
   const [isGenerating, setIsGenerating] = useState(!!data.config.taskId);
   const [generatingStep, setGeneratingStep] = useState<'text' | 'image' | null>(null);
   const [selectedModel, setSelectedModel] = useState<any>(null);
@@ -63,9 +67,11 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
   // 使用 ref 存储函数引用，解决 useEffect 闭包问题
   const handleSliceAndCreatePreviewsRef = useRef<((imageUrl: string) => Promise<void>) | null>(null);
+  const createSinglePreviewNodeRef = useRef<((imageUrl: string, ratio: string) => void) | null>(null);
   const updateNodeDataRef = useRef<((updates: Partial<SmartStoryboardNodeData['config']>) => void) | null>(null);
   const pollTaskStatusRef = useRef<((taskId: string) => void) | null>(null);
   const getNodesRef = useRef<typeof getNodes>(getNodes);
+  const autoSliceRef = useRef(autoSlice);
 
   // 监听连接变化，获取输入图片
   const connectedEdges = useStore((state) =>
@@ -157,8 +163,12 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             (n: any) => n.data?.sourceNodeId === id && n.type === 'imagePreview'
           );
 
-          if (!hasPreviewNodes && handleSliceAndCreatePreviewsRef.current) {
-            await handleSliceAndCreatePreviewsRef.current(displayUrl);
+          if (!hasPreviewNodes) {
+            if (autoSliceRef.current && handleSliceAndCreatePreviewsRef.current) {
+              await handleSliceAndCreatePreviewsRef.current(displayUrl);
+            } else if (createSinglePreviewNodeRef.current) {
+              createSinglePreviewNodeRef.current(displayUrl, data.config.aspectRatio || '16:9');
+            }
           }
           
           toast.success('分镜生成已完成！');
@@ -211,6 +221,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
   // 设置 ref
   updateNodeDataRef.current = updateNodeData;
   getNodesRef.current = getNodes;
+  autoSliceRef.current = autoSlice;
 
   const handleGenerate = async () => {
     if (inputImages.length === 0) {
@@ -232,9 +243,34 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         inputImages.map(img => processImageUrl(img, { skipCompression: true }))
       );
 
-      // 使用默认提示词
-      const systemPrompt = '你是一个专业的分镜师，根据用户提供的图片和剧情简述，生成详细的9个分镜描述。每个分镜应包含场景、动作、镜头角度等信息。';
-      const imagePrompt = '根据以下分镜描述和参考图片，生成3x3的九宫格分镜图，每个格子展示一个分镜场景，保持角色和风格一致，使用细黑边框分隔每个画面。';
+      // 从后台获取配置的提示词
+      let systemPrompt = '你是一个专业的分镜师，根据用户提供的图片和剧情简述，生成详细的9个分镜描述。每个分镜应包含场景、动作、镜头角度等信息。';
+      let imagePrompt = '根据以下分镜描述和参考图片，生成3x3的九宫格分镜图，每个格子展示一个分镜场景，保持角色和风格一致，使用细黑边框分隔每个画面。';
+      
+      try {
+        const res = await apiClient.get('/node-prompts/type/smartStoryboard');
+        if (res.success && res.data) {
+          if (res.data.systemPrompt) {
+            systemPrompt = res.data.systemPrompt;
+          }
+          if (res.data.userPromptTemplate) {
+            imagePrompt = res.data.userPromptTemplate;
+          }
+        }
+      } catch (e) {
+        console.log('[SmartStoryboardNode] 使用默认提示词');
+      }
+
+      // 替换提示词中的变量
+      const replaceVariables = (template: string) => {
+        return template
+          .replace(/\{\{userPrompt\}\}/g, userPrompt)
+          .replace(/\{\{imageStyle\}\}/g, imageStyle || '')
+          .replace(/\{\{aspectRatio\}\}/g, aspectRatio);
+      };
+      
+      systemPrompt = replaceVariables(systemPrompt);
+      imagePrompt = replaceVariables(imagePrompt);
 
       // ========== 第一步：调用文字模型生成分镜描述 ==========
 
@@ -342,8 +378,13 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             aspectRatio,
           });
 
-          // 自动切割成9个图片
-          await handleSliceAndCreatePreviews(displayUrl);
+          // 根据自动切割开关决定是否切割
+          if (autoSlice) {
+            await handleSliceAndCreatePreviews(displayUrl);
+          } else {
+            // 不切割，直接创建单个预览节点
+            createSinglePreviewNode(displayUrl, aspectRatio);
+          }
 
           toast.success('分镜生成完成！');
         } else if (task.status === 'FAILURE') {
@@ -459,6 +500,48 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
   // 设置 ref
   handleSliceAndCreatePreviewsRef.current = handleSliceAndCreatePreviews;
+
+  // 创建单个预览节点（不切割时使用）
+  const createSinglePreviewNode = (imageUrl: string, ratio: string) => {
+    const currentNode = getNode(id);
+    if (!currentNode) return;
+
+    const batchId = Date.now();
+    const newNode = {
+      id: `${id}-preview-${batchId}`,
+      type: 'imagePreview',
+      position: {
+        x: currentNode.position.x + 350,
+        y: currentNode.position.y,
+      },
+      data: {
+        imageUrl,
+        ratio,
+        label: '分镜结果',
+        fromStoryboard: true,
+        sourceNodeId: id,
+        createdBy: currentNode.data.createdBy,
+      },
+    };
+
+    const newEdge = {
+      id: `edge-${id}-to-preview-${batchId}`,
+      source: id,
+      target: newNode.id,
+      sourceHandle: `${id}-source`,
+      type: 'aurora',
+    };
+
+    setNodes((nodes) => [...nodes, newNode]);
+    setEdges((edges) => [...edges, newEdge]);
+
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('workflow:save'));
+    }, 100);
+  };
+
+  // 设置 ref
+  createSinglePreviewNodeRef.current = createSinglePreviewNode;
 
   // 批量创建所有预览节点（一次性添加，避免状态覆盖）
   const createAllPreviewNodes = (slices: string[], ratio: string) => {
@@ -603,10 +686,26 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           />
         </div>
 
+        {/* 图片风格输入 */}
+        <div className="space-y-1">
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">图片风格</label>
+          <input
+            type="text"
+            value={imageStyle}
+            onChange={(e) => {
+              setImageStyle(e.target.value);
+              updateNodeData({ imageStyle: e.target.value });
+            }}
+            placeholder="如：赛博朋克、水彩画、日系动漫..."
+            className="nodrag w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-white/90 placeholder-slate-400 dark:placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-neutral-500"
+            disabled={data._canEdit === false}
+          />
+        </div>
+
         {/* 宽高比 */}
         <div className="space-y-1">
           <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">宽高比</label>
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-2 gap-1">
             {ASPECT_RATIOS.map((r) => (
               <button
                 key={r}
@@ -624,6 +723,29 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
               </button>
             ))}
           </div>
+        </div>
+
+        {/* 自动切割开关 */}
+        <div className="flex items-center justify-between">
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-white/50">自动切割九宫格</label>
+          <button
+            type="button"
+            onClick={() => {
+              const newValue = !autoSlice;
+              setAutoSlice(newValue);
+              updateNodeData({ autoSlice: newValue });
+            }}
+            className={`nodrag relative w-10 h-5 rounded-full transition-colors ${
+              autoSlice ? 'bg-neutral-800 dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
+            }`}
+            disabled={data._canEdit === false}
+          >
+            <div
+              className={`absolute top-0.5 w-4 h-4 rounded-full shadow transition-transform ${
+                autoSlice ? 'translate-x-5 bg-white dark:bg-black' : 'translate-x-0.5 bg-white'
+              }`}
+            />
+          </button>
         </div>
 
         {/* 生成按钮 - Aurora样式 */}

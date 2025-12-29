@@ -26,6 +26,13 @@ const HD_UPSCALE_VARIABLES = [
   { name: 'userInput', desc: '用户输入的场景描述', example: '高清放大这张图片' },
 ];
 
+// 智能分镜节点可用变量
+const SMART_STORYBOARD_VARIABLES = [
+  { name: 'userPrompt', desc: '用户输入的剧情简述', example: '一个女孩在雨中奔跑' },
+  { name: 'imageStyle', desc: '用户输入的图片风格', example: '赛博朋克、水彩画' },
+  { name: 'aspectRatio', desc: '用户选择的宽高比', example: '16:9' },
+];
+
 // 可用的节点类型列表
 const AVAILABLE_NODE_TYPES = [
   { value: 'hdUpscale', label: '高清放大', icon: 'high_quality' },
@@ -570,9 +577,21 @@ const NodePromptsPage = () => {
                           <button
                             key={v.name}
                             type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(`{{${v.name}}}`);
-                              toast.success(`已复制 {{${v.name}}}`);
+                            onClick={async () => {
+                              const text = `{{${v.name}}}`;
+                              try {
+                                await navigator.clipboard.writeText(text);
+                                toast.success(`已复制 ${text}`);
+                              } catch {
+                                // fallback
+                                const textarea = document.createElement('textarea');
+                                textarea.value = text;
+                                document.body.appendChild(textarea);
+                                textarea.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(textarea);
+                                toast.success(`已复制 ${text}`);
+                              }
                             }}
                             className="flex items-center gap-2 p-2 bg-black/20 rounded hover:bg-black/30 transition-colors text-left"
                           >
@@ -585,6 +604,46 @@ const NodePromptsPage = () => {
                     <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-blue-300">
                       <p className="font-medium mb-1">💡 默认提示词</p>
                       <p className="text-xs opacity-80">将这张图片进行高清放大，保持原有的画面内容、构图和风格不变，提升图片的清晰度和细节</p>
+                    </div>
+                  </div>
+                ) : formData.nodeType === 'smartStoryboard' ? (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-sm">
+                      <p className="font-medium mb-2 text-cyan-300">🎬 智能分镜可用变量（点击复制）</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {SMART_STORYBOARD_VARIABLES.map((v) => (
+                          <button
+                            key={v.name}
+                            type="button"
+                            onClick={async () => {
+                              const text = `{{${v.name}}}`;
+                              try {
+                                await navigator.clipboard.writeText(text);
+                                toast.success(`已复制 ${text}`);
+                              } catch {
+                                // fallback
+                                const textarea = document.createElement('textarea');
+                                textarea.value = text;
+                                document.body.appendChild(textarea);
+                                textarea.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(textarea);
+                                toast.success(`已复制 ${text}`);
+                              }
+                            }}
+                            className="flex items-center gap-2 p-2 bg-black/20 rounded hover:bg-black/30 transition-colors text-left"
+                          >
+                            <code className="text-cyan-400 text-xs font-mono">{`{{${v.name}}}`}</code>
+                            <span className="text-gray-400 text-xs">{v.desc}</span>
+                            <span className="text-gray-500 text-xs ml-auto">例：{v.example}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-blue-300">
+                      <p className="font-medium mb-1">💡 提示词说明</p>
+                      <p className="text-xs opacity-80">系统提示词：用于第一步文字生成，指导AI生成分镜描述</p>
+                      <p className="text-xs opacity-80 mt-1">用户提示词：用于第二步图片生成，指导AI生成九宫格分镜图</p>
                     </div>
                   </div>
                 ) : (
