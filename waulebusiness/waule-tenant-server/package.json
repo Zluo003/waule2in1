@@ -25,7 +25,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/http-proxy": "^1.17.17",
     "ali-oss": "^6.21.0",
     "axios": "^1.7.9",
     "better-sqlite3": "^12.5.0",
@@ -42,6 +41,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/http-proxy": "^1.17.17",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.10.2",
     "@types/uuid": "^10.0.0",

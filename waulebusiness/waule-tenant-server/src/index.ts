@@ -159,7 +159,7 @@ function startServer() {
   });
   
   // WebSocket 代理错误处理
-  wsProxy.on('error', (err, req, res) => {
+  wsProxy.on('error', (err: Error, req: any, res: any) => {
     console.error('[WebSocket Proxy] 错误:', err.message);
   });
   

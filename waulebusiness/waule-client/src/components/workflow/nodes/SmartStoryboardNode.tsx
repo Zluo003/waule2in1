@@ -511,7 +511,6 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       // 并行上传并逐个创建预览节点
       const userId = data.createdBy?.id || 'default';
       const batchId = Date.now();
-      let successCount = 0;
 
       // 并行上传所有切片
       const uploadPromises = result.slices.map(async (base64, index) => {
@@ -530,11 +529,6 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             }
           }
 
-          // 上传成功后立即创建预览节点
-          createSinglePreviewNode(finalUrl, aspectRatio, index, batchId);
-          successCount++;
-          console.log(`[SmartStoryboardNode] 预览节点 ${index + 1} 已创建`);
-
           return { index, url: finalUrl, success: true };
         } catch (error: any) {
           console.error(`[SmartStoryboardNode] 分镜 ${index + 1} 处理失败:`, error);
@@ -546,7 +540,12 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       const results = await Promise.all(uploadPromises);
       const successResults = results.filter(r => r.success);
 
-      console.log(`[SmartStoryboardNode] 完成: ${successResults.length}/9 个预览节点已创建`);
+      console.log(`[SmartStoryboardNode] 完成: ${successResults.length}/9 个切片上传成功`);
+
+      // 一次性创建所有预览节点（避免并发 setNodes 导致的竞态条件）
+      if (successResults.length > 0) {
+        createAllPreviewNodes(successResults, aspectRatio, batchId);
+      }
 
       if (successResults.length === 0) {
         throw new Error('所有切片上传失败');
@@ -575,71 +574,75 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     }
   };
 
-  // 创建单个预览节点（九宫格布局：3列3行）
-  const createSinglePreviewNode = (imageUrl: string, ratio: string, index: number, batchId: number) => {
+  // 批量创建所有预览节点（避免并发 setNodes 竞态条件）
+  const createAllPreviewNodes = (
+    results: Array<{ index: number; url: string; success: boolean }>,
+    ratio: string,
+    batchId: number
+  ) => {
     const currentNode = getNode(id);
     if (!currentNode) return;
 
-    // 九宫格布局：3列3行
     const cols = 3;
-    const gap = 20; // 节点之间的间距
-
-    // 根据宽高比计算每个预览节点的尺寸
-    // 16:9 时每个图片分辨率是 1835 x 1024
-    // 9:16 时每个图片分辨率是 1024 x 1835
-    // 缩放到合适的预览尺寸
-    const scale = 0.15; // 缩放比例
+    const gap = 20;
+    const scale = 0.15;
     let nodeWidth: number;
     let nodeHeight: number;
-    
+
     if (ratio === '16:9') {
-      nodeWidth = Math.round(1835 * scale);   // ~275
-      nodeHeight = Math.round(1024 * scale);  // ~154
+      nodeWidth = Math.round(1835 * scale);
+      nodeHeight = Math.round(1024 * scale);
     } else {
-      // 9:16
-      nodeWidth = Math.round(1024 * scale);   // ~154
-      nodeHeight = Math.round(1835 * scale);  // ~275
+      nodeWidth = Math.round(1024 * scale);
+      nodeHeight = Math.round(1835 * scale);
     }
 
-    // 起始位置：在当前节点右侧
     const baseX = currentNode.position.x + 350;
-    // 垂直居中对齐
     const totalGridHeight = 3 * nodeHeight + 2 * gap;
     const baseY = currentNode.position.y - totalGridHeight / 2 + 150;
 
-    // 计算九宫格位置：行和列
-    const row = Math.floor(index / cols);
-    const col = index % cols;
+    const newNodes: any[] = [];
+    const newEdges: any[] = [];
 
-    const newNode = {
-      id: `${id}-slice-${batchId}-${index}`,
-      type: 'imagePreview',
-      position: {
-        x: baseX + col * (nodeWidth + gap),
-        y: baseY + row * (nodeHeight + gap),
-      },
-      data: {
-        imageUrl,
-        ratio,
-        width: nodeWidth,
-        height: nodeHeight,
-        label: `分镜 ${index + 1}`,
-        fromStoryboard: true,
-        sourceNodeId: id,
-        createdBy: currentNode.data.createdBy,
-      },
-    };
+    for (const { index, url } of results) {
+      const row = Math.floor(index / cols);
+      const col = index % cols;
 
-    const newEdge = {
-      id: `edge-${id}-to-slice-${batchId}-${index}`,
-      source: id,
-      target: newNode.id,
-      sourceHandle: `${id}-source`,
-      type: 'aurora',
-    };
+      const newNode = {
+        id: `${id}-slice-${batchId}-${index}`,
+        type: 'imagePreview',
+        position: {
+          x: baseX + col * (nodeWidth + gap),
+          y: baseY + row * (nodeHeight + gap),
+        },
+        data: {
+          imageUrl: url,
+          ratio,
+          width: nodeWidth,
+          height: nodeHeight,
+          label: `分镜 ${index + 1}`,
+          fromStoryboard: true,
+          sourceNodeId: id,
+          createdBy: currentNode.data.createdBy,
+        },
+      };
 
-    setNodes((nodes) => [...nodes, newNode]);
-    setEdges((edges) => [...edges, newEdge]);
+      const newEdge = {
+        id: `edge-${id}-to-slice-${batchId}-${index}`,
+        source: id,
+        target: newNode.id,
+        sourceHandle: `${id}-source`,
+        type: 'aurora',
+      };
+
+      newNodes.push(newNode);
+      newEdges.push(newEdge);
+    }
+
+    // 一次性添加所有节点和边
+    setNodes((nodes) => [...nodes, ...newNodes]);
+    setEdges((edges) => [...edges, ...newEdges]);
+    console.log(`[SmartStoryboardNode] 已创建 ${newNodes.length} 个预览节点`);
   };
 
   // 创建单个预览节点（不切割时使用）
