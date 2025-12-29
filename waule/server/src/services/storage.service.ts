@@ -1,5 +1,5 @@
 import { settingsService } from './settings.service';
-import { uploadBuffer as ossUploadBuffer, uploadPath as ossUploadPath, ensureAliyunOssUrl } from '../utils/oss';
+import { uploadBuffer as ossUploadBuffer, uploadPath as ossUploadPath, ensureAliyunOssUrl, toCdnUrl } from '../utils/oss';
 import { redis } from '../index';
 import fs from 'fs';
 import path from 'path';
@@ -63,7 +63,8 @@ class StorageService {
     if (mode === 'local') {
       return this.uploadBufferToLocal(buffer, ext);
     } else {
-      return ossUploadBuffer(buffer, ext);
+      const url = await ossUploadBuffer(buffer, ext);
+      return toCdnUrl(url);
     }
   }
 
@@ -78,7 +79,8 @@ class StorageService {
       const buffer = fs.readFileSync(filePath);
       return this.uploadBufferToLocal(buffer, ext);
     } else {
-      return ossUploadPath(filePath);
+      const url = await ossUploadPath(filePath);
+      return toCdnUrl(url);
     }
   }
 
@@ -128,7 +130,8 @@ class StorageService {
 
     // 如果是 OSS 模式，使用原有的 ensureAliyunOssUrl 逻辑
     if (mode === 'oss') {
-      return ensureAliyunOssUrl(url);
+      const ossUrl = await ensureAliyunOssUrl(url);
+      return ossUrl ? toCdnUrl(ossUrl) : ossUrl;
     }
 
     // 本地存储模式

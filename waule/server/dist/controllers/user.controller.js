@@ -11,6 +11,7 @@ const crypto_1 = require("crypto");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const oss_1 = require("../utils/oss");
 const index_1 = require("../index");
+const user_level_service_1 = require("../services/user-level.service");
 // 配置头像上传
 const avatarStorage = multer_1.default.diskStorage({
     destination: (_req, _file, cb) => {
@@ -71,12 +72,15 @@ const getProfile = async (req, res) => {
         if (!user) {
             return res.status(404).json({ success: false, message: '用户不存在' });
         }
+        // 获取有效角色（考虑会员过期）
+        const effectiveRole = await user_level_service_1.userLevelService.getEffectiveUserRole(userId);
+        const userData = { ...user, role: effectiveRole };
         // 🚀 缓存 30 秒
         try {
-            await index_1.redis.set(cacheKey, JSON.stringify(user), 'EX', 30);
+            await index_1.redis.set(cacheKey, JSON.stringify(userData), 'EX', 30);
         }
         catch { }
-        res.json({ success: true, data: user });
+        res.json({ success: true, data: userData });
     }
     catch (error) {
         console.error('获取用户资料失败:', error);

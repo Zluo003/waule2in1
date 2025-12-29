@@ -8,7 +8,21 @@ import { pipeline } from 'stream/promises';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 
 // OSS URL 正则匹配，用于提取 objectKey
-const OSS_URL_PATTERN = /https:\/\/([^.]+)\.(oss-)?([^.]+)\.aliyuncs\.com\/(.+)/;
+// 支持: https://bucket.oss-cn-beijing.aliyuncs.com/path 和 https://bucket.oss-accelerate.aliyuncs.com/path
+const OSS_URL_PATTERN = /https:\/\/([^.]+)\.([^.]+)\.aliyuncs\.com\/(.+)/;
+
+/**
+ * 将 OSS URL 转换为 CDN URL（用于返回给前端）
+ */
+export const toCdnUrl = (ossUrl: string): string => {
+  const cdnDomain = process.env.OSS_CDN_DOMAIN;
+  if (!cdnDomain || !ossUrl) return ossUrl;
+  const match = ossUrl.match(OSS_URL_PATTERN);
+  if (match && match[3]) {
+    return `https://${cdnDomain}/${match[3]}`;
+  }
+  return ossUrl;
+};
 
 // SOCKS5 代理配置（用于下载外部资源）
 let _proxyAgent: SocksProxyAgent | undefined;
@@ -318,8 +332,8 @@ export const generatePresignedUrl = async (ext: string, contentType: string): Pr
   
   let publicUrl = `https://${bucket}.${region}.aliyuncs.com/${objectKey}`;
   publicUrl = publicUrl.replace('.oss-oss-', '.oss-');
-  
-  return { uploadUrl, publicUrl, objectKey };
+
+  return { uploadUrl, publicUrl: toCdnUrl(publicUrl), objectKey };
 };
 
 /**

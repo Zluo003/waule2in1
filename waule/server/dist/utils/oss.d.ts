@@ -1,4 +1,8 @@
 /**
+ * 将 OSS URL 转换为 CDN URL（用于返回给前端）
+ */
+export declare const toCdnUrl: (ossUrl: string) => string;
+/**
  * 是否跳过服务器转存，让前端自己处理
  * 设置为 true 时，AI 生成的内容 URL 将直接返回给前端，由前端转存到 OSS
  * 这样可以大幅减少服务器带宽消耗

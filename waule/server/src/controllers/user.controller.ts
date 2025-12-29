@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { uploadPath, generatePresignedUrl } from '../utils/oss';
 import { prisma, redis } from '../index';
+import { userLevelService } from '../services/user-level.service';
 
 // 配置头像上传
 const avatarStorage = multer.diskStorage({
@@ -71,10 +72,14 @@ export const getProfile = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: '用户不存在' });
     }
 
-    // 🚀 缓存 30 秒
-    try { await redis.set(cacheKey, JSON.stringify(user), 'EX', 30); } catch {}
+    // 获取有效角色（考虑会员过期）
+    const effectiveRole = await userLevelService.getEffectiveUserRole(userId);
+    const userData = { ...user, role: effectiveRole };
 
-    res.json({ success: true, data: user });
+    // 🚀 缓存 30 秒
+    try { await redis.set(cacheKey, JSON.stringify(userData), 'EX', 30); } catch {}
+
+    res.json({ success: true, data: userData });
   } catch (error) {
     console.error('获取用户资料失败:', error);
     res.status(500).json({ success: false, message: '服务器错误' });

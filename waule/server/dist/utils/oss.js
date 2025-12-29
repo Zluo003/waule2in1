@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listOssFiles = exports.batchDeleteFromOss = exports.deleteFromOss = exports.isOssUrl = exports.extractObjectKeyFromUrl = exports.streamDownloadAndUploadToOss = exports.downloadAndUploadToOss = exports.generatePresignedUrl = exports.ensureAliyunOssUrl = exports.uploadBuffer = exports.uploadPath = exports.SKIP_SERVER_TRANSFER = void 0;
+exports.listOssFiles = exports.batchDeleteFromOss = exports.deleteFromOss = exports.isOssUrl = exports.extractObjectKeyFromUrl = exports.streamDownloadAndUploadToOss = exports.downloadAndUploadToOss = exports.generatePresignedUrl = exports.ensureAliyunOssUrl = exports.uploadBuffer = exports.uploadPath = exports.SKIP_SERVER_TRANSFER = exports.toCdnUrl = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const axios_1 = __importDefault(require("axios"));
@@ -46,7 +46,22 @@ const logger_1 = __importDefault(require("../utils/logger"));
 const promises_1 = require("stream/promises");
 const socks_proxy_agent_1 = require("socks-proxy-agent");
 // OSS URL 正则匹配，用于提取 objectKey
-const OSS_URL_PATTERN = /https:\/\/([^.]+)\.(oss-)?([^.]+)\.aliyuncs\.com\/(.+)/;
+// 支持: https://bucket.oss-cn-beijing.aliyuncs.com/path 和 https://bucket.oss-accelerate.aliyuncs.com/path
+const OSS_URL_PATTERN = /https:\/\/([^.]+)\.([^.]+)\.aliyuncs\.com\/(.+)/;
+/**
+ * 将 OSS URL 转换为 CDN URL（用于返回给前端）
+ */
+const toCdnUrl = (ossUrl) => {
+    const cdnDomain = process.env.OSS_CDN_DOMAIN;
+    if (!cdnDomain || !ossUrl)
+        return ossUrl;
+    const match = ossUrl.match(OSS_URL_PATTERN);
+    if (match && match[3]) {
+        return `https://${cdnDomain}/${match[3]}`;
+    }
+    return ossUrl;
+};
+exports.toCdnUrl = toCdnUrl;
 // SOCKS5 代理配置（用于下载外部资源）
 let _proxyAgent;
 function getProxyAgent() {
@@ -359,7 +374,7 @@ const generatePresignedUrl = async (ext, contentType) => {
     }
     let publicUrl = `https://${bucket}.${region}.aliyuncs.com/${objectKey}`;
     publicUrl = publicUrl.replace('.oss-oss-', '.oss-');
-    return { uploadUrl, publicUrl, objectKey };
+    return { uploadUrl, publicUrl: (0, exports.toCdnUrl)(publicUrl), objectKey };
 };
 exports.generatePresignedUrl = generatePresignedUrl;
 /**

@@ -7,6 +7,7 @@ exports.deleteNodeTask = exports.getNodeTasks = exports.saveNodeTask = exports.m
 const task_service_1 = __importDefault(require("../services/task.service"));
 const index_1 = require("../index");
 const logger_1 = __importDefault(require("../utils/logger"));
+const oss_1 = require("../utils/oss");
 // Redis key 前缀
 const NODE_TASK_PREFIX = 'node:task:';
 /**
@@ -413,7 +414,7 @@ const getTaskStatus = async (req, res) => {
                         type: task.type,
                         status: 'FAILURE',
                         progress: task.progress,
-                        resultUrl: task.resultUrl,
+                        resultUrl: (0, oss_1.toCdnUrl)(task.resultUrl || ''),
                         errorMessage: `任务处理超时 (${Math.floor(minutesStuck)} 分钟无响应)`,
                         createdAt: task.createdAt,
                         completedAt: new Date(),
@@ -428,7 +429,7 @@ const getTaskStatus = async (req, res) => {
                 type: task.type,
                 status: task.status,
                 progress: task.progress,
-                resultUrl: task.resultUrl,
+                resultUrl: (0, oss_1.toCdnUrl)(task.resultUrl || ''),
                 previewNodeData: task.previewNodeData, // 预览节点数据（包含URL和ratio）
                 errorMessage: task.errorMessage,
                 metadata: task.metadata, // 包含角色创建结果等额外信息
@@ -462,7 +463,7 @@ const getUserTasks = async (req, res) => {
                 status: task.status,
                 progress: task.progress,
                 prompt: task.prompt.substring(0, 100),
-                resultUrl: task.resultUrl,
+                resultUrl: (0, oss_1.toCdnUrl)(task.resultUrl || ''),
                 createdAt: task.createdAt,
                 completedAt: task.completedAt,
             })),

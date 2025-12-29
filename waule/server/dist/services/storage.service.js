@@ -61,7 +61,8 @@ class StorageService {
             return this.uploadBufferToLocal(buffer, ext);
         }
         else {
-            return (0, oss_1.uploadBuffer)(buffer, ext);
+            const url = await (0, oss_1.uploadBuffer)(buffer, ext);
+            return (0, oss_1.toCdnUrl)(url);
         }
     }
     /**
@@ -75,7 +76,8 @@ class StorageService {
             return this.uploadBufferToLocal(buffer, ext);
         }
         else {
-            return (0, oss_1.uploadPath)(filePath);
+            const url = await (0, oss_1.uploadPath)(filePath);
+            return (0, oss_1.toCdnUrl)(url);
         }
     }
     /**
@@ -117,7 +119,8 @@ class StorageService {
         const mode = await this.getStorageMode();
         // 如果是 OSS 模式，使用原有的 ensureAliyunOssUrl 逻辑
         if (mode === 'oss') {
-            return (0, oss_1.ensureAliyunOssUrl)(url);
+            const ossUrl = await (0, oss_1.ensureAliyunOssUrl)(url);
+            return ossUrl ? (0, oss_1.toCdnUrl)(ossUrl) : ossUrl;
         }
         // 本地存储模式
         const trimmed = url.trim().replace(/^`+|`+$/g, '').replace(/^"+|"+$/g, "");

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import taskService from '../services/task.service';
 import { prisma, redis } from '../index';
 import logger from '../utils/logger';
+import { toCdnUrl } from '../utils/oss';
 
 // Redis key 前缀
 const NODE_TASK_PREFIX = 'node:task:';
@@ -444,7 +445,7 @@ export const getTaskStatus = async (req: Request, res: Response) => {
             type: task.type,
             status: 'FAILURE',
             progress: task.progress,
-            resultUrl: task.resultUrl,
+            resultUrl: toCdnUrl(task.resultUrl || ''),
             errorMessage: `任务处理超时 (${Math.floor(minutesStuck)} 分钟无响应)`,
             createdAt: task.createdAt,
             completedAt: new Date(),
@@ -460,7 +461,7 @@ export const getTaskStatus = async (req: Request, res: Response) => {
         type: task.type,
         status: task.status,
         progress: task.progress,
-        resultUrl: task.resultUrl,
+        resultUrl: toCdnUrl(task.resultUrl || ''),
         previewNodeData: task.previewNodeData, // 预览节点数据（包含URL和ratio）
         errorMessage: task.errorMessage,
         metadata: task.metadata, // 包含角色创建结果等额外信息
@@ -496,7 +497,7 @@ export const getUserTasks = async (req: Request, res: Response) => {
         status: task.status,
         progress: task.progress,
         prompt: task.prompt.substring(0, 100),
-        resultUrl: task.resultUrl,
+        resultUrl: toCdnUrl(task.resultUrl || ''),
         createdAt: task.createdAt,
         completedAt: task.completedAt,
       })),

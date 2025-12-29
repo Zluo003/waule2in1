@@ -624,6 +624,9 @@ app.get('/health', async (req, res) => {
         });
     }
 });
+// CDN URL 转换中间件（将 OSS URL 自动转换为 CDN URL）
+const cdnTransform_1 = require("./middleware/cdnTransform");
+app.use(cdnTransform_1.cdnTransformMiddleware);
 // API路由
 app.use(`${API_PREFIX}/auth`, auth_routes_1.default);
 app.use(`${API_PREFIX}/users`, user_routes_1.default);
