@@ -481,17 +481,14 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     throw lastError || new Error('获取图片失败');
   };
 
-  // 批量创建所有预览节点（避免并发 setNodes 竞态条件）
-  const createAllPreviewNodes = (
-    results: Array<{ index: number; url: string; success: boolean }>,
-    ratio: string,
-    batchId: number
-  ) => {
+  // 批量创建所有预览节点（一次性添加，九宫格排列）
+  const createAllPreviewNodes = (slices: string[], ratio: string) => {
     const currentNode = getNode(id);
     if (!currentNode) return;
 
     const cols = 3;
     const gap = 20;
+    const batchId = Date.now();
     const scale = 0.15;
     let nodeWidth: number;
     let nodeHeight: number;
@@ -511,7 +508,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     const newNodes: any[] = [];
     const newEdges: any[] = [];
 
-    for (const { index, url } of results) {
+    slices.forEach((imageUrl, index) => {
       const row = Math.floor(index / cols);
       const col = index % cols;
 
@@ -523,7 +520,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           y: baseY + row * (nodeHeight + gap),
         },
         data: {
-          imageUrl: url,
+          imageUrl,
           ratio,
           width: nodeWidth,
           height: nodeHeight,
@@ -544,12 +541,16 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
       newNodes.push(newNode);
       newEdges.push(newEdge);
-    }
+    });
 
     // 一次性添加所有节点和边
     setNodes((nodes) => [...nodes, ...newNodes]);
     setEdges((edges) => [...edges, ...newEdges]);
-    console.log(`[SmartStoryboardNode] 已创建 ${newNodes.length} 个预览节点`);
+
+    // 立即触发保存
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('workflow:save'));
+    }, 100);
   };
 
   const handleSliceAndCreatePreviews = async (imageUrl: string, retryCount: number = 0) => {
@@ -613,17 +614,18 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
       console.log(`[SmartStoryboardNode] 完成: ${successResults.length}/9 个切片上传成功`);
 
-      // 一次性创建所有预览节点（避免并发 setNodes 导致的竞态条件）
-      if (successResults.length > 0) {
-        createAllPreviewNodes(successResults, aspectRatio, batchId);
-      }
-
       if (successResults.length === 0) {
         throw new Error('所有切片上传失败');
       }
 
+      // 收集成功上传的 URL
+      const savedUrls = successResults.map(r => r.url);
+
       // 保存成功的切片URL
-      updateNodeData({ slicedImages: results.map(r => r.url) });
+      updateNodeData({ slicedImages: savedUrls });
+
+      // 一次性创建所有预览节点
+      createAllPreviewNodes(savedUrls, aspectRatio);
 
       if (successResults.length < 9) {
         toast.error(`部分预览节点创建失败 (${successResults.length}/9)`);
