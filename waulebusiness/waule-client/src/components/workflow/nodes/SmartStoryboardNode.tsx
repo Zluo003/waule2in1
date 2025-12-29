@@ -48,6 +48,8 @@ interface SmartStoryboardNodeData {
     imageSize?: string;
     inputImages?: string[]; // 支持多图输入（最多5张）
     userPrompt?: string; // 用户剧情简述
+    imageStyle?: string; // 图片风格
+    autoSlice?: boolean; // 自动切割开关
     generatedImageUrl?: string;
     taskId?: string;
     slicedImages?: string[];
@@ -58,7 +60,7 @@ interface SmartStoryboardNodeData {
   _canEdit?: boolean;
 }
 
-const ASPECT_RATIOS = ['16:9', '21:9', '1:1', '9:16', '9:21', '4:3', '3:4', '3:2', '2:3'];
+const ASPECT_RATIOS = ['16:9', '9:16'];
 
 // 模型ID
 const TEXT_MODEL_ID = 'gemini-3-pro-preview'; // 第一步：文字生成
@@ -66,9 +68,11 @@ const IMAGE_MODEL_ID = 'gemini-3-pro-image-preview'; // 第二步：图片生成
 const MAX_INPUT_IMAGES = 5; // 最多输入图片数
 
 const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNodeData>) => {
-  const [aspectRatio, setAspectRatio] = useState(data.config.aspectRatio || '1:1');
+  const [aspectRatio, setAspectRatio] = useState(data.config.aspectRatio || '16:9');
   const [inputImages, setInputImages] = useState<string[]>(data.config.inputImages || []);
   const [userPrompt, setUserPrompt] = useState(data.config.userPrompt || '');
+  const [imageStyle, setImageStyle] = useState(data.config.imageStyle || '');
+  const [autoSlice, setAutoSlice] = useState(data.config.autoSlice !== false); // 默认开启
   const [isGenerating, setIsGenerating] = useState(!!data.config.taskId);
   const [generatingStep, setGeneratingStep] = useState<'text' | 'image' | null>(null);
   const [selectedModel, setSelectedModel] = useState<any>(null);
@@ -299,6 +303,17 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
         console.log('[SmartStoryboardNode] 后台未配置提示词，使用内置默认值');
       }
 
+      // 替换提示词中的变量
+      const replaceVariables = (template: string) => {
+        return template
+          .replace(/\{\{userPrompt\}\}/g, userPrompt)
+          .replace(/\{\{imageStyle\}\}/g, imageStyle || '')
+          .replace(/\{\{aspectRatio\}\}/g, aspectRatio);
+      };
+      
+      if (systemPrompt) systemPrompt = replaceVariables(systemPrompt);
+      if (imagePrompt) imagePrompt = replaceVariables(imagePrompt);
+
       if (!selectedModel) {
         toast.error('图片模型未加载，请稍后重试');
         setIsGenerating(false);
@@ -375,8 +390,13 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             aspectRatio,
           });
 
-          // 自动切割成9个图片
-          await handleSliceAndCreatePreviews(displayUrl);
+          // 根据自动切割开关决定是否切割
+          if (autoSlice) {
+            await handleSliceAndCreatePreviews(displayUrl);
+          } else {
+            // 不切割，直接创建单个预览节点
+            createSinglePreviewNodeNoSlice(displayUrl, aspectRatio);
+          }
 
           toast.success('分镜生成完成！');
         } else if (task.status === 'FAILURE') {
@@ -595,6 +615,45 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     setEdges((edges) => [...edges, newEdge]);
   };
 
+  // 创建单个预览节点（不切割时使用）
+  const createSinglePreviewNodeNoSlice = (imageUrl: string, ratio: string) => {
+    const currentNode = getNode(id);
+    if (!currentNode) return;
+
+    const batchId = Date.now();
+    const newNode = {
+      id: `${id}-preview-${batchId}`,
+      type: 'imagePreview',
+      position: {
+        x: currentNode.position.x + 350,
+        y: currentNode.position.y,
+      },
+      data: {
+        imageUrl,
+        ratio,
+        label: '分镜结果',
+        fromStoryboard: true,
+        sourceNodeId: id,
+        createdBy: currentNode.data.createdBy,
+      },
+    };
+
+    const newEdge = {
+      id: `edge-${id}-to-preview-${batchId}`,
+      source: id,
+      target: newNode.id,
+      sourceHandle: `${id}-source`,
+      type: 'aurora',
+    };
+
+    setNodes((nodes) => [...nodes, newNode]);
+    setEdges((edges) => [...edges, newEdge]);
+
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('workflow:save'));
+    }, 100);
+  };
+
   return (
     <div
       className={`relative bg-white/80 dark:bg-[#18181b]/100 dark:backdrop-blur-none backdrop-blur-sm border rounded-2xl shadow-xl transition-all ring-1 ${
@@ -681,10 +740,26 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           />
         </div>
 
+        {/* 图片风格输入 */}
+        <div className="space-y-1">
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">图片风格</label>
+          <input
+            type="text"
+            value={imageStyle}
+            onChange={(e) => {
+              setImageStyle(e.target.value);
+              updateNodeData({ imageStyle: e.target.value });
+            }}
+            placeholder="如：赛博朋克、水彩画、日系动漫..."
+            className="nodrag w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-[#000000] backdrop-blur-none text-slate-700 dark:text-white/90 placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500"
+            disabled={data._canEdit === false}
+          />
+        </div>
+
         {/* 宽高比 */}
         <div className="space-y-1">
           <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">宽高比</label>
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-2 gap-1">
             {ASPECT_RATIOS.map((r) => (
               <button
                 key={r}
@@ -702,6 +777,29 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
               </button>
             ))}
           </div>
+        </div>
+
+        {/* 自动切割开关 */}
+        <div className="flex items-center justify-between">
+          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">自动切割九宫格</label>
+          <button
+            type="button"
+            onClick={() => {
+              const newValue = !autoSlice;
+              setAutoSlice(newValue);
+              updateNodeData({ autoSlice: newValue });
+            }}
+            className={`nodrag relative w-10 h-5 rounded-full transition-colors ${
+              autoSlice ? 'bg-neutral-800 dark:bg-white' : 'bg-slate-300 dark:bg-white/20'
+            }`}
+            disabled={data._canEdit === false}
+          >
+            <div
+              className={`absolute top-0.5 w-4 h-4 rounded-full shadow transition-transform ${
+                autoSlice ? 'translate-x-5 bg-white dark:bg-black' : 'translate-x-0.5 bg-white'
+              }`}
+            />
+          </button>
         </div>
 
         {/* 生成按钮 - Aurora样式 */}
