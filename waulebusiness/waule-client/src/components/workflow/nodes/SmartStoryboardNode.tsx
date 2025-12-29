@@ -575,27 +575,54 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     }
   };
 
-  // 创建单个预览节点
+  // 创建单个预览节点（九宫格布局：3列3行）
   const createSinglePreviewNode = (imageUrl: string, ratio: string, index: number, batchId: number) => {
     const currentNode = getNode(id);
     if (!currentNode) return;
 
-    const nodeHeight = 220;
-    const gap = 20;
+    // 九宫格布局：3列3行
+    const cols = 3;
+    const gap = 20; // 节点之间的间距
+
+    // 根据宽高比计算每个预览节点的尺寸
+    // 16:9 时每个图片分辨率是 1835 x 1024
+    // 9:16 时每个图片分辨率是 1024 x 1835
+    // 缩放到合适的预览尺寸
+    const scale = 0.15; // 缩放比例
+    let nodeWidth: number;
+    let nodeHeight: number;
+    
+    if (ratio === '16:9') {
+      nodeWidth = Math.round(1835 * scale);   // ~275
+      nodeHeight = Math.round(1024 * scale);  // ~154
+    } else {
+      // 9:16
+      nodeWidth = Math.round(1024 * scale);   // ~154
+      nodeHeight = Math.round(1835 * scale);  // ~275
+    }
+
+    // 起始位置：在当前节点右侧
     const baseX = currentNode.position.x + 350;
-    const totalHeight = 9 * nodeHeight + 8 * gap;
-    const baseY = currentNode.position.y - totalHeight / 2 + 150;
+    // 垂直居中对齐
+    const totalGridHeight = 3 * nodeHeight + 2 * gap;
+    const baseY = currentNode.position.y - totalGridHeight / 2 + 150;
+
+    // 计算九宫格位置：行和列
+    const row = Math.floor(index / cols);
+    const col = index % cols;
 
     const newNode = {
       id: `${id}-slice-${batchId}-${index}`,
       type: 'imagePreview',
       position: {
-        x: baseX,
-        y: baseY + index * (nodeHeight + gap),
+        x: baseX + col * (nodeWidth + gap),
+        y: baseY + row * (nodeHeight + gap),
       },
       data: {
         imageUrl,
         ratio,
+        width: nodeWidth,
+        height: nodeHeight,
         label: `分镜 ${index + 1}`,
         fromStoryboard: true,
         sourceNodeId: id,
