@@ -1048,9 +1048,12 @@ export const getTasks = asyncHandler(async (req: Request, res: Response) => {
   });
   const modelMap = new Map(models.map(m => [m.id, m]));
 
-  // 组装数据
+  // 组装数据（确保日期字段正确序列化为 ISO 字符串）
   const tasksWithInfo = tasks.map(task => ({
     ...task,
+    createdAt: task.createdAt ? task.createdAt.toISOString() : null,
+    updatedAt: task.updatedAt ? task.updatedAt.toISOString() : null,
+    completedAt: task.completedAt ? task.completedAt.toISOString() : null,
     user: userMap.get(task.userId) || null,
     model: modelMap.get(task.modelId) || null,
     // 提取扣费信息
