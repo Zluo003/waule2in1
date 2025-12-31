@@ -357,78 +357,125 @@ const generateImage = async (options) => {
         }, null, 2));
         const agent = getProxyAgent();
         console.log('🌐 [Gemini] 请求使用代理:', agent ? '是' : '否');
-        const apiStartTime = Date.now();
-        const response = await axios_1.default.post(`${endpoint}?key=${API_KEY}`, requestBody, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            timeout: 600000, // 600秒超时（10分钟）- Gemini 3 Pro Image 可能需要更长时间进行推理和搜索
-            httpsAgent: agent,
-            httpAgent: agent,
-        });
-        // 从响应中提取图片数据
-        const apiDuration = ((Date.now() - apiStartTime) / 1000).toFixed(1);
-        console.log(`📥 [Gemini] API 响应状态: ${response.status}, API耗时: ${apiDuration}s`);
-        console.log('📥 [Gemini] 响应头 Content-Type:', response.headers['content-type']);
-        const candidates = response.data?.candidates;
-        if (!candidates || candidates.length === 0) {
-            console.error('❌ [Gemini] No candidates in response. Full response:', JSON.stringify(response.data, null, 2));
-            throw new Error('No image generated');
+        // 重试配置
+        const MAX_RETRIES = 3;
+        const RETRY_DELAYS = [2000, 4000, 6000]; // 递增延迟
+        // 判断是否可重试的错误
+        const isRetryableError = (error) => {
+            // 网络错误可重试
+            if (!error.response)
+                return true;
+            const status = error.response?.status;
+            // 5xx 服务器错误可重试
+            if (status >= 500 && status < 600)
+                return true;
+            // 429 限流可重试
+            if (status === 429)
+                return true;
+            // "No image generated" 临时性错误可重试
+            const errorMsg = error.message?.toLowerCase() || '';
+            if (errorMsg.includes('no image generated') || errorMsg.includes('no candidates'))
+                return true;
+            return false;
+        };
+        let lastError = null;
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                if (attempt > 0) {
+                    const delay = RETRY_DELAYS[attempt - 1] || 6000;
+                    console.log(`🔄 [Gemini] 第 ${attempt} 次重试，等待 ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+                const apiStartTime = Date.now();
+                const response = await axios_1.default.post(`${endpoint}?key=${API_KEY}`, requestBody, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    timeout: 600000, // 600秒超时（10分钟）- Gemini 3 Pro Image 可能需要更长时间进行推理和搜索
+                    httpsAgent: agent,
+                    httpAgent: agent,
+                });
+                // 从响应中提取图片数据
+                const apiDuration = ((Date.now() - apiStartTime) / 1000).toFixed(1);
+                console.log(`📥 [Gemini] API 响应状态: ${response.status}, API耗时: ${apiDuration}s`);
+                console.log('📥 [Gemini] 响应头 Content-Type:', response.headers['content-type']);
+                const candidates = response.data?.candidates;
+                if (!candidates || candidates.length === 0) {
+                    console.error('❌ [Gemini] No candidates in response. Full response:', JSON.stringify(response.data, null, 2));
+                    throw new Error('No image generated');
+                }
+                console.log('✅ [Gemini] 收到 candidates 数量:', candidates.length);
+                // 检查 finishReason
+                const finishReason = candidates[0]?.finishReason;
+                if (finishReason === 'NO_IMAGE') {
+                    console.error('❌ [Gemini] 模型拒绝生成图片，finishReason: NO_IMAGE');
+                    throw new Error('Gemini 无法为此提示词生成图片，可能触发了内容安全策略或提示词不适合图片生成');
+                }
+                if (finishReason === 'SAFETY') {
+                    console.error('❌ [Gemini] 安全过滤器拦截，finishReason: SAFETY');
+                    throw new Error('提示词触发了 Gemini 安全过滤器，请修改提示词后重试');
+                }
+                const responseParts = candidates[0]?.content?.parts;
+                if (!responseParts || responseParts.length === 0) {
+                    console.error('No parts in response. Candidate:', JSON.stringify(candidates[0], null, 2));
+                    throw new Error(`图片生成失败: ${finishReason || '未知原因'}`);
+                }
+                // 查找图片数据（inlineData 格式）
+                const imagePart = responseParts.find((part) => part.inlineData);
+                if (!imagePart || !imagePart.inlineData) {
+                    console.error('No inline data found. Parts:', JSON.stringify(responseParts, null, 2));
+                    throw new Error('No inline image data found');
+                }
+                // 将 Base64 图片数据保存为文件（不直接返回base64，避免数据量过大）
+                const base64Data = imagePart.inlineData.data;
+                const mimeType = imagePart.inlineData.mimeType || 'image/png';
+                console.log('📦 [Gemini] 图片数据信息:', {
+                    mimeType,
+                    base64Length: base64Data.length,
+                    estimatedSizeKB: Math.round(base64Data.length * 0.75 / 1024), // base64 to bytes conversion
+                });
+                // 将base64转换为Buffer
+                const imageBuffer = Buffer.from(base64Data, 'base64');
+                const ext = mimeType.includes('png') ? '.png' : '.jpg';
+                const fileSizeMB = (imageBuffer.length / 1024 / 1024).toFixed(2);
+                console.log(`📏 [Gemini] 文件大小: ${fileSizeMB} MB (${imageBuffer.length} bytes)`);
+                // 上传到 OSS
+                const ossStartTime = Date.now();
+                const ossUrl = await storage_service_1.storageService.uploadBuffer(imageBuffer, ext);
+                const ossDuration = ((Date.now() - ossStartTime) / 1000).toFixed(1);
+                console.log(`💾 [Gemini] 图片已上传到 OSS: ${ossUrl}, OSS上传耗时: ${ossDuration}s`);
+                console.log(`⏱️ [Gemini] 总耗时: API ${apiDuration}s + OSS ${ossDuration}s`);
+                return ossUrl;
+            }
+            catch (error) {
+                lastError = error;
+                console.error(`❌ [Gemini] 第 ${attempt + 1} 次尝试失败:`, {
+                    message: error.message,
+                    status: error.response?.status,
+                });
+                // 判断是否应该重试
+                if (attempt < MAX_RETRIES && isRetryableError(error)) {
+                    console.log(`🔄 [Gemini] 错误可重试，将进行第 ${attempt + 1} 次重试...`);
+                    continue;
+                }
+                // 不可重试或已达最大重试次数
+                if (error.response?.data) {
+                    console.error('Full API error response:', JSON.stringify(error.response.data, null, 2));
+                }
+                break;
+            }
         }
-        console.log('✅ [Gemini] 收到 candidates 数量:', candidates.length);
-        // 检查 finishReason
-        const finishReason = candidates[0]?.finishReason;
-        if (finishReason === 'NO_IMAGE') {
-            console.error('❌ [Gemini] 模型拒绝生成图片，finishReason: NO_IMAGE');
-            throw new Error('Gemini 无法为此提示词生成图片，可能触发了内容安全策略或提示词不适合图片生成');
-        }
-        if (finishReason === 'SAFETY') {
-            console.error('❌ [Gemini] 安全过滤器拦截，finishReason: SAFETY');
-            throw new Error('提示词触发了 Gemini 安全过滤器，请修改提示词后重试');
-        }
-        const responseParts = candidates[0]?.content?.parts;
-        if (!responseParts || responseParts.length === 0) {
-            console.error('No parts in response. Candidate:', JSON.stringify(candidates[0], null, 2));
-            throw new Error(`图片生成失败: ${finishReason || '未知原因'}`);
-        }
-        // 查找图片数据（inlineData 格式）
-        const imagePart = responseParts.find((part) => part.inlineData);
-        if (!imagePart || !imagePart.inlineData) {
-            console.error('No inline data found. Parts:', JSON.stringify(responseParts, null, 2));
-            throw new Error('No inline image data found');
-        }
-        // 将 Base64 图片数据保存为文件（不直接返回base64，避免数据量过大）
-        const base64Data = imagePart.inlineData.data;
-        const mimeType = imagePart.inlineData.mimeType || 'image/png';
-        console.log('📦 [Gemini] 图片数据信息:', {
-            mimeType,
-            base64Length: base64Data.length,
-            estimatedSizeKB: Math.round(base64Data.length * 0.75 / 1024), // base64 to bytes conversion
-        });
-        // 将base64转换为Buffer
-        const imageBuffer = Buffer.from(base64Data, 'base64');
-        const ext = mimeType.includes('png') ? '.png' : '.jpg';
-        const fileSizeMB = (imageBuffer.length / 1024 / 1024).toFixed(2);
-        console.log(`📏 [Gemini] 文件大小: ${fileSizeMB} MB (${imageBuffer.length} bytes)`);
-        // 上传到 OSS
-        const ossStartTime = Date.now();
-        const ossUrl = await storage_service_1.storageService.uploadBuffer(imageBuffer, ext);
-        const ossDuration = ((Date.now() - ossStartTime) / 1000).toFixed(1);
-        console.log(`💾 [Gemini] 图片已上传到 OSS: ${ossUrl}, OSS上传耗时: ${ossDuration}s`);
-        console.log(`⏱️ [Gemini] 总耗时: API ${apiDuration}s + OSS ${ossDuration}s`);
-        return ossUrl;
+        // 所有重试都失败了
+        throw new Error(`Failed to generate image after ${MAX_RETRIES + 1} attempts: ${lastError?.response?.data?.error?.message || lastError?.message}`);
     }
     catch (error) {
+        // 外层 catch 处理非 API 调用的错误（如参数验证等）
         console.error('Gemini image generation error:', {
             message: error.message,
             response: error.response?.data,
             status: error.response?.status,
         });
-        // 如果是 API 错误响应，输出完整信息
-        if (error.response?.data) {
-            console.error('Full API error response:', JSON.stringify(error.response.data, null, 2));
-        }
-        throw new Error(`Failed to generate image: ${error.response?.data?.error?.message || error.message}`);
+        throw error;
     }
 };
 exports.generateImage = generateImage;

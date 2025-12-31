@@ -23,6 +23,7 @@ exports.getAllUsers = (0, errorHandler_1.asyncHandler)(async (req, res) => {
     const where = {};
     if (search) {
         where.OR = [
+            { phone: { contains: search } },
             { email: { contains: search, mode: 'insensitive' } },
             { username: { contains: search, mode: 'insensitive' } },
             { nickname: { contains: search, mode: 'insensitive' } },
@@ -63,9 +64,16 @@ exports.getAllUsers = (0, errorHandler_1.asyncHandler)(async (req, res) => {
         }),
         index_1.prisma.user.count({ where }),
     ]);
+    // 确保日期字段正确序列化为 ISO 字符串
+    const usersWithDates = users.map(user => ({
+        ...user,
+        createdAt: user.createdAt ? user.createdAt.toISOString() : null,
+        lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+        membershipExpireAt: user.membershipExpireAt ? user.membershipExpireAt.toISOString() : null,
+    }));
     res.json({
         success: true,
-        data: users,
+        data: usersWithDates,
         pagination: {
             page: Number(page),
             limit: Number(limit),

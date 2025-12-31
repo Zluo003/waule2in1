@@ -404,20 +404,49 @@ export const generateImage = async (options: GeminiImageGenerateOptions): Promis
 
     const agent = getProxyAgent();
     console.log('🌐 [Gemini] 请求使用代理:', agent ? '是' : '否');
-    
-    const apiStartTime = Date.now();
-    const response = await axios.post(
-      `${endpoint}?key=${API_KEY}`,
-      requestBody,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: 600000, // 600秒超时（10分钟）- Gemini 3 Pro Image 可能需要更长时间进行推理和搜索
-        httpsAgent: agent,
-        httpAgent: agent,
-      }
-    );
+
+    // 重试配置
+    const MAX_RETRIES = 3;
+    const RETRY_DELAYS = [2000, 4000, 6000]; // 递增延迟
+
+    // 判断是否可重试的错误
+    const isRetryableError = (error: any): boolean => {
+      // 网络错误可重试
+      if (!error.response) return true;
+      const status = error.response?.status;
+      // 5xx 服务器错误可重试
+      if (status >= 500 && status < 600) return true;
+      // 429 限流可重试
+      if (status === 429) return true;
+      // "No image generated" 临时性错误可重试
+      const errorMsg = error.message?.toLowerCase() || '';
+      if (errorMsg.includes('no image generated') || errorMsg.includes('no candidates')) return true;
+      return false;
+    };
+
+    let lastError: any = null;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) {
+          const delay = RETRY_DELAYS[attempt - 1] || 6000;
+          console.log(`🔄 [Gemini] 第 ${attempt} 次重试，等待 ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        const apiStartTime = Date.now();
+        const response = await axios.post(
+          `${endpoint}?key=${API_KEY}`,
+          requestBody,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            timeout: 600000, // 600秒超时（10分钟）- Gemini 3 Pro Image 可能需要更长时间进行推理和搜索
+            httpsAgent: agent,
+            httpAgent: agent,
+          }
+        );
 
     // 从响应中提取图片数据
     const apiDuration = ((Date.now() - apiStartTime) / 1000).toFixed(1);
@@ -481,21 +510,41 @@ export const generateImage = async (options: GeminiImageGenerateOptions): Promis
     console.log(`⏱️ [Gemini] 总耗时: API ${apiDuration}s + OSS ${ossDuration}s`);
 
     return ossUrl;
+
+      } catch (error: any) {
+        lastError = error;
+        console.error(`❌ [Gemini] 第 ${attempt + 1} 次尝试失败:`, {
+          message: error.message,
+          status: error.response?.status,
+        });
+
+        // 判断是否应该重试
+        if (attempt < MAX_RETRIES && isRetryableError(error)) {
+          console.log(`🔄 [Gemini] 错误可重试，将进行第 ${attempt + 1} 次重试...`);
+          continue;
+        }
+
+        // 不可重试或已达最大重试次数
+        if (error.response?.data) {
+          console.error('Full API error response:', JSON.stringify(error.response.data, null, 2));
+        }
+        break;
+      }
+    }
+
+    // 所有重试都失败了
+    throw new Error(
+      `Failed to generate image after ${MAX_RETRIES + 1} attempts: ${lastError?.response?.data?.error?.message || lastError?.message}`
+    );
   } catch (error: any) {
+    // 外层 catch 处理非 API 调用的错误（如参数验证等）
     console.error('Gemini image generation error:', {
       message: error.message,
       response: error.response?.data,
       status: error.response?.status,
     });
 
-    // 如果是 API 错误响应，输出完整信息
-    if (error.response?.data) {
-      console.error('Full API error response:', JSON.stringify(error.response.data, null, 2));
-    }
-
-    throw new Error(
-      `Failed to generate image: ${error.response?.data?.error?.message || error.message}`
-    );
+    throw error;
   }
 };
 

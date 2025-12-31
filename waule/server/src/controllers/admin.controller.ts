@@ -24,6 +24,7 @@ export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
   
   if (search) {
     where.OR = [
+      { phone: { contains: search as string } },
       { email: { contains: search as string, mode: 'insensitive' } },
       { username: { contains: search as string, mode: 'insensitive' } },
       { nickname: { contains: search as string, mode: 'insensitive' } },
@@ -68,9 +69,17 @@ export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
     prisma.user.count({ where }),
   ]);
   
+  // 确保日期字段正确序列化为 ISO 字符串
+  const usersWithDates = users.map(user => ({
+    ...user,
+    createdAt: user.createdAt ? user.createdAt.toISOString() : null,
+    lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+    membershipExpireAt: user.membershipExpireAt ? user.membershipExpireAt.toISOString() : null,
+  }));
+
   res.json({
     success: true,
-    data: users,
+    data: usersWithDates,
     pagination: {
       page: Number(page),
       limit: Number(limit),

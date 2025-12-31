@@ -644,6 +644,14 @@ async function ensureIndexes() {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// 全局日期序列化：确保所有 Date 对象在 JSON 响应中正确转换为 ISO 字符串
+app.set('json replacer', (key: string, value: any) => {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  return value;
+});
+
 app.use('/uploads', express.static('uploads', {
   etag: true,
   maxAge: isDevelopment ? 0 : '7d',

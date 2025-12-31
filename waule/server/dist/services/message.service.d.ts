@@ -35,6 +35,8 @@ export declare function getSystemMessages(params: {
     pageSize?: number;
 }): Promise<{
     list: {
+        createdAt: string | null;
+        updatedAt: string | null;
         recipientCount: number;
         readCount: number;
         _count: {
@@ -48,8 +50,6 @@ export declare function getSystemMessages(params: {
         type: import(".prisma/client").$Enums.MessageType;
         id: string;
         isActive: boolean;
-        createdAt: Date;
-        updatedAt: Date;
         title: string;
         content: string;
         targetType: import(".prisma/client").$Enums.MessageTargetType;
@@ -82,8 +82,8 @@ export declare function getUserMessages(userId: string, params: {
         content: string;
         type: import(".prisma/client").$Enums.MessageType;
         isRead: boolean;
-        readAt: Date | null;
-        createdAt: Date;
+        readAt: string | null;
+        createdAt: string | null;
     }[];
     total: number;
     page: number;

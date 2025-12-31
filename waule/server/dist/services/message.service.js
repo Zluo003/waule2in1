@@ -103,6 +103,8 @@ async function getSystemMessages(params) {
         });
         return {
             ...msg,
+            createdAt: msg.createdAt ? new Date(msg.createdAt).toISOString() : null,
+            updatedAt: msg.updatedAt ? new Date(msg.updatedAt).toISOString() : null,
             recipientCount: msg._count.userMessages,
             readCount,
         };
@@ -162,8 +164,8 @@ async function getUserMessages(userId, params) {
             content: msg.systemMessage.content,
             type: msg.systemMessage.type,
             isRead: msg.isRead,
-            readAt: msg.readAt,
-            createdAt: msg.systemMessage.createdAt,
+            readAt: msg.readAt ? new Date(msg.readAt).toISOString() : null,
+            createdAt: msg.systemMessage.createdAt ? new Date(msg.systemMessage.createdAt).toISOString() : null,
         })),
         total,
         page,
