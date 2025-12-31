@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Gateway - 管理面板</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --border-color: #475569;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 220px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+        .logo {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .logo h1 {
+            font-size: 22px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-section { margin: 16px 0; }
+        .nav-section-title {
+            padding: 8px 20px;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+        }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--text-primary);
+            border-left: 3px solid var(--accent-blue);
+        }
+        .nav-item .icon { width: 20px; margin-right: 10px; text-align: center; }
+        .user-info {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .user-name { font-size: 13px; }
+        .logout-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+        }
+        .logout-btn:hover { background: var(--bg-card); color: var(--accent-red); }
+        .main-content { margin-left: 220px; padding: 24px; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .header h2 { font-size: 24px; font-weight: 600; }
+        .page { display: none; }
+        .page.active { display: block; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+        .stat-card .label { color: var(--text-secondary); font-size: 13px; margin-bottom: 6px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; }
+        .stat-card.blue .value { color: var(--accent-blue); }
+        .stat-card.green .value { color: var(--accent-green); }
+        .stat-card.purple .value { color: var(--accent-purple); }
+        .stat-card.orange .value { color: var(--accent-orange); }
+        .provider-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .provider-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        .provider-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .provider-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .provider-icon.doubao { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .provider-icon.vidu { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .provider-icon.wanx { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .provider-icon.minimax { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+        .provider-icon.gemini { background: linear-gradient(135deg, #4285f4, #ea4335); }
+        .provider-info h3 { font-size: 16px; margin-bottom: 2px; }
+        .provider-info .status { font-size: 11px; color: var(--accent-green); }
+        .provider-body { padding: 16px; }
+        .capability-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .capability-tag {
+            background: var(--bg-card);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        .provider-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+        .provider-stat .num { font-size: 18px; font-weight: 600; color: var(--accent-blue); }
+        .provider-stat .label { font-size: 10px; color: var(--text-secondary); }
+        .provider-footer {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+        }
+        .btn {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: var(--accent-blue); color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-secondary { background: var(--bg-card); color: var(--text-primary); }
+        .btn-secondary:hover { background: #4b5563; }
+        .btn-danger { background: var(--accent-red); color: white; }
+        .section-title { margin: 24px 0 16px; color: var(--text-secondary); font-size: 14px; }
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 16px;
+        }
+        .card h3 { font-size: 16px; margin-bottom: 16px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-secondary); }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+        .form-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { color: var(--text-secondary); font-weight: 500; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+        .badge-success { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .badge-error { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 12px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: none;
+        }
+        .toast.show { display: block; }
+        .toast.success { border-color: var(--accent-green); }
+        .toast.error { border-color: var(--accent-red); }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="logo"><h1>AI Gateway</h1></div>
+        <nav>
+            <div class="nav-section">
+                <div class="nav-section-title">概览</div>
+                <a class="nav-item active" data-page="dashboard"><span class="icon">📊</span><span>仪表盘</span></a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">模型</div>
+                <a class="nav-item" data-page="domestic"><span class="icon">🏠</span><span>国内模型</span></a>
+                <a class="nav-item" data-page="foreign"><span class="icon">🌍</span><span>国外模型</span></a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">系统</div>
+                <a class="nav-item" data-page="settings"><span class="icon">⚙️</span><span>系统设置</span></a>
+                <a class="nav-item" data-page="logs"><span class="icon">📋</span><span>请求日志</span></a>
+            </div>
+        </nav>
+        <div class="user-info">
+            <div class="user-avatar">A</div>
+            <span class="user-name">Admin</span>
+            <button class="logout-btn" onclick="logout()" title="退出">⏻</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <!-- 仪表盘 -->
+        <div id="page-dashboard" class="page active">
+            <div class="header"><h2>仪表盘</h2></div>
+            <div class="stats-grid">
+                <div class="stat-card blue"><div class="label">今日请求</div><div class="value" id="stat-requests">--</div></div>
+                <div class="stat-card green"><div class="label">成功率</div><div class="value" id="stat-success">--</div></div>
+                <div class="stat-card purple"><div class="label">活跃密钥</div><div class="value" id="stat-keys">--</div></div>
+                <div class="stat-card orange"><div class="label">平均响应</div><div class="value" id="stat-latency">--</div></div>
+            </div>
+            <h3 class="section-title">国内模型提供商</h3>
+            <div class="provider-grid" id="provider-cards"></div>
+            <h3 class="section-title">国外模型提供商</h3>
+            <div class="provider-grid" id="dashboard-foreign-providers"></div>
+        </div>
+
+        <!-- 国内模型 -->
+        <div id="page-domestic" class="page">
+            <div class="header"><h2>国内模型</h2></div>
+            <div class="provider-grid" id="domestic-providers"></div>
+        </div>
+
+        <!-- 国外模型 -->
+        <div id="page-foreign" class="page">
+            <div class="header"><h2>国外模型</h2></div>
+            <div class="provider-grid" id="foreign-providers"></div>
+        </div>
+
+        <!-- 系统设置 -->
+        <div id="page-settings" class="page">
+            <div class="header"><h2>系统设置</h2></div>
+
+            <div class="card">
+                <h3>安全设置</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>API密钥（下游调用）</label>
+                        <input type="text" id="cfg-api-secret" placeholder="用于下游服务调用的密钥">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="saveSecurityConfig()">保存安全设置</button>
+            </div>
+
+            <div class="card">
+                <h3>OSS 配置</h3>
+                <p style="color:#666;font-size:12px;margin-bottom:15px;">配置阿里云 OSS 后，可在各供应商页面选择使用 OSS 存储</p>
+                <div class="form-row">
+                    <div class="form-group"><label>Bucket</label><input type="text" id="cfg-oss-bucket"></div>
+                    <div class="form-group"><label>Region</label><input type="text" id="cfg-oss-region"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Access Key ID</label><input type="text" id="cfg-oss-key-id"></div>
+                    <div class="form-group"><label>Access Key Secret</label><input type="password" id="cfg-oss-key-secret"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Endpoint（可选）</label><input type="text" id="cfg-oss-endpoint"></div>
+                    <div class="form-group"><label>CDN URL（可选）</label><input type="text" id="cfg-oss-cdn"></div>
+                </div>
+                <button class="btn btn-primary" onclick="saveOssConfig()">保存 OSS 配置</button>
+            </div>
+
+            <div class="card">
+                <h3>修改密码</h3>
+                <div class="form-row">
+                    <div class="form-group"><label>原密码</label><input type="password" id="old-password"></div>
+                    <div class="form-group"><label>新密码</label><input type="password" id="new-password"></div>
+                </div>
+                <button class="btn btn-primary" onclick="changePassword()">修改密码</button>
+            </div>
+        </div>
+
+        <!-- 请求日志 -->
+        <div id="page-logs" class="page">
+            <div class="header"><h2>请求日志</h2></div>
+            <div class="card">
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>时间</th><th>提供商</th><th>接口</th><th>模型</th><th>状态</th><th>耗时</th></tr></thead>
+                        <tbody id="logs-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const providers = [
+            { id: 'doubao', name: '豆包 Doubao', icon: '🔮', caps: ['图片生成', '视频生成'] },
+            { id: 'vidu', name: 'Vidu', icon: '🎬', caps: ['文生视频', '图生视频', '首尾帧', '视频超清', '商业视频'] },
+            { id: 'wanx', name: '通义万相', icon: '🎨', caps: ['图片生成', '视频生成', '视频对口型', '风格转绘'] },
+            { id: 'minimax', name: 'MiniMax', icon: '🤖', caps: ['视频生成', '图片生成', '语音合成'] }
+        ];
+
+        const foreignProviders = [
+            { id: 'veo', name: 'Google Veo', icon: '🎥', caps: ['文生视频', '图生视频', '首帧控制'] },
+            { id: 'gemini', name: 'Gemini', icon: '✨', caps: ['对话生成', '图片生成', '多模态', '4K输出'] },
+            { id: 'midjourney', name: 'Midjourney', icon: '🎨', caps: ['图片生成', 'U/V操作', '多账号'] }
+        ];
+
+        function renderProviderCards(containerId, providerList) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = providerList.map(p => `
+                <div class="provider-card">
+                    <div class="provider-header">
+                        <div class="provider-icon ${p.id}">${p.icon}</div>
+                        <div class="provider-info"><h3>${p.name}</h3><div class="status">● 运行中</div></div>
+                    </div>
+                    <div class="provider-body">
+                        <div class="capability-list">${p.caps.map(c => `<span class="capability-tag">${c}</span>`).join('')}</div>
+                        <div class="provider-stats">
+                            <div class="provider-stat"><div class="num" id="${p.id}-calls">--</div><div class="label">今日调用</div></div>
+                            <div class="provider-stat"><div class="num" id="${p.id}-keys">--</div><div class="label">API密钥</div></div>
+                            <div class="provider-stat"><div class="num" id="${p.id}-rate">--</div><div class="label">成功率</div></div>
+                        </div>
+                    </div>
+                    <div class="provider-footer">
+                        <button class="btn btn-primary" onclick="location.href='/providers/${p.id}.html'">管理配置</button>
+                        <button class="btn btn-secondary" onclick="navigateTo('logs')">查看日志</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function navigateTo(page) {
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
+            document.getElementById(`page-${page}`)?.classList.add('active');
+            if (page === 'settings') loadConfig();
+            if (page === 'logs') loadLogs();
+        }
+
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => navigateTo(item.dataset.page));
+        });
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats', { credentials: 'include' });
+                const data = await res.json();
+                document.getElementById('stat-requests').textContent = data.todayRequests || '0';
+                document.getElementById('stat-success').textContent = (data.successRate || 0) + '%';
+                document.getElementById('stat-keys').textContent = data.activeKeys || '0';
+                document.getElementById('stat-latency').textContent = (data.avgLatency || 0) + 's';
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config', { credentials: 'include' });
+                const cfg = await res.json();
+                document.getElementById('cfg-api-secret').value = cfg.api_secret || '';
+                document.getElementById('cfg-oss-bucket').value = cfg.oss_bucket || '';
+                document.getElementById('cfg-oss-region').value = cfg.oss_region || '';
+                document.getElementById('cfg-oss-key-id').value = cfg.oss_access_key_id || '';
+                document.getElementById('cfg-oss-endpoint').value = cfg.oss_endpoint || '';
+                document.getElementById('cfg-oss-cdn').value = cfg.oss_cdn_url || '';
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadLogs() {
+            try {
+                const res = await fetch('/api/logs?limit=50', { credentials: 'include' });
+                const data = await res.json();
+                document.getElementById('logs-table').innerHTML = (data.logs || []).map(l => `
+                    <tr>
+                        <td>${new Date(l.created_at).toLocaleString()}</td>
+                        <td>${l.provider}</td>
+                        <td>${l.endpoint}</td>
+                        <td>${l.model || '-'}</td>
+                        <td><span class="badge ${l.status === 'success' ? 'badge-success' : 'badge-error'}">${l.status}</span></td>
+                        <td>${l.duration ? (l.duration / 1000).toFixed(1) + 's' : '-'}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">暂无日志</td></tr>';
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveSecurityConfig() {
+            try {
+                await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ api_secret: document.getElementById('cfg-api-secret').value })
+                });
+                showToast('安全设置已保存', 'success');
+            } catch (e) { showToast('保存失败', 'error'); }
+        }
+
+        async function saveOssConfig() {
+            try {
+                await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        oss_bucket: document.getElementById('cfg-oss-bucket').value,
+                        oss_region: document.getElementById('cfg-oss-region').value,
+                        oss_access_key_id: document.getElementById('cfg-oss-key-id').value,
+                        oss_access_key_secret: document.getElementById('cfg-oss-key-secret').value,
+                        oss_endpoint: document.getElementById('cfg-oss-endpoint').value,
+                        oss_cdn_url: document.getElementById('cfg-oss-cdn').value
+                    })
+                });
+                showToast('OSS 配置已保存', 'success');
+            } catch (e) { showToast('保存失败', 'error'); }
+        }
+
+        async function changePassword() {
+            try {
+                const res = await fetch('/api/password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        old_password: document.getElementById('old-password').value,
+                        new_password: document.getElementById('new-password').value
+                    })
+                });
+                if (res.ok) {
+                    showToast('密码已修改', 'success');
+                    document.getElementById('old-password').value = '';
+                    document.getElementById('new-password').value = '';
+                } else {
+                    const data = await res.json();
+                    showToast(data.error || '修改失败', 'error');
+                }
+            } catch (e) { showToast('修改失败', 'error'); }
+        }
+
+        function logout() {
+            if (confirm('确定退出？')) {
+                fetch('/api/logout', { method: 'POST', credentials: 'include' }).then(() => location.href = '/login');
+            }
+        }
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast show ' + type;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // 初始化
+        async function init() {
+            try {
+                const res = await fetch('/api/auth/check', { credentials: 'include' });
+                const data = await res.json();
+                if (!data.authenticated) {
+                    location.href = '/login';
+                    return;
+                }
+            } catch (e) {
+                location.href = '/login';
+                return;
+            }
+            renderProviderCards('provider-cards', providers);
+            renderProviderCards('domestic-providers', providers);
+            renderProviderCards('foreign-providers', foreignProviders);
+            renderProviderCards('dashboard-foreign-providers', foreignProviders);
+            loadStats();
+        }
+        init();
+    </script>
+</body>
+</html>

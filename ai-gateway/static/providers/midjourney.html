@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Midjourney - AI Gateway</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <style>
+        .account-list { display: flex; flex-direction: column; gap: 12px; max-width: 800px; }
+        .account-item { display: flex; flex-direction: column; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); padding: 16px; }
+        .account-item.active { border-color: var(--accent-green); }
+        .account-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .account-name { font-weight: 500; font-size: 14px; }
+        .account-info { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+        .account-stats { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); }
+        .account-actions { display: flex; gap: 8px; margin-top: 12px; }
+        .status-card { display: flex; gap: 24px; margin-bottom: 16px; }
+        .status-item { display: flex; flex-direction: column; gap: 4px; }
+        .status-value { font-size: 24px; font-weight: 600; }
+        .status-label { font-size: 12px; color: var(--text-secondary); }
+        .task-list { display: flex; flex-direction: column; gap: 8px; }
+        .task-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); }
+        .task-image { width: 60px; height: 60px; border-radius: 6px; object-fit: cover; background: var(--bg-primary); }
+        .task-info { flex: 1; min-width: 0; }
+        .task-prompt { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+        .task-meta { font-size: 11px; color: var(--text-secondary); }
+        .badge-submitted { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+        .badge-in_progress { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .badge-success { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
+        .badge-failure { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <a href="/manage" class="back-btn">← 返回</a>
+        <div class="provider-title">
+            <div class="provider-icon midjourney" style="background:linear-gradient(135deg,#1a1a2e,#16213e);">🎨</div>
+            <div>
+                <h1>Midjourney</h1>
+                <span class="status" id="service-status">● 检查中...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>服务状态</h2>
+            <div class="status-card">
+                <div class="status-item">
+                    <span class="status-value" id="ready-count">-</span>
+                    <span class="status-label">活跃连接</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-value" id="total-count">-</span>
+                    <span class="status-label">总连接数</span>
+                </div>
+            </div>
+            <button class="btn btn-secondary" onclick="reloadService()">重新加载连接</button>
+        </div>
+
+        <div class="card">
+            <h2>Midjourney 配置</h2>
+            <p style="color:var(--text-secondary);font-size:12px;margin-bottom:16px;">配置 Midjourney Bot 的 Command ID 和 Version ID</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;max-width:800px;">
+                <div class="form-group" style="margin:0;">
+                    <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text-secondary);">Command ID</label>
+                    <input type="text" id="mj-command-id" placeholder="Midjourney Command ID" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);">
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text-secondary);">Version ID</label>
+                    <input type="text" id="mj-version-id" placeholder="Midjourney Version ID" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);">
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text-secondary);">图片存储方式</label>
+                    <select id="mj-storage-type" style="width:100%;padding:10px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);">
+                        <option value="oss">OSS 存储（推荐）</option>
+                        <option value="local">本地存储</option>
+                        <option value="forward">直接转发 Discord URL</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-primary" style="margin-top:12px;" onclick="saveMjConfig()">保存配置</button>
+        </div>
+
+        <div class="card">
+            <h2>支持的接口</h2>
+            <table>
+                <thead><tr><th>接口</th><th>方法</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>/v1/midjourney/imagine</code></td><td>POST</td><td>发送 imagine 命令生成图片</td></tr>
+                    <tr><td><code>/v1/midjourney/action</code></td><td>POST</td><td>执行按钮操作 (U1-U4, V1-V4等)</td></tr>
+                    <tr><td><code>/v1/midjourney/task/:taskId</code></td><td>GET</td><td>查询任务状态</td></tr>
+                    <tr><td><code>/v1/midjourney/status</code></td><td>GET</td><td>查询服务状态</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Discord 账号</h2>
+                <button class="btn btn-primary" onclick="showAddAccountModal()">添加账号</button>
+            </div>
+            <p style="color:var(--text-secondary);font-size:12px;margin-bottom:16px;">配置 Discord 账号用于连接 Midjourney Bot</p>
+            <div class="account-list" id="account-list">
+                <div style="text-align:center;color:var(--text-secondary);padding:20px;">加载中...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>最近任务</h2>
+            <div class="task-list" id="task-list">
+                <div style="text-align:center;color:var(--text-secondary);padding:20px;">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加账号弹窗 -->
+    <div id="account-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="account-modal-title">添加 Discord 账号</h3>
+            <div class="form-group">
+                <label>账号名称</label>
+                <input type="text" id="account-name" placeholder="例如：主账号">
+            </div>
+            <div class="form-group">
+                <label>User Token</label>
+                <input type="text" id="account-token" placeholder="Discord User Token">
+            </div>
+            <div class="form-group">
+                <label>Guild ID (服务器ID)</label>
+                <input type="text" id="account-guild" placeholder="Discord 服务器 ID">
+            </div>
+            <div class="form-group">
+                <label>Channel ID (频道ID)</label>
+                <input type="text" id="account-channel" placeholder="Discord 频道 ID">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeAccountModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveAccount()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let accounts = [];
+        let editingAccountId = null;
+
+        async function loadStatus() {
+            try {
+                const res = await fetch('/api/midjourney/status', { credentials: 'include' });
+                const data = await res.json();
+                document.getElementById('ready-count').textContent = data.connections?.ready || 0;
+                document.getElementById('total-count').textContent = data.connections?.total || 0;
+                const statusEl = document.getElementById('service-status');
+                if (data.ready) {
+                    statusEl.textContent = '● 运行中';
+                    statusEl.className = 'status online';
+                } else {
+                    statusEl.textContent = '● 未就绪';
+                    statusEl.className = 'status offline';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadAccounts() {
+            try {
+                const res = await fetch('/api/discord-accounts', { credentials: 'include' });
+                const data = await res.json();
+                accounts = data.data || [];
+                renderAccounts();
+            } catch (e) { console.error(e); }
+        }
+
+        function renderAccounts() {
+            const container = document.getElementById('account-list');
+            if (!accounts.length) {
+                container.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:20px;">暂无账号，请添加 Discord 账号</div>';
+                return;
+            }
+            container.innerHTML = accounts.map(a => `
+                <div class="account-item ${a.is_active ? 'active' : ''}">
+                    <div class="account-header">
+                        <span class="account-name">${a.name || '未命名'}</span>
+                        <span class="badge ${a.is_active ? 'badge-success' : 'badge-secondary'}">${a.is_active ? '启用' : '禁用'}</span>
+                    </div>
+                    <div class="account-info">
+                        Guild: ${a.guild_id} | Channel: ${a.channel_id}
+                    </div>
+                    <div class="account-stats">
+                        <span>请求: ${a.request_count || 0}</span>
+                        <span>错误: ${a.error_count || 0}</span>
+                        ${a.last_error ? `<span style="color:var(--accent-red);">最近错误: ${a.last_error}</span>` : ''}
+                    </div>
+                    <div class="account-actions">
+                        <button class="btn btn-sm btn-secondary" onclick="toggleAccount(${a.id}, ${a.is_active ? 0 : 1})">${a.is_active ? '禁用' : '启用'}</button>
+                        <button class="btn btn-sm btn-secondary" onclick="editAccount(${a.id})">编辑</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteAccount(${a.id})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadTasks() {
+            try {
+                const res = await fetch('/api/midjourney/tasks?limit=20', { credentials: 'include' });
+                const data = await res.json();
+                const tasks = data.data || [];
+                const container = document.getElementById('task-list');
+                if (!tasks.length) {
+                    container.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:20px;">暂无任务</div>';
+                    return;
+                }
+                container.innerHTML = tasks.map(t => `
+                    <div class="task-item">
+                        ${t.image_url ? `<img class="task-image" src="${t.image_url}" alt="">` : '<div class="task-image"></div>'}
+                        <div class="task-info">
+                            <div class="task-prompt">${t.prompt || '-'}</div>
+                            <div class="task-meta">
+                                <span class="badge badge-${t.status.toLowerCase()}">${t.status}</span>
+                                ${t.progress ? `<span>${t.progress}%</span>` : ''}
+                                <span>${new Date(t.created_at).toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) { console.error(e); }
+        }
+
+        function showAddAccountModal() {
+            editingAccountId = null;
+            document.getElementById('account-modal-title').textContent = '添加 Discord 账号';
+            document.getElementById('account-name').value = '';
+            document.getElementById('account-token').value = '';
+            document.getElementById('account-guild').value = '';
+            document.getElementById('account-channel').value = '';
+            document.getElementById('account-modal').classList.add('show');
+        }
+
+        function editAccount(id) {
+            const account = accounts.find(a => a.id === id);
+            if (!account) return;
+            editingAccountId = id;
+            document.getElementById('account-modal-title').textContent = '编辑 Discord 账号';
+            document.getElementById('account-name').value = account.name || '';
+            document.getElementById('account-token').value = account.user_token || '';
+            document.getElementById('account-guild').value = account.guild_id || '';
+            document.getElementById('account-channel').value = account.channel_id || '';
+            document.getElementById('account-modal').classList.add('show');
+        }
+
+        function closeAccountModal() {
+            document.getElementById('account-modal').classList.remove('show');
+        }
+
+        async function saveAccount() {
+            const data = {
+                name: document.getElementById('account-name').value,
+                user_token: document.getElementById('account-token').value,
+                guild_id: document.getElementById('account-guild').value,
+                channel_id: document.getElementById('account-channel').value
+            };
+            if (!data.user_token || !data.guild_id || !data.channel_id) {
+                alert('请填写必要字段');
+                return;
+            }
+            try {
+                if (editingAccountId) {
+                    await fetch(`/api/discord-accounts/${editingAccountId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    await fetch('/api/discord-accounts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify(data)
+                    });
+                }
+                closeAccountModal();
+                loadAccounts();
+            } catch (e) {
+                alert('保存失败: ' + e.message);
+            }
+        }
+
+        async function toggleAccount(id, isActive) {
+            await fetch(`/api/discord-accounts/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ is_active: isActive })
+            });
+            loadAccounts();
+        }
+
+        async function deleteAccount(id) {
+            if (!confirm('确定删除此账号？')) return;
+            await fetch(`/api/discord-accounts/${id}`, { method: 'DELETE', credentials: 'include' });
+            loadAccounts();
+        }
+
+        async function reloadService() {
+            try {
+                await fetch('/api/midjourney/reload', { method: 'POST', credentials: 'include' });
+                alert('重新加载成功');
+                loadStatus();
+            } catch (e) {
+                alert('重新加载失败: ' + e.message);
+            }
+        }
+
+        async function loadMjConfig() {
+            try {
+                const res = await fetch('/api/config', { credentials: 'include' });
+                const cfg = await res.json();
+                document.getElementById('mj-command-id').value = cfg.mj_command_id || '';
+                document.getElementById('mj-version-id').value = cfg.mj_version_id || '';
+                document.getElementById('mj-storage-type').value = cfg.midjourney_storage_type || 'oss';
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveMjConfig() {
+            try {
+                await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        mj_command_id: document.getElementById('mj-command-id').value,
+                        mj_version_id: document.getElementById('mj-version-id').value,
+                        midjourney_storage_type: document.getElementById('mj-storage-type').value
+                    })
+                });
+                alert('配置已保存');
+            } catch (e) {
+                alert('保存失败: ' + e.message);
+            }
+        }
+
+        // 初始化
+        loadStatus();
+        loadAccounts();
+        loadTasks();
+        loadMjConfig();
+    </script>
+</body>
+</html>

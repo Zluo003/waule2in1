@@ -1,0 +1,44 @@
+import { Router } from 'express';
+import imagesRouter from './images';
+import videosRouter from './videos';
+import audioRouter from './audio';
+import chatRouter from './chat';
+
+const router = Router();
+
+router.use('/images', imagesRouter);
+router.use('/videos', videosRouter);
+router.use('/audio', audioRouter);
+router.use('/chat', chatRouter);
+
+// 模型列表
+router.get('/models', (req, res) => {
+  res.json({
+    data: [
+      // Doubao
+      { id: 'doubao-seedream-4-5-251128', provider: 'doubao', type: 'image' },
+      { id: 'doubao-seedance-1-0-lite-250428', provider: 'doubao', type: 'video' },
+      // Vidu
+      { id: 'vidu-2.0', provider: 'vidu', type: 'video' },
+      { id: 'vidu-2.0-master', provider: 'vidu', type: 'video' },
+      // Wanx
+      { id: 'wanx-v1', provider: 'wanx', type: 'image' },
+      { id: 'wanx-video-synthesis', provider: 'wanx', type: 'video' },
+      { id: 'videoretalk', provider: 'wanx', type: 'video' },
+      // MiniMax
+      { id: 'image-01', provider: 'minimax', type: 'image' },
+      { id: 'video-01', provider: 'minimax', type: 'video' },
+      { id: 'speech-01', provider: 'minimax', type: 'audio' },
+      // Veo
+      { id: 'veo3.1', provider: 'veo', type: 'video' },
+      { id: 'veo3.1-pro', provider: 'veo', type: 'video' },
+      { id: 'veo3.1-components', provider: 'veo', type: 'video' },
+      // Gemini
+      { id: 'gemini-3-pro-preview', provider: 'gemini', type: 'chat' },
+      { id: 'gemini-3-flash-preview', provider: 'gemini', type: 'chat' },
+      { id: 'gemini-3-pro-image-preview', provider: 'gemini', type: 'image' },
+    ]
+  });
+});
+
+export default router;

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veo 3.1 - AI Gateway</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <style>
+        .channel-list { display: flex; flex-direction: column; gap: 12px; max-width: 800px; }
+        .channel-item { display: flex; flex-direction: column; background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden; }
+        .channel-item.active { border-color: var(--accent-green); }
+        .channel-header { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; cursor: pointer; }
+        .channel-header:hover { background: rgba(255,255,255,0.02); }
+        .channel-title { display: flex; align-items: center; justify-content: space-between; }
+        .channel-info strong { font-size: 14px; }
+        .channel-url { font-size: 12px; color: var(--text-secondary); word-break: break-all; margin-top: 4px; }
+        .channel-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+        .channel-keys { padding: 12px 16px 16px; border-top: 1px solid var(--border-color); display: none; }
+        .channel-keys.show { display: block; }
+        .channel-keys h4 { margin: 0 0 12px; font-size: 13px; color: var(--text-secondary); }
+        .key-list { display: flex; flex-direction: column; gap: 8px; }
+        .key-item { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--bg-primary); border-radius: 6px; font-size: 13px; }
+        .key-item .key-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .key-item .key-name { font-weight: 500; }
+        .key-item .key-value { font-family: monospace; color: var(--text-secondary); word-break: break-all; }
+        .key-item .key-stats { font-size: 11px; color: var(--text-secondary); }
+        .key-item .key-actions { display: flex; gap: 6px; align-items: center; margin-left: auto; }
+        .add-key-form { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+        .add-key-form .form-row { display: flex; gap: 8px; }
+        .add-key-form input { flex: 1; padding: 8px 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 13px; }
+        .model-mapping-list { margin-top: 16px; }
+        .model-mapping-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; }
+        .model-mapping-item:last-child { border-bottom: none; }
+        .model-name { flex: 1; font-family: monospace; min-width: 200px; }
+        .badge-proxy { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+        .badge-official { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .expand-icon { transition: transform 0.2s; }
+        .channel-item.expanded .expand-icon { transform: rotate(180deg); }
+        .storage-select { padding: 4px 8px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <a href="/manage" class="back-btn">← 返回</a>
+        <div class="provider-title">
+            <div class="provider-icon veo">🎥</div>
+            <div>
+                <h1>Google Veo 3.1</h1>
+                <span class="status online">● 运行中</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>支持的接口</h2>
+            <table>
+                <thead><tr><th>接口</th><th>方法</th><th>说明</th><th>状态</th></tr></thead>
+                <tbody>
+                    <tr><td><code>/v1/videos/generations</code></td><td>POST</td><td>视频生成（文生视频、图生视频）</td><td><span class="badge badge-success">可用</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h2>渠道配置</h2><button class="btn btn-primary" onclick="showAddChannelModal()">添加渠道</button></div>
+            <p style="color:var(--text-secondary);font-size:12px;margin-bottom:16px;">配置中转API渠道，每个渠道可配置多个API Key实现轮询负载均衡</p>
+            <div class="channel-list" id="channel-list">
+                <div style="text-align:center;color:var(--text-secondary);padding:20px;">加载中...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>模型渠道映射</h2>
+            <p style="color:var(--text-secondary);font-size:12px;margin-bottom:16px;">为每个模型指定使用的渠道，中转渠道可自定义目标模型名称</p>
+            <div class="model-mapping-list" id="mapping-list">
+                <div style="text-align:center;color:var(--text-secondary);padding:20px;">加载中...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>请求参数</h2>
+            <table>
+                <thead><tr><th>参数</th><th>类型</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>model</code></td><td>string</td><td>模型ID: veo3.1、veo3.1-pro 或 veo3.1-components</td></tr>
+                    <tr><td><code>prompt</code></td><td>string</td><td>视频描述提示词</td></tr>
+                    <tr><td><code>aspect_ratio</code></td><td>string</td><td>宽高比: 16:9 或 9:16，默认 16:9</td></tr>
+                    <tr><td><code>enhance_prompt</code></td><td>boolean</td><td>是否增强提示词，默认 true</td></tr>
+                    <tr><td><code>first_frame_image</code></td><td>string</td><td>首帧图片URL（veo3.1/veo3.1-pro 最多1张）</td></tr>
+                    <tr><td><code>reference_images</code></td><td>array</td><td>参考图片URL列表（veo3.1-components 最多3张）</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 添加渠道弹窗 -->
+    <div id="channel-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="channel-modal-title">添加渠道</h3>
+            <div class="form-group">
+                <label>渠道名称</label>
+                <input type="text" id="channel-name" placeholder="例如：Future API、中转A">
+            </div>
+            <div class="form-group">
+                <label>中转API地址</label>
+                <input type="text" id="channel-base-url" placeholder="例如：https://future-api.vodeshop.com">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeChannelModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveChannel()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑目标模型弹窗 -->
+    <div id="target-models-modal" class="modal">
+        <div class="modal-content">
+            <h3>编辑目标模型映射</h3>
+            <p style="color:var(--text-secondary);font-size:12px;margin-bottom:12px;" id="target-models-hint"></p>
+            <div class="form-group">
+                <label>目标模型名称（每行一个，留空则使用原模型名称）</label>
+                <textarea id="target-models-input" rows="5" style="width:100%;padding:8px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-family:monospace;resize:vertical;" placeholder="veo3.1&#10;veo3.1-pro"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeTargetModelsModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveTargetModels()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PROVIDER = 'veo';
+        let channels = [];
+        let channelKeys = {};
+        let editingChannelId = null;
+
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/auth/check');
+                const data = await res.json();
+                if (!data.authenticated) location.href = '/login';
+            } catch (e) { location.href = '/login'; }
+        }
+        checkAuth();
+
+        // 渠道管理
+        async function loadChannels() {
+            try {
+                const res = await fetch(`/api/channels?provider=${PROVIDER}`);
+                const data = await res.json();
+                channels = data.data || [];
+                for (const c of channels) {
+                    await loadChannelKeys(c.id);
+                }
+                renderChannels();
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadChannelKeys(channelId) {
+            try {
+                const res = await fetch(`/api/channels/${channelId}/keys`);
+                const data = await res.json();
+                channelKeys[channelId] = data.data || [];
+            } catch (e) { console.error(e); }
+        }
+
+        function renderChannels() {
+            const container = document.getElementById('channel-list');
+            if (!channels.length) {
+                container.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:20px;">暂无渠道，请添加</div>';
+                return;
+            }
+            container.innerHTML = channels.map(c => {
+                const keys = channelKeys[c.id] || [];
+                const keyCount = keys.length;
+                const activeKeyCount = keys.filter(k => k.is_active).length;
+                return `
+                <div class="channel-item ${c.is_active ? 'active' : ''}" id="channel-${c.id}">
+                    <div class="channel-header" onclick="toggleChannelKeys(${c.id})">
+                        <div class="channel-title">
+                            <strong>${c.name} <span style="font-size:12px;color:var(--text-secondary);font-weight:normal;">(${activeKeyCount}/${keyCount} 密钥)</span></strong>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                        <div class="channel-url">${c.base_url || 'https://future-api.vodeshop.com'}</div>
+                        <div class="channel-actions" onclick="event.stopPropagation()">
+                            <select class="storage-select" onchange="updateStorageType(${c.id}, this.value)">
+                                <option value="forward" ${c.storage_type === 'forward' ? 'selected' : ''}>URL转发</option>
+                                <option value="oss" ${c.storage_type === 'oss' ? 'selected' : ''}>OSS存储</option>
+                                <option value="local" ${c.storage_type === 'local' ? 'selected' : ''}>本地存储</option>
+                            </select>
+                            <span class="badge badge-proxy">中转</span>
+                            <span class="badge ${c.is_active ? 'badge-success' : 'badge-error'}">${c.is_active ? '启用' : '禁用'}</span>
+                            <span style="font-size:12px;color:var(--text-secondary);">${c.use_count || 0}次</span>
+                            <button class="btn btn-sm btn-secondary" onclick="editChannel(${c.id})">编辑</button>
+                            <button class="btn btn-sm btn-secondary" onclick="toggleChannel(${c.id}, ${c.is_active})">${c.is_active ? '禁用' : '启用'}</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteChannel(${c.id})">删除</button>
+                        </div>
+                    </div>
+                    <div class="channel-keys" id="channel-keys-${c.id}">
+                        <h4>API 密钥列表</h4>
+                        <div class="key-list" id="key-list-${c.id}">
+                            ${renderKeyList(c.id)}
+                        </div>
+                        <div class="add-key-form">
+                            <div class="form-row">
+                                <input type="text" id="new-key-name-${c.id}" placeholder="密钥名称">
+                                <input type="text" id="new-key-value-${c.id}" placeholder="API密钥">
+                                <button class="btn btn-primary" onclick="addChannelKey(${c.id})">添加</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function renderKeyList(channelId) {
+            const keys = channelKeys[channelId] || [];
+            if (!keys.length) {
+                return '<div style="color:var(--text-secondary);font-size:13px;padding:8px 0;">暂无密钥，请添加</div>';
+            }
+            return keys.map(k => `
+                <div class="key-item">
+                    <div class="key-row">
+                        <span class="key-name">${k.name}</span>
+                        <span class="key-stats">${k.use_count || 0}次 | ${k.success_count || 0}成功/${k.fail_count || 0}失败</span>
+                        <div class="key-actions">
+                            <span class="badge ${k.is_active ? 'badge-success' : 'badge-error'}">${k.is_active ? '启用' : '禁用'}</span>
+                            <button class="btn btn-sm btn-secondary" onclick="toggleChannelKey(${k.id}, ${k.is_active}, ${channelId})">${k.is_active ? '禁用' : '启用'}</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteChannelKey(${k.id}, ${channelId})">删除</button>
+                        </div>
+                    </div>
+                    <div class="key-value">${k.api_key}</div>
+                </div>
+            `).join('');
+        }
+
+        function toggleChannelKeys(channelId) {
+            const item = document.getElementById(`channel-${channelId}`);
+            const keysDiv = document.getElementById(`channel-keys-${channelId}`);
+            item.classList.toggle('expanded');
+            keysDiv.classList.toggle('show');
+        }
+
+        async function updateStorageType(channelId, storageType) {
+            await fetch(`/api/channels/${channelId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ storage_type: storageType })
+            });
+        }
+
+        async function addChannelKey(channelId) {
+            const name = document.getElementById(`new-key-name-${channelId}`).value;
+            const api_key = document.getElementById(`new-key-value-${channelId}`).value;
+            if (!name || !api_key) return alert('请填写完整');
+            await fetch(`/api/channels/${channelId}/keys`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, api_key })
+            });
+            document.getElementById(`new-key-name-${channelId}`).value = '';
+            document.getElementById(`new-key-value-${channelId}`).value = '';
+            await loadChannelKeys(channelId);
+            renderChannels();
+        }
+
+        async function toggleChannelKey(keyId, isActive, channelId) {
+            await fetch(`/api/channel-keys/${keyId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_active: isActive ? 0 : 1 })
+            });
+            await loadChannelKeys(channelId);
+            renderChannels();
+        }
+
+        async function deleteChannelKey(keyId, channelId) {
+            if (!confirm('确定删除此密钥？')) return;
+            await fetch(`/api/channel-keys/${keyId}`, { method: 'DELETE' });
+            await loadChannelKeys(channelId);
+            renderChannels();
+        }
+
+        function showAddChannelModal() {
+            editingChannelId = null;
+            document.getElementById('channel-modal-title').textContent = '添加渠道';
+            document.getElementById('channel-name').value = '';
+            document.getElementById('channel-base-url').value = 'https://future-api.vodeshop.com';
+            document.getElementById('channel-modal').classList.add('show');
+        }
+
+        function editChannel(id) {
+            const channel = channels.find(c => c.id === id);
+            if (!channel) return;
+            editingChannelId = id;
+            document.getElementById('channel-modal-title').textContent = '编辑渠道';
+            document.getElementById('channel-name').value = channel.name;
+            document.getElementById('channel-base-url').value = channel.base_url || '';
+            document.getElementById('channel-modal').classList.add('show');
+        }
+
+        function closeChannelModal() {
+            document.getElementById('channel-modal').classList.remove('show');
+            editingChannelId = null;
+        }
+
+        async function saveChannel() {
+            const name = document.getElementById('channel-name').value;
+            const base_url = document.getElementById('channel-base-url').value;
+
+            if (!name) return alert('请填写渠道名称');
+            if (!base_url) return alert('请填写中转API地址');
+
+            const data = { name, channel_type: 'proxy', base_url };
+
+            if (editingChannelId) {
+                await fetch(`/api/channels/${editingChannelId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            } else {
+                data.provider = PROVIDER;
+                await fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            }
+            closeChannelModal();
+            loadChannels();
+        }
+
+        async function toggleChannel(id, isActive) {
+            await fetch(`/api/channels/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: isActive ? 0 : 1 }) });
+            loadChannels();
+        }
+
+        async function deleteChannel(id) {
+            if (!confirm('删除渠道将同时删除相关的密钥和模型映射，确定删除？')) return;
+            await fetch(`/api/channels/${id}`, { method: 'DELETE' });
+            loadChannels();
+            loadMappings();
+        }
+
+        // 模型渠道映射
+        const VEO_MODELS = ['veo3.1', 'veo3.1-pro', 'veo3.1-components'];
+        let modelMappings = {};
+        let editingModelName = null;
+
+        async function loadMappings() {
+            try {
+                const res = await fetch('/api/model-channels');
+                const data = await res.json();
+                modelMappings = {};
+                (data.data || []).forEach(m => {
+                    modelMappings[m.model_name] = m;
+                });
+                renderMappings();
+            } catch (e) { console.error(e); }
+        }
+
+        function renderMappings() {
+            const container = document.getElementById('mapping-list');
+            const activeChannels = channels.filter(c => c.is_active && (channelKeys[c.id] || []).some(k => k.is_active));
+
+            if (!activeChannels.length) {
+                container.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:20px;">请先添加渠道并配置至少一个启用的密钥</div>';
+                return;
+            }
+
+            container.innerHTML = VEO_MODELS.map(modelName => {
+                const mapping = modelMappings[modelName];
+                const selectedChannelId = mapping?.channel_id || '';
+                const selectedChannel = channels.find(c => c.id === selectedChannelId);
+                const targetModels = mapping?.target_models || [];
+
+                return `
+                <div class="model-mapping-item" style="flex-wrap:wrap;">
+                    <span class="model-name" style="min-width:180px;">${modelName}</span>
+                    <select class="storage-select" style="min-width:150px;" onchange="updateModelChannel('${modelName}', this.value)">
+                        <option value="">-- 未配置 --</option>
+                        ${activeChannels.map(c => `<option value="${c.id}" ${c.id === selectedChannelId ? 'selected' : ''}>${c.name}</option>`).join('')}
+                    </select>
+                    ${selectedChannel ? `
+                        <button class="btn btn-sm btn-secondary" onclick="showTargetModelsModal('${modelName}')">
+                            映射: ${targetModels.length ? targetModels.join(', ') : '默认'}
+                        </button>
+                    ` : ''}
+                </div>
+            `}).join('');
+        }
+
+        async function updateModelChannel(modelName, channelId) {
+            try {
+                if (!channelId) {
+                    const mapping = modelMappings[modelName];
+                    if (mapping?.id) {
+                        await fetch(`/api/model-channels/${mapping.id}`, { method: 'DELETE' });
+                    }
+                } else {
+                    await fetch('/api/model-channels', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model_name: modelName, channel_id: parseInt(channelId), target_models: null })
+                    });
+                }
+                loadMappings();
+            } catch (e) {
+                console.error('updateModelChannel error:', e);
+                alert('更新失败: ' + e.message);
+            }
+        }
+
+        function showTargetModelsModal(modelName) {
+            editingModelName = modelName;
+            const mapping = modelMappings[modelName];
+            const targetModels = mapping?.target_models || [];
+            document.getElementById('target-models-hint').textContent = `为 ${modelName} 配置中转API使用的目标模型名称`;
+            document.getElementById('target-models-input').value = targetModels.join('\n');
+            document.getElementById('target-models-modal').classList.add('show');
+        }
+
+        function closeTargetModelsModal() {
+            document.getElementById('target-models-modal').classList.remove('show');
+            editingModelName = null;
+        }
+
+        async function saveTargetModels() {
+            if (!editingModelName) return;
+            const mapping = modelMappings[editingModelName];
+            if (!mapping?.id) return;
+
+            const input = document.getElementById('target-models-input').value;
+            const targetModels = input.split('\n').map(s => s.trim()).filter(s => s);
+
+            await fetch(`/api/model-channels/${mapping.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target_models: targetModels.length ? targetModels : null })
+            });
+            closeTargetModelsModal();
+            loadMappings();
+        }
+
+        // 初始化
+        loadChannels().then(() => loadMappings());
+    </script>
+</body>
+</html>

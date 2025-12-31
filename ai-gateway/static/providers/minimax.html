@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniMax - AI Gateway</title>
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+    <div class="page-header">
+        <a href="/manage" class="back-btn">← 返回</a>
+        <div class="provider-title">
+            <div class="provider-icon minimax">🤖</div>
+            <div>
+                <h1>MiniMax</h1>
+                <span class="status online">● 运行中</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>支持的接口</h2>
+            <table>
+                <thead><tr><th>接口</th><th>方法</th><th>说明</th><th>状态</th></tr></thead>
+                <tbody>
+                    <tr><td><code>/v1/images/generations</code></td><td>POST</td><td>图片生成</td><td><span class="badge badge-success">可用</span></td></tr>
+                    <tr><td><code>/v1/videos/generations</code></td><td>POST</td><td>视频生成</td><td><span class="badge badge-success">可用</span></td></tr>
+                    <tr><td><code>/v1/audio/speech</code></td><td>POST</td><td>语音合成</td><td><span class="badge badge-success">可用</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>已接入模型</h2>
+            <table>
+                <thead><tr><th>模型ID</th><th>类型</th><th>说明</th><th>渠道</th></tr></thead>
+                <tbody>
+                    <tr><td><code>image-01</code></td><td>图片</td><td>MiniMax 图片生成</td><td><span class="badge badge-primary">官方</span></td></tr>
+                    <tr><td><code>MiniMax-Hailuo-2.3</code></td><td>图片/视频</td><td>海螺 2.3 图片/视频生成</td><td><span class="badge badge-primary">官方</span></td></tr>
+                    <tr><td><code>MiniMax-Hailuo-2.3-Fast</code></td><td>视频</td><td>海螺 2.3 Fast 快速视频生成</td><td><span class="badge badge-primary">官方</span></td></tr>
+                    <tr><td><code>MiniMax-Hailuo-02</code></td><td>视频</td><td>海螺 02 视频生成</td><td><span class="badge badge-primary">官方</span></td></tr>
+                    <tr><td><code>speech-2.6-hd</code></td><td>语音</td><td>海螺 Speech 2.6 HD</td><td><span class="badge badge-primary">官方</span></td></tr>
+                    <tr><td><code>speech-2.6-turbo</code></td><td>语音</td><td>海螺 Speech 2.6 Turbo</td><td><span class="badge badge-primary">官方</span></td></tr>
+                    <tr><td><code>speech-02-hd</code></td><td>语音</td><td>海螺 Speech 02 HD</td><td><span class="badge badge-primary">官方</span></td></tr>
+                    <tr><td><code>speech-02-turbo</code></td><td>语音</td><td>海螺 Speech 02 Turbo</td><td><span class="badge badge-primary">官方</span></td></tr>
+                    <tr><td><code>speech-01-hd</code></td><td>语音</td><td>海螺 Speech 01 HD</td><td><span class="badge badge-primary">官方</span></td></tr>
+                    <tr><td><code>speech-01-turbo</code></td><td>语音</td><td>海螺 Speech 01 Turbo</td><td><span class="badge badge-primary">官方</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>渠道配置</h2>
+            <div class="channel-list">
+                <div class="channel-item active">
+                    <div class="channel-info">
+                        <strong>官方渠道</strong>
+                        <span class="channel-url">https://api.minimaxi.com/v1</span>
+                    </div>
+                    <span class="badge badge-success">使用中</span>
+                </div>
+                <div class="channel-item disabled">
+                    <div class="channel-info"><strong>第三方渠道</strong><span class="channel-url">待配置</span></div>
+                    <button class="btn btn-secondary btn-sm" disabled>待扩展</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h2>API密钥</h2><button class="btn btn-primary" onclick="showAddKeyModal()">添加密钥</button></div>
+            <table>
+                <thead><tr><th>名称</th><th>密钥</th><th>存储方式</th><th>状态</th><th>调用次数</th><th>成功/失败</th><th>操作</th></tr></thead>
+                <tbody id="keys-table"><tr><td colspan="7" class="empty">加载中...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3>添加 MiniMax API密钥</h3>
+            <div class="form-group"><label>名称</label><input type="text" id="key-name" placeholder="例如：主账号"></div>
+            <div class="form-group"><label>API密钥</label><input type="text" id="key-value" placeholder="输入API密钥"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="addKey()">添加</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PROVIDER = 'minimax';
+
+        // 检查登录状态
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/auth/check');
+                const data = await res.json();
+                if (!data.authenticated) {
+                    location.href = '/login';
+                }
+            } catch (e) {
+                location.href = '/login';
+            }
+        }
+        checkAuth();
+
+        async function loadKeys() {
+            try {
+                const res = await fetch(`/api/keys?provider=${PROVIDER}`);
+                const data = await res.json();
+                const tbody = document.getElementById('keys-table');
+                if (!data.data?.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty">暂无密钥，请添加</td></tr>'; return; }
+                tbody.innerHTML = data.data.map(k => `<tr><td>${k.name}</td><td><code>${k.api_key}</code></td><td><select onchange="updateStorageType(${k.id}, this.value)" class="storage-select"><option value="forward" ${k.storage_type === 'forward' ? 'selected' : ''}>URL转发</option><option value="oss" ${k.storage_type === 'oss' ? 'selected' : ''}>OSS存储</option><option value="local" ${k.storage_type === 'local' ? 'selected' : ''}>本地存储</option></select></td><td><span class="badge ${k.is_active ? 'badge-success' : 'badge-error'}">${k.is_active ? '启用' : '禁用'}</span></td><td>${k.use_count}</td><td>${k.success_count} / ${k.fail_count}</td><td><button class="btn btn-sm btn-secondary" onclick="toggleKey(${k.id}, ${k.is_active})">${k.is_active ? '禁用' : '启用'}</button> <button class="btn btn-sm btn-danger" onclick="deleteKey(${k.id})">删除</button></td></tr>`).join('');
+            } catch (e) { console.error(e); }
+        }
+        function showAddKeyModal() { document.getElementById('modal').classList.add('show'); }
+        function closeModal() { document.getElementById('modal').classList.remove('show'); document.getElementById('key-name').value = ''; document.getElementById('key-value').value = ''; }
+        async function addKey() {
+            const name = document.getElementById('key-name').value, apiKey = document.getElementById('key-value').value;
+            if (!name || !apiKey) return alert('请填写完整');
+            await fetch('/api/keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: PROVIDER, name, api_key: apiKey }) });
+            closeModal(); loadKeys();
+        }
+        async function toggleKey(id, isActive) { await fetch(`/api/keys/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: isActive ? 0 : 1 }) }); loadKeys(); }
+        async function updateStorageType(id, storageType) { await fetch(`/api/keys/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storage_type: storageType }) }); }
+        async function deleteKey(id) { if (!confirm('确定删除？')) return; await fetch(`/api/keys/${id}`, { method: 'DELETE' }); loadKeys(); }
+        loadKeys();
+    </script>
+</body>
+</html>
