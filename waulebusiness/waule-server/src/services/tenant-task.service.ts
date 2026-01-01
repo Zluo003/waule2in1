@@ -275,6 +275,10 @@ class TenantTaskService {
     } catch (error: any) {
       logger.error(`[TenantTaskService] 任务失败: ${taskId}`, error);
 
+      // 获取任务信息用于后续处理
+      const task = await prisma.tenantTask.findUnique({ where: { id: taskId } });
+      const input = task?.input as any;
+
       // 更新任务为失败
       await prisma.tenantTask.update({
         where: { id: taskId },
@@ -287,7 +291,6 @@ class TenantTaskService {
 
       // 退还积分（支持全局积分和个人积分模式）
       try {
-        const task = await prisma.tenantTask.findUnique({ where: { id: taskId } });
         if (task && task.creditsCost > 0) {
           const tenant = await prisma.tenant.findUnique({
             where: { id: task.tenantId },
@@ -309,6 +312,21 @@ class TenantTaskService {
         }
       } catch (refundError) {
         logger.error(`[TenantTaskService] 退还积分失败:`, refundError);
+      }
+
+      // 删除参考图（如果是 OSS/CDN URL）
+      const referenceImages = input?.referenceImages as string[] | undefined;
+      if (referenceImages && referenceImages.length > 0) {
+        try {
+          const { isOssOrCdnUrl, deleteOssFiles } = await import('../utils/oss');
+          const ossUrls = referenceImages.filter((url: string) => isOssOrCdnUrl(url));
+          if (ossUrls.length > 0) {
+            const deletedCount = await deleteOssFiles(ossUrls);
+            logger.info(`[TenantTaskService] 任务失败，已删除 ${deletedCount}/${ossUrls.length} 个参考图，任务: ${taskId}`);
+          }
+        } catch (deleteError) {
+          logger.error(`[TenantTaskService] 删除参考图失败:`, deleteError);
+        }
       }
     }
   }

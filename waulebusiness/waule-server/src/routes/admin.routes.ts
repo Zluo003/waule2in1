@@ -212,6 +212,10 @@ router.get('/server-metrics', adminController.getServerMetrics);
 router.get('/settings/midjourney', settingsController.getMidjourneySettings);
 router.put('/settings/midjourney', settingsController.updateMidjourneySettings);
 
+// ========== 存储设置 ==========
+router.get('/settings/storage', settingsController.getStorageConfig);
+router.put('/settings/storage', settingsController.updateStorageConfig);
+
 // ========== 任务管理 ==========
 /**
  * @swagger

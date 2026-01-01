@@ -83,18 +83,6 @@ export const generateImage = async (options: GeminiImageGenerateOptions): Promis
   // 获取服务器配置
   const finalServerConfig = serverConfig || await getServerConfigByModelId(modelId);
 
-  // 处理 Gemini 3 Pro Image 模型的 2K/4K 分辨率
-  // 如果模型是 gemini-3-pro-image-preview 且指定了 imageSize，则添加对应后缀
-  let actualModelId = modelId;
-  if (modelId === 'gemini-3-pro-image-preview' && imageSize) {
-    if (imageSize === '4K' || imageSize === '4k') {
-      actualModelId = 'gemini-3-pro-image-preview-4k';
-    } else {
-      actualModelId = 'gemini-3-pro-image-preview-2k';
-    }
-    console.log(`[Gemini] 分辨率映射: ${modelId} + ${imageSize} -> ${actualModelId}`);
-  }
-
   // 处理参考图片（base64 → OSS URL）
   const processedImages: string[] = [];
   for (const img of referenceImages) {
@@ -105,8 +93,7 @@ export const generateImage = async (options: GeminiImageGenerateOptions): Promis
   }
 
   console.log('[Gemini] 图片生成请求:', {
-    model: actualModelId,
-    originalModel: modelId,
+    model: modelId,
     imageSize,
     aspectRatio,
     prompt: prompt.substring(0, 100),
@@ -115,7 +102,7 @@ export const generateImage = async (options: GeminiImageGenerateOptions): Promis
 
   try {
     const result = await wauleApiClient.generateImage({
-      model: actualModelId,
+      model: modelId,
       prompt,
       size: aspectRatio,
       image_size: imageSize, // 传递分辨率参数（2K/4K）

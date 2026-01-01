@@ -903,7 +903,7 @@ class TaskService {
       try {
         const { billingService } = await import('./billing.service');
         await billingService.refundCredits(usageRecordId, `任务失败: ${errorMessage}`);
-        
+
         // 同步更新任务的 metadata 标记已退款
         await prisma.generationTask.update({
           where: { id: taskId },
@@ -915,10 +915,25 @@ class TaskService {
             },
           },
         });
-        
+
         logger.info(`[TaskService] 已退还 ${creditsCharged} 积分，任务: ${taskId}`);
       } catch (error: any) {
         logger.error(`[TaskService] 退还积分失败:`, error);
+      }
+    }
+
+    // 删除参考图（如果是 OSS/CDN URL）
+    const referenceImages = task.referenceImages as string[] | null;
+    if (referenceImages && referenceImages.length > 0) {
+      try {
+        const { isOssOrCdnUrl, deleteOssFiles } = await import('../utils/oss');
+        const ossUrls = referenceImages.filter(url => isOssOrCdnUrl(url));
+        if (ossUrls.length > 0) {
+          const deletedCount = await deleteOssFiles(ossUrls);
+          logger.info(`[TaskService] 任务失败，已删除 ${deletedCount}/${ossUrls.length} 个参考图，任务: ${taskId}`);
+        }
+      } catch (error: any) {
+        logger.error(`[TaskService] 删除参考图失败:`, error);
       }
     }
   }

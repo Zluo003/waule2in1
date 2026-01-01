@@ -55,6 +55,44 @@ function getProxyAgent(): SocksProxyAgent | undefined {
  */
 export const SKIP_SERVER_TRANSFER = process.env.SKIP_SERVER_TRANSFER === 'true';
 
+/**
+ * 获取配置的 CDN 域名列表
+ * 环境变量格式: OSS_CDN_DOMAINS=cdn.example.com,cdn2.example.com
+ */
+export function getOssCdnDomains(): string[] {
+  const domains = process.env.OSS_CDN_DOMAINS || '';
+  return domains.split(',').map(d => d.trim().toLowerCase()).filter(Boolean);
+}
+
+/**
+ * 判断 URL 是否是 OSS URL（包括原始 OSS 域名和配置的 CDN 域名）
+ * @param url 要检查的 URL
+ * @returns 是否是 OSS 相关的 URL
+ */
+export function isOssOrCdnUrl(url: string): boolean {
+  if (!url) return false;
+  const trimmed = url.trim().toLowerCase();
+
+  // 检查是否是原始 OSS 域名
+  if (trimmed.includes('aliyuncs.com')) {
+    return true;
+  }
+
+  // 检查是否是配置的 CDN 域名
+  const cdnDomains = getOssCdnDomains();
+  if (cdnDomains.length > 0) {
+    try {
+      const urlObj = new URL(trimmed);
+      const hostname = urlObj.hostname.toLowerCase();
+      return cdnDomains.some(cdn => hostname === cdn || hostname.endsWith('.' + cdn));
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
 const ensureClient = (): OSS => {
   const bucket = process.env.OSS_BUCKET as string | undefined;
   const region = process.env.OSS_REGION as string | undefined;
@@ -569,14 +607,15 @@ export const streamDownloadAndUploadToOss = async (
 };
 
 /**
- * 从 OSS URL 中提取 object key
- * @param ossUrl OSS 文件 URL
+ * 从 OSS URL 或 CDN URL 中提取 object key
+ * @param ossUrl OSS 文件 URL 或 CDN URL
  * @returns object key 或 null
  */
 export function extractOssKeyFromUrl(ossUrl: string): string | null {
   try {
     const url = new URL(ossUrl);
     // 格式: https://bucket.region.aliyuncs.com/path/to/file.ext
+    // 或 CDN: https://cdn.example.com/path/to/file.ext
     // pathname 是 /path/to/file.ext，去掉开头的 /
     const objectKey = url.pathname.replace(/^\//, '');
     return objectKey || null;

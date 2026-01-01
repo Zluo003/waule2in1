@@ -17,6 +17,7 @@ import {
   X,
   FileText,
   Settings,
+  CloudCog,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -30,6 +31,7 @@ const navigation = [
   { name: '智能体配置', path: 'agents', icon: Bot },
   { name: '计费管理', path: 'billing', icon: Receipt },
   { name: '节点提示词', path: 'node-prompts', icon: FileText },
+  { name: '存储设置', path: 'storage', icon: CloudCog },
   { name: '系统设置', path: 'settings', icon: Settings },
 ];
 
