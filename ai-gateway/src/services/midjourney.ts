@@ -426,7 +426,7 @@ class DiscordConnection {
     let prompt: string | undefined;
     const originalTask = getMjTaskByMessageId(messageId);
     if (originalTask) {
-      prompt = originalTask.prompt;
+      prompt = originalTask.prompt ?? undefined;
     }
 
     const taskId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;

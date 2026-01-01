@@ -27,21 +27,29 @@ export interface VideoGenerationResult {
 }
 
 async function createTask(keyRecord: any, endpoint: string, body: any): Promise<string> {
-  const response = await httpRequest<any>({
-    method: 'POST',
-    url: `${BASE_URL}/${endpoint}`,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Token ${keyRecord.api_key}`,
-    },
-    data: body,
-    timeout: 30000,
-  });
+  try {
+    const response = await httpRequest<any>({
+      method: 'POST',
+      url: `${BASE_URL}/${endpoint}`,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${keyRecord.api_key}`,
+      },
+      data: body,
+      timeout: 30000,
+    });
 
-  if (!response.task_id) {
-    throw new Error('Failed to create task: ' + JSON.stringify(response));
+    if (!response.task_id) {
+      throw new Error('Failed to create task: ' + JSON.stringify(response));
+    }
+    return response.task_id;
+  } catch (error: any) {
+    // 提取 Vidu API 的详细错误信息
+    const errData = error.response?.data;
+    const errMsg = errData?.error?.message || errData?.message || errData?.error || error.message;
+    log('vidu', 'Create task failed', { endpoint, error: errMsg, response: JSON.stringify(errData || {}).slice(0, 500) });
+    throw new Error(`Vidu API error: ${errMsg}`);
   }
-  return response.task_id;
 }
 
 async function waitForTask(keyRecord: any, taskId: string): Promise<string> {
@@ -94,20 +102,31 @@ export async function generateVideo(params: VideoGenerationParams): Promise<Vide
   }
 
   try {
-    log('vidu', 'Generating video', { prompt: params.prompt?.slice(0, 50) });
+    log('vidu', 'Generating video', {
+      model: params.model,
+      prompt: params.prompt?.slice(0, 50),
+      reference_images: params.reference_images?.length,
+      first_frame_image: !!params.first_frame_image,
+      subjects: params.subjects?.length,
+    });
 
     let endpoint: string;
     let body: any = {
-      model: params.model || 'vidu-2.0',
+      model: params.model || 'vidu-q2',
       duration: params.duration || 4,
-      resolution: params.resolution || '720p',
+      resolution: (params.resolution || '720p').toLowerCase(),
       aspect_ratio: params.aspect_ratio || '16:9',
-      movement_amplitude: params.movement_amplitude || 'auto',
     };
 
-    if (params.prompt) body.prompt = params.prompt;
-    if (params.audio !== undefined) body.audio = params.audio;
-    if (params.bgm !== undefined) body.bgm = params.bgm;
+    // movement_amplitude 参数
+    if (params.movement_amplitude) {
+      body.movement_amplitude = params.movement_amplitude;
+    }
+
+    // prompt 参数（reference2video 端点必填）
+    body.prompt = params.prompt || '';
+    if (params.audio === true) body.audio = true;
+    if (params.bgm === true) body.bgm = true;
 
     // 判断生成类型
     if (params.subjects?.length) {
@@ -118,15 +137,21 @@ export async function generateVideo(params: VideoGenerationParams): Promise<Vide
       endpoint = 'reference2video';
       const images = params.first_frame_image ? [params.first_frame_image] : params.reference_images;
       body.subjects = [{ id: '1', images, voice_id: params.voice_id || '' }];
-    } else if (params.first_frame_image && params.last_frame_image) {
+    } else if ((params.first_frame_image && params.last_frame_image) || params.reference_images?.length === 2) {
+      // 首尾帧模式：2张图片
       endpoint = 'start-end2video';
-      body.images = [params.first_frame_image, params.last_frame_image];
-    } else if (params.first_frame_image || params.reference_images?.length) {
+      body.images = (params.first_frame_image && params.last_frame_image)
+        ? [params.first_frame_image, params.last_frame_image]
+        : params.reference_images;
+    } else if (params.first_frame_image || params.reference_images?.length === 1) {
+      // 图生视频：1张图片
       endpoint = 'img2video';
       body.images = params.first_frame_image ? [params.first_frame_image] : params.reference_images;
     } else {
       endpoint = 'text2video';
     }
+
+    log('vidu', 'Request body', { endpoint, body: JSON.stringify(body).slice(0, 500) });
 
     const taskId = await createTask(keyRecord, endpoint, body);
     log('vidu', 'Task created', { taskId, endpoint });
@@ -135,12 +160,12 @@ export async function generateVideo(params: VideoGenerationParams): Promise<Vide
     const finalUrl = await downloadAndUpload(videoUrl, '.mp4', 'vidu');
 
     recordKeyUsage(keyRecord.id, true);
-    addRequestLog('vidu', `/videos/generations`, params.model || 'vidu-2.0', 'success', Date.now() - startTime);
+    addRequestLog('vidu', `/videos/generations`, params.model || 'vidu-q2', 'success', Date.now() - startTime);
 
     return { created: Math.floor(Date.now() / 1000), data: [{ url: finalUrl, duration: params.duration }] };
   } catch (error: any) {
     recordKeyUsage(keyRecord.id, false);
-    addRequestLog('vidu', `/videos/generations`, params.model || 'vidu-2.0', 'error', Date.now() - startTime, error.message);
+    addRequestLog('vidu', `/videos/generations`, params.model || 'vidu-q2', 'error', Date.now() - startTime, error.message);
     throw error;
   }
 }

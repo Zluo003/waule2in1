@@ -142,6 +142,9 @@ router.get('/assets/proxy-download', tenantApiController.proxyDownload);
 // 服务器转存（前端转存失败时的回退）
 router.post('/assets/transfer-url', tenantApiController.transferUrl);
 
+// 图片切割（解决前端CORS问题）
+router.post('/assets/slice-image', tenantApiController.sliceImage);
+
 // 更新资产
 router.put('/assets/:id', tenantApiController.updateAsset);
 

@@ -14,8 +14,29 @@ router.post('/generations', async (req, res) => {
       model, prompt, duration, resolution, aspect_ratio,
       reference_images, first_frame_image, last_frame_image,
       subjects, audio, voice_id, bgm, movement_amplitude,
-      replace_image_url, replace_video_url, mode
+      replace_image_url, replace_video_url, mode,
+      style, video_fps, min_len
     } = req.body;
+
+    // video-style-transform 模型使用 stylize 接口
+    if (model === 'video-style-transform') {
+      const result = await wanx.stylizeVideo({
+        video_url: replace_video_url,
+        style, video_fps, min_len
+      });
+      return res.json(result);
+    }
+
+    // videoretalk 模型使用 retalk 接口
+    if (model === 'videoretalk') {
+      const result = await wanx.retalkVideo({
+        video_url: replace_video_url,
+        audio_url: req.body.audio_url,
+        ref_image_url: req.body.ref_image_url,
+        video_extension: req.body.video_extension,
+      });
+      return res.json(result);
+    }
 
     const provider = inferProvider(model || 'vidu');
     let result;

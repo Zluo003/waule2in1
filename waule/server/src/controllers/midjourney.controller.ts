@@ -1,9 +1,18 @@
 import { Request, Response } from 'express';
-import { getMidjourneyService } from '../services/midjourney.service';
+import { getGlobalWauleApiClient } from '../services/waule-api.client';
 import axios from 'axios';
 import { prisma } from '../index';
 import { userLevelService } from '../services/user-level.service';
 import { billingService } from '../services/billing.service';
+
+// 获取 ai-gateway 客户端
+function getApiClient() {
+  const client = getGlobalWauleApiClient();
+  if (!client) {
+    throw new Error('WAULEAPI_URL 未配置，无法连接 ai-gateway');
+  }
+  return client;
+}
 
 /**
  * 提交 Imagine 任务
@@ -64,39 +73,20 @@ export const imagine = async (req: Request, res: Response) => {
 
     console.log('📤 [Midjourney Controller] 提交 Imagine 任务:', { prompt, nodeId, userId, isFree: permissionResult.isFree });
 
-    // 提交任务到 Midjourney Proxy
-    console.log('🔄 [Midjourney Controller] 调用 getMidjourneyService().imagine...');
-    const response = await getMidjourneyService().imagine({
-      prompt,
-      userId, // 🔑 传递用户ID
-      base64Array,
-      nodeId, // 🔑 传递节点ID
-    });
-    
+    // 调用 ai-gateway 的 Midjourney API
+    const apiClient = getApiClient();
+    const response = await apiClient.midjourneyImagine({ prompt, userId });
+
     console.log('📥 [Midjourney Controller] 收到响应:', response);
 
-    if (response.code !== 1) {
-      console.error('❌ [Midjourney Controller] 响应code不是1:', response);
-      
-      // 特殊处理敏感词错误
-      if (response.code === 24) {
-        const bannedWord = response.properties?.bannedWord;
-        return res.status(400).json({ 
-          error: 'Banned word detected',
-          description: `提示词包含敏感词: "${bannedWord}"，请修改后重试`,
-          bannedWord: bannedWord,
-          code: 24
-        });
-      }
-      
-      return res.status(500).json({ 
-        error: 'Failed to submit task', 
-        description: response.description,
-        code: response.code
+    if (!response.success) {
+      return res.status(500).json({
+        error: 'Failed to submit task',
+        description: response.message,
       });
     }
 
-    const taskId = response.result;
+    const taskId = response.taskId;
 
     // 保存任务到数据库（可选，用于追踪）
     // 这里简化处理，实际应该创建一个 MidjourneyTask 表
@@ -105,8 +95,6 @@ export const imagine = async (req: Request, res: Response) => {
     res.json({
       success: true,
       taskId,
-      description: response.description,
-      finalPrompt: response.properties?.finalPrompt,
       isFreeUsage: permissionResult.isFree,
       creditsCharged,
     });
@@ -135,7 +123,8 @@ export const fetchTask = async (req: Request, res: Response) => {
 
     console.log('🔍 [Midjourney Controller] 查询任务:', taskId);
 
-    const result = await getMidjourneyService().fetch(taskId);
+    const apiClient = getApiClient();
+    const result = await apiClient.midjourneyGetTask(taskId);
 
     res.json({
       success: true,
@@ -156,7 +145,8 @@ export const pollTask = async (req: Request, res: Response) => {
 
     console.log('⏳ [Midjourney Controller] 开始轮询任务:', taskId);
 
-    const result = await getMidjourneyService().pollTask(taskId);
+    const apiClient = getApiClient();
+    const result = await apiClient.midjourneyWaitTask(taskId, 300000);
 
     console.log('✅ [Midjourney Controller] 任务完成:', taskId);
 
@@ -220,12 +210,20 @@ export const action = async (req: Request, res: Response) => {
     // 获取原任务信息，判断是四宫格还是单张图
     let sourceAction = 'IMAGINE';
     try {
-      const sourceTask = await getMidjourneyService().fetch(taskId);
-      sourceAction = sourceTask?.action || 'IMAGINE';
+      const apiClient = getApiClient();
+      const sourceTask = await apiClient.midjourneyGetTask(taskId);
+      // ai-gateway 返回的 status 可能是 SUCCESS/IN_PROGRESS 等
+      // 根据 buttons 判断是否是四宫格
+      const hasUpscaleButtons = sourceTask.buttons?.some(b =>
+        b.customId?.includes('upsample') || b.label?.includes('U')
+      );
+      if (!hasUpscaleButtons) {
+        sourceAction = 'UPSCALE'; // 单张图
+      }
       console.log(`[Midjourney] 源任务信息:`, {
         taskId,
-        action: sourceTask?.action,
-        buttons: sourceTask?.buttons?.map(b => b.label).slice(0, 5),
+        status: sourceTask.status,
+        hasUpscaleButtons,
       });
     } catch (e: any) {
       console.warn(`[Midjourney] 无法获取源任务信息，默认为四宫格:`, e.message);
@@ -278,34 +276,41 @@ export const action = async (req: Request, res: Response) => {
     }
 
     console.log('🎬 [Midjourney Controller] 执行动作:', { taskId, customId, operationType, messageId, messageHash, nodeId, userId });
-    console.log('   原始taskId:', taskId);
 
-    const response = await getMidjourneyService().action({ taskId, customId, userId, messageId, messageHash, nodeId });
+    // 先查询原任务获取 messageId
+    const apiClient = getApiClient();
+    let actualMessageId = messageId;
+    if (!actualMessageId) {
+      const sourceTask = await apiClient.midjourneyGetTask(taskId);
+      actualMessageId = sourceTask.messageId;
+    }
 
-    console.log('📥 [Midjourney Controller] 收到响应:');
-    console.log('   code:', response.code);
-    console.log('   description:', response.description);
-    console.log('   result (新任务ID):', response.result);
-    console.log('   properties:', response.properties);
+    if (!actualMessageId) {
+      return res.status(400).json({
+        error: 'Cannot find messageId for this task',
+      });
+    }
 
-    // 根据API文档，code: 1=提交成功, 21=已存在, 22=排队中, other=错误
-    if (response.code === 1 || response.code === 21 || response.code === 22) {
-      // 这些都是正常状态，返回新任务ID
+    const response = await apiClient.midjourneyAction({
+      messageId: actualMessageId,
+      customId,
+      userId,
+    });
+
+    console.log('📥 [Midjourney Controller] 收到响应:', response);
+
+    if (response.success) {
       return res.json({
         success: true,
-        taskId: response.result,
-        description: response.description,
-        code: response.code,
+        taskId: response.taskId,
         isFreeUsage: permissionResult.isFree,
         creditsCharged,
       });
     }
 
-    // 其他错误码
-    return res.status(500).json({ 
-      error: 'Failed to submit action', 
-      description: response.description,
-      code: response.code,
+    return res.status(500).json({
+      error: 'Failed to submit action',
+      description: response.message,
     });
   } catch (error: any) {
     console.error('❌ [Midjourney Controller] Action 失败:', error.message);

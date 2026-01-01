@@ -736,7 +736,6 @@ const UploadNode = ({ data, id, selected }: NodeProps<UploadNodeData>) => {
                   <div className="h-full bg-gradient-to-r from-neutral-800 to-neutral-700 transition-all" style={{ width: `${uploadProgress}%` }} />
                 </div>
               )}
-              <p className="text-xs text-slate-400 dark:text-white/50">支持多种格式，最大100MB</p>
             </div>
           </div>
 

@@ -626,198 +626,47 @@ async function parseCharacterResponse(content: string): Promise<SoraCharacterRes
 
 /**
  * 创建角色（从视频中提取角色信息）
- * 不传prompt，只传视频，API会返回角色名称和头像
+ * 通过 waule-api 网关调用 future-sora-api
  */
 export async function createCharacter(options: SoraCharacterCreateOptions): Promise<SoraCharacterResult> {
-  const {
-    videoUrl,
-    modelId = 'sora-video-landscape-10s',
-    apiKey,
-    apiUrl,
-  } = options;
+  const { videoUrl } = options;
 
-  // 确保模型ID有正确的格式（需要duration后缀）
-  let finalModelId = modelId;
-  if (!modelId.match(/-(10|15|25)s$/)) {
-    if (modelId === 'sora-video' || modelId.includes('sora')) {
-      finalModelId = 'sora-video-landscape-10s';
-    } else {
-      finalModelId = `${modelId}-10s`;
-    }
-  }
-  
-  logger.info(`[Sora] 创建角色, 模型: ${finalModelId}`);
+  logger.info(`[Sora] 创建角色`);
   logger.info(`[Sora] 使用视频URL: ${videoUrl.substring(0, 100)}...`);
 
-  // 优先使用 waule-api 网关
+  // 检查视频URL格式
+  if (!videoUrl.startsWith('http://') && !videoUrl.startsWith('https://')) {
+    throw new Error('角色创建需要HTTP视频URL，不支持base64');
+  }
+
+  // 使用 waule-api 网关调用 future-sora-api
   const wauleApiClient = getGlobalWauleApiClient();
-  if (wauleApiClient) {
-    // ===== 尝试使用 future-sora-api 创建角色（需要原始HTTP URL）=====
-    // future-sora-api 不接受 base64，需要直接传 HTTP URL
-    if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
-      try {
-        logger.info(`[Sora] 尝试使用 future-sora-api 创建角色 (HTTP URL)`);
-        logger.info(`[Sora] 视频URL: ${videoUrl.substring(0, 100)}...`);
-        
-        const response = await wauleApiClient.futureSoraCreateCharacter({
-          url: videoUrl,
-          timestamps: '1,3',
-        });
-        
-        logger.info(`[Sora] future-sora-api 响应:`, JSON.stringify(response).substring(0, 300));
-        
-        // 解析 future-sora-api 返回的角色信息
-        const characterName = response.id || response.username || '';
-        const avatarUrl = response.profile_picture_url || response.permalink || '';
-        // 返回生成的视频URL，让前端截取首帧作为头像
-        const generatedVideoUrl = response.video_url || '';
-        
-        if (characterName) {
-          logger.info(`[Sora] future-sora-api 角色创建成功: @${characterName}, avatar: ${avatarUrl}, videoUrl: ${generatedVideoUrl}`);
-          return {
-            characterName: `@${characterName}`,
-            avatarUrl,
-            videoUrl: generatedVideoUrl, // 前端用于截取首帧
-          };
-        } else {
-          logger.warn(`[Sora] future-sora-api 返回数据没有角色名:`, response);
-        }
-      } catch (error: any) {
-        logger.error(`[Sora] future-sora-api 创建角色失败:`, {
-          message: error.message,
-          status: error.response?.status,
-          data: error.response?.data,
-        });
-        // 继续尝试 sora2api
-      }
-    }
-    
-    // ===== 使用 sora2api (需要 base64) =====
-    try {
-      logger.info(`[Sora] 使用 waule-api 网关创建角色 (sora2api)`);
-      
-      // sora2api 需要 base64 格式的视频数据
-      const videoDataUrl = await urlToBase64DataUrl(videoUrl, 'video/mp4');
-      logger.info(`[Sora] 视频已转换为base64, 大小约: ${(videoDataUrl.length / 1024 / 1024).toFixed(2)} MB`);
-
-      const requestBody = {
-        model: finalModelId,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'video_url',
-                video_url: {
-                  url: videoDataUrl,
-                },
-              },
-            ],
-          },
-        ],
-        stream: true,
-      };
-      
-      const response = await wauleApiClient.soraChatCompletions(requestBody);
-      
-      const content = response.choices?.[0]?.message?.content || '';
-      logger.info(`[Sora] 角色创建响应:`, { contentLength: content.length, preview: content.substring(0, 200) });
-      
-      return parseCharacterResponse(content);
-    } catch (error: any) {
-      logger.warn(`[Sora] waule-api 创建角色失败，回退到直连: ${error.message}`);
-    }
+  if (!wauleApiClient) {
+    throw new Error('waule-api 客户端未初始化');
   }
 
-  // 回退：直接调用 sora2api
-  const API_KEY = apiKey || process.env.SORA_API_KEY || 'han1234';
-  const BASE_URL = apiUrl || process.env.SORA_API_URL || 'http://localhost:8000';
+  logger.info(`[Sora] 使用 future-sora-api 创建角色`);
 
-  if (!API_KEY) {
-    throw new Error('Sora API 密钥未配置');
+  const response = await wauleApiClient.futureSoraCreateCharacter({
+    url: videoUrl,
+    timestamps: '1,3',
+  });
+
+  logger.info(`[Sora] future-sora-api 响应:`, JSON.stringify(response).substring(0, 300));
+
+  // 解析返回的角色信息
+  const characterName = response.id || response.username || '';
+  const avatarUrl = response.profile_picture_url || response.permalink || '';
+  const generatedVideoUrl = response.video_url || '';
+
+  if (!characterName) {
+    throw new Error('角色创建失败：未返回角色名称');
   }
 
-  // sora2api 需要 base64 格式的视频数据
-  const videoDataUrl = await urlToBase64DataUrl(videoUrl, 'video/mp4');
-  logger.info(`[Sora] 视频已转换为base64 (直连), 大小约: ${(videoDataUrl.length / 1024 / 1024).toFixed(2)} MB`);
-
-  const directRequestBody = {
-    model: finalModelId,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'video_url',
-            video_url: {
-              url: videoDataUrl,
-            },
-          },
-        ],
-      },
-    ],
-    stream: true,
+  logger.info(`[Sora] 角色创建成功: @${characterName}`);
+  return {
+    characterName: `@${characterName}`,
+    avatarUrl,
+    videoUrl: generatedVideoUrl,
   };
-
-  try {
-    logger.info(`[Sora] 角色创建请求 (直连):`, {
-      url: `${BASE_URL}/v1/chat/completions`,
-      model: finalModelId,
-    });
-
-    const agent = getProxyAgent();
-    const response = await axios.post(
-      `${BASE_URL}/v1/chat/completions`,
-      directRequestBody,
-      {
-        headers: {
-          'Authorization': `Bearer ${API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        responseType: 'text',
-        timeout: 300000,
-        ...(agent ? { httpsAgent: agent, httpAgent: agent } : {}),
-      }
-    );
-
-    console.log(`[Sora] 角色创建响应状态: ${response.status}`);
-    console.log(`[Sora] 角色创建响应 Content-Type: ${response.headers['content-type']}`);
-    console.log(`[Sora] 角色创建原始响应（前1000字符）: ${typeof response.data === 'string' ? response.data.substring(0, 1000) : JSON.stringify(response.data).substring(0, 1000)}`);
-
-    const isSSE = response.headers['content-type']?.includes('text/event-stream');
-    let parsedData: any;
-
-    if (isSSE) {
-      console.log(`[Sora] 检测到 SSE 流式响应，开始解析...`);
-      parsedData = parseSSEResponse(response.data);
-    } else {
-      console.log(`[Sora] 检测到普通 JSON 响应，开始解析...`);
-      parsedData = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
-    }
-
-    console.log(`[Sora] 角色创建解析后响应:`, JSON.stringify(parsedData, null, 2).substring(0, 1000));
-
-    if (!parsedData || !parsedData.choices || parsedData.choices.length === 0) {
-      throw new Error('Sora API未返回有效的角色数据');
-    }
-
-    const content = parsedData.choices[0].message?.content || parsedData.choices[0].delta?.content || '';
-    logger.info(`[Sora] 角色创建响应 (直连):`, { contentLength: content.length, preview: content.substring(0, 200) });
-
-    return parseCharacterResponse(content);
-  } catch (error: any) {
-    logger.error('[Sora] 角色创建失败:', {
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message,
-    });
-
-    if (error.response?.data) {
-      const errorMessage = error.response.data.error?.message ||
-        (typeof error.response.data === 'string' ? error.response.data : JSON.stringify(error.response.data));
-      throw new Error(`Sora API错误: ${errorMessage}`);
-    }
-
-    throw new Error(`角色创建失败: ${error.message}`);
-  }
 }

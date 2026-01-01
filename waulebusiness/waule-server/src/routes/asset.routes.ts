@@ -5,6 +5,7 @@ import { logger } from '../utils/logger';
 import axios from 'axios';
 import { ensureAliyunOssUrl, downloadAndUploadToOss } from '../utils/oss';
 import { prisma } from '../index';
+import { imageSliceService } from '../services/image-slice.service';
 
 const router = Router();
 
@@ -414,6 +415,22 @@ router.post('/upload', upload.single('file'), handleMulterError, uploadAsset);
 // 前端直传 OSS 相关接口
 router.post('/presigned-url', getPresignedUrl);
 router.post('/confirm-upload', confirmDirectUpload);
+
+// 图片切割接口（解决前端CORS问题）
+router.post('/slice-image', async (req: Request, res: Response) => {
+  try {
+    const { imageUrl, rows = 3, cols = 3 } = req.body;
+    if (!imageUrl) {
+      return res.status(400).json({ success: false, message: '缺少 imageUrl 参数' });
+    }
+    logger.info(`[切割] 开始切割图片: ${imageUrl.substring(0, 80)}... (${rows}x${cols})`);
+    const result = await imageSliceService.sliceImageGrid(imageUrl, rows, cols);
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    logger.error('[切割] 失败:', error.message);
+    res.status(500).json({ success: false, message: '图片切割失败: ' + error.message });
+  }
+});
 
 // 服务器转存接口（前端转存失败时的回退）
 router.post('/transfer-url', async (req: Request, res: Response) => {

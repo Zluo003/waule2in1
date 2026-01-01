@@ -102,10 +102,16 @@ export async function generateVideo(params: VideoGenerationParams): Promise<Vide
   const model = params.model || 'wanx-video-synthesis';
 
   try {
-    log('wanx', 'Generating video', { model, duration: params.duration, resolution: params.resolution });
-
     // 判断是视频换人模式还是普通视频生成
     const isAnimateModel = model.includes('animate-mix') || model.includes('animate-move');
+
+    log('wanx', 'Video params', {
+      model,
+      isAnimateModel,
+      hasReplaceImage: !!params.replace_image_url,
+      hasReplaceVideo: !!params.replace_video_url,
+      prompt: params.prompt?.slice(0, 50),
+    });
 
     let requestBody: any;
     let endpoint: string;
@@ -137,6 +143,8 @@ export async function generateVideo(params: VideoGenerationParams): Promise<Vide
       if (params.first_frame_image) requestBody.input.img_url = params.first_frame_image;
       if (params.reference_images?.length) requestBody.input.img_url = params.reference_images[0];
     }
+
+    log('wanx', 'Generating video', { model, endpoint, requestBody: JSON.stringify(requestBody).slice(0, 500) });
 
     const response = await httpRequest<any>({
       method: 'POST',

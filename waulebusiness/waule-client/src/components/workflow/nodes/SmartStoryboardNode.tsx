@@ -5,9 +5,6 @@ import toast from 'react-hot-toast';
 import { apiClient } from '../../../lib/api';
 import { processImageUrl } from '../../../utils/imageUtils';
 import { processTaskResult } from '../../../utils/taskResultHandler';
-import { sliceImageGrid } from '../../../utils/imageGridSlicer';
-import { uploadBase64ToLocal } from '../../../api/tenantLocalServer';
-import { isLocalStorageEnabled } from '../../../store/tenantStorageStore';
 import { useBillingEstimate } from '../../../hooks/useBillingEstimate';
 
 // 任务状态持久化 - 独立于工作流保存
@@ -427,60 +424,6 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     poll();
   };
 
-  // 将远程图片转换为 base64，带重试机制
-  const fetchImageAsBase64 = async (url: string, maxRetries: number = 3): Promise<string> => {
-    let lastError: Error | null = null;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`[SmartStoryboardNode] 尝试获取图片 (${attempt}/${maxRetries}):`, url.substring(0, 100));
-
-        // 使用 Promise.race 实现超时，兼容不支持 AbortController 的环境
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('请求超时')), 30000);
-        });
-
-        const fetchPromise = fetch(url, {
-          mode: 'cors',
-          credentials: 'omit'
-        });
-
-        const response = await Promise.race([fetchPromise, timeoutPromise]);
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const blob = await response.blob();
-        if (blob.size === 0) {
-          throw new Error('获取到空图片');
-        }
-
-        return await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const result = reader.result as string;
-            if (!result || result === 'data:') {
-              reject(new Error('图片转换为base64失败'));
-            } else {
-              resolve(result);
-            }
-          };
-          reader.onerror = () => reject(new Error('FileReader读取失败'));
-          reader.readAsDataURL(blob);
-        });
-      } catch (error: any) {
-        lastError = error;
-        console.warn(`[SmartStoryboardNode] 获取图片失败 (${attempt}/${maxRetries}):`, error.message);
-        if (attempt < maxRetries) {
-          await new Promise(r => setTimeout(r, 1000 * attempt)); // 递增延迟
-        }
-      }
-    }
-
-    throw lastError || new Error('获取图片失败');
-  };
-
   // 批量创建所有预览节点（一次性添加，九宫格排列）
   const createAllPreviewNodes = (slices: string[], ratio: string) => {
     const currentNode = getNode(id);
@@ -553,97 +496,29 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     }, 100);
   };
 
-  const handleSliceAndCreatePreviews = async (imageUrl: string, retryCount: number = 0) => {
-    const MAX_RETRIES = 3;
-
+  const handleSliceAndCreatePreviews = async (imageUrl: string) => {
     try {
-      console.log(`[SmartStoryboardNode] 开始切割图片 (尝试 ${retryCount + 1}/${MAX_RETRIES + 1}):`, imageUrl.substring(0, 100));
+      toast('正在切割分镜图片...', { icon: '✂️' });
 
-      // 先将远程图片转换为base64以避免CORS问题
-      let imageToSlice = imageUrl;
-      if (!imageUrl.startsWith('data:')) {
-        try {
-          imageToSlice = await fetchImageAsBase64(imageUrl);
-          console.log('[SmartStoryboardNode] 图片已转换为base64，长度:', imageToSlice.length);
-        } catch (fetchError: any) {
-          console.error('[SmartStoryboardNode] 无法转换为base64:', fetchError.message);
-          throw new Error(`无法获取图片: ${fetchError.message}`);
-        }
-      }
-
-      // 固定3x3九宫格
-      const result = await sliceImageGrid(imageToSlice, 3, 3);
-
-      if (!result.slices || result.slices.length !== 9) {
-        throw new Error(`切割结果异常: 期望9个切片，实际${result.slices?.length || 0}个`);
-      }
-
-      console.log('[SmartStoryboardNode] 切割完成，共', result.slices.length, '个片段');
-
-      // 并行上传并逐个创建预览节点
-      const userId = data.createdBy?.id || 'default';
-      const batchId = Date.now();
-
-      // 并行上传所有切片
-      const uploadPromises = result.slices.map(async (base64, index) => {
-        try {
-          let finalUrl = base64;
-
-          // 如果启用本地存储，上传到本地服务器
-          if (isLocalStorageEnabled()) {
-            const filename = `storyboard_${id}_slice_${index + 1}_${batchId}.png`;
-            const uploadResult = await uploadBase64ToLocal(base64, userId, filename);
-            if (uploadResult.success && uploadResult.localUrl) {
-              finalUrl = uploadResult.localUrl;
-              console.log(`[SmartStoryboardNode] 分镜 ${index + 1} 已上传:`, uploadResult.localUrl);
-            } else {
-              console.warn(`[SmartStoryboardNode] 分镜 ${index + 1} 上传失败，使用base64`);
-            }
-          }
-
-          return { index, url: finalUrl, success: true };
-        } catch (error: any) {
-          console.error(`[SmartStoryboardNode] 分镜 ${index + 1} 处理失败:`, error);
-          return { index, url: base64, success: false };
-        }
+      // 调用后端 API 进行图片切割
+      const res = await apiClient.post('/tenant/assets/slice-image', {
+        imageUrl,
+        rows: 3,
+        cols: 3,
       });
 
-      // 等待所有上传完成
-      const results = await Promise.all(uploadPromises);
-      const successResults = results.filter(r => r.success);
-
-      console.log(`[SmartStoryboardNode] 完成: ${successResults.length}/9 个切片上传成功`);
-
-      if (successResults.length === 0) {
-        throw new Error('所有切片上传失败');
+      if (!res.success || !res.data?.urls) {
+        throw new Error(res.message || '切割失败');
       }
 
-      // 收集成功上传的 URL
-      const savedUrls = successResults.map(r => r.url);
-
-      // 保存成功的切片URL
+      const savedUrls = res.data.urls as string[];
       updateNodeData({ slicedImages: savedUrls });
+      toast.success(`成功生成 ${savedUrls.length} 个分镜`);
 
-      // 一次性创建所有预览节点
+      // 创建预览节点
       createAllPreviewNodes(savedUrls, aspectRatio);
-
-      if (successResults.length < 9) {
-        toast.error(`部分预览节点创建失败 (${successResults.length}/9)`);
-      } else {
-        toast.success('所有预览节点创建成功');
-      }
     } catch (error: any) {
-      console.error(`[SmartStoryboardNode] 切割失败 (尝试 ${retryCount + 1}):`, error);
-
-      // 重试机制
-      if (retryCount < MAX_RETRIES) {
-        console.log(`[SmartStoryboardNode] ${2 * (retryCount + 1)}秒后重试...`);
-        toast.error(`图片切割失败，正在重试 (${retryCount + 1}/${MAX_RETRIES})...`);
-        await new Promise(r => setTimeout(r, 2000 * (retryCount + 1)));
-        return handleSliceAndCreatePreviews(imageUrl, retryCount + 1);
-      }
-
-      toast.error('图片切割失败: ' + error.message + '，请重新生成');
+      toast.error('图片切割失败: ' + error.message);
     }
   };
 

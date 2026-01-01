@@ -222,22 +222,21 @@ router.post('/characters', async (req: Request, res: Response) => {
     });
   }
   
-  log('调用 future-api 创建角色 (通过 /v1/videos + character_url)', { 
+  log('调用 future-api 创建角色 (通过 /v1/videos + input_video_url)', {
     apiUrl: `${config.baseUrl}/v1/videos`,
-    character_url: url.substring(0, 80),
-    character_timestamps: timestamps || '1,3'
+    input_video_url: url.substring(0, 80),
+    timestamps: timestamps || '1,3'
   });
-  
+
   try {
-    // 使用 /v1/videos 接口，通过 character_url 和 character_timestamps 参数创建角色
+    // 使用 /v1/videos 接口创建角色
     const formData = new FormData();
     formData.append('model', 'sora-2');
-    formData.append('prompt', '创建角色'); // 需要一个prompt
+    formData.append('prompt', 'create character');
     formData.append('seconds', '10');
     formData.append('size', '1280x720');
-    formData.append('character_url', url);
-    formData.append('character_timestamps', timestamps || '1,3');
-    formData.append('character_create', 'true');
+    formData.append('input_video_url', url);
+    formData.append('timestamps', timestamps || '1,3');
     
     const response = await axios.post(
       `${config.baseUrl}/v1/videos`,

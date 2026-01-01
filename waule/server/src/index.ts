@@ -31,7 +31,8 @@ import adminRoutes from './routes/admin.routes';
 import agentRoutes from './routes/agent.routes';
 import agentRoleRoutes from './routes/agent-role.routes';
 import documentRoutes from './routes/document.routes';
-import midjourneyRoutes from './routes/midjourney.routes';
+// import midjourneyRoutes from './routes/midjourney.routes'; // 已迁移到 ai-gateway
+import midjourneyRoutes from './routes/midjourney.routes'; // 通过 waule-api.client 调用 ai-gateway
 import translationRoutes from './routes/translation.routes';
 import taskRoutes from './routes/task.routes';
 import billingRoutes from './routes/billing.routes';
@@ -721,7 +722,7 @@ app.use(`${API_PREFIX}/admin`, adminRoutes);
 app.use(`${API_PREFIX}/agents`, agentRoutes);
 app.use(`${API_PREFIX}/agent-roles`, agentRoleRoutes);
 app.use(`${API_PREFIX}/documents`, documentRoutes);
-app.use(`${API_PREFIX}/midjourney`, midjourneyRoutes);
+app.use(`${API_PREFIX}/midjourney`, midjourneyRoutes); // 通过 waule-api.client 调用 ai-gateway
 app.use(`${API_PREFIX}/translation`, translationRoutes);
 app.use(`${API_PREFIX}/tasks`, taskRoutes);
 app.use(`${API_PREFIX}/billing`, billingRoutes); // 普通用户的billing功能

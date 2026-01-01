@@ -12,6 +12,7 @@ import {
 } from '../../database';
 import { resetOssClient } from '../../services/storage';
 import { midjourneyService } from '../../services/midjourney';
+import soraProxyConfigRouter from './sora-proxy-config';
 
 const router = Router();
 
@@ -57,6 +58,9 @@ router.get('/auth/check', (req, res) => {
 
 // 以下接口需要认证
 router.use(adminAuth);
+
+// Sora 中转配置管理
+router.use('/sora-proxy-config', soraProxyConfigRouter);
 
 // 获取统计数据
 router.get('/stats', (req, res) => {

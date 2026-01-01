@@ -193,6 +193,26 @@ router.get('/admin/activations', authenticateTenantUser, authorizeTenantAdmin, t
  */
 router.post('/admin/activations/:activationId/unbind', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.unbindDevice);
 
+// ==================== 存储设置 ====================
+
+/**
+ * @swagger
+ * /tenant-auth/admin/settings/storage:
+ *   get:
+ *     summary: "[管理员] 获取存储配置"
+ *     tags: [Tenant Admin]
+ */
+router.get('/admin/settings/storage', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.getStorageConfig);
+
+/**
+ * @swagger
+ * /tenant-auth/admin/settings/storage:
+ *   put:
+ *     summary: "[管理员] 更新存储配置"
+ *     tags: [Tenant Admin]
+ */
+router.put('/admin/settings/storage', authenticateTenantUser, authorizeTenantAdmin, tenantAuthController.updateStorageConfig);
+
 // ==================== 数据报表 ====================
 
 /**

@@ -11,6 +11,7 @@ import crypto from 'crypto';
 import { prisma } from '../index';
 import { asyncHandler } from '../middleware/errorHandler';
 import { generatePresignedUrl, uploadBuffer, TenantUploadInfo } from '../utils/oss';
+import logger from '../utils/logger';
 
 // ==================== 辅助函数 ====================
 
@@ -1841,6 +1842,26 @@ export const transferUrl = asyncHandler(async (req: Request, res: Response) => {
     res.json({ success: true, data: { url: ossUrl } });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: '转存失败: ' + error.message });
+  }
+});
+
+// 图片切割（解决前端CORS问题）
+export const sliceImage = asyncHandler(async (req: Request, res: Response) => {
+  const { imageUrl, rows = 3, cols = 3 } = req.body;
+
+  if (!imageUrl) {
+    return res.status(400).json({ success: false, message: '缺少 imageUrl 参数' });
+  }
+
+  const { imageSliceService } = require('../services/image-slice.service');
+
+  try {
+    logger.info(`[切割] 开始切割图片: ${imageUrl.substring(0, 80)}... (${rows}x${cols})`);
+    const result = await imageSliceService.sliceImageGrid(imageUrl, rows, cols);
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    logger.error('[切割] 失败:', error.message);
+    return res.status(500).json({ success: false, message: '图片切割失败: ' + error.message });
   }
 });
 
@@ -4375,16 +4396,16 @@ export const confirmLocalDownload = asyncHandler(async (req: Request, res: Respo
     return res.json({ success: true, message: 'OSS URL 不存在，无需删除' });
   }
 
-  // 检查是否是 OSS URL
-  if (!ossUrl.includes('aliyuncs.com')) {
-    console.log(`[confirmLocalDownload] ⚠️ 非 OSS URL，无需删除: ${ossUrl.substring(0, 50)}`);
-    return res.json({ success: true, message: '非 OSS URL，无需删除' });
+  // 检查是否是 OSS URL 或 CDN URL
+  const { isOssOrCdnUrl, deleteOssFile } = await import('../utils/oss');
+  if (!isOssOrCdnUrl(ossUrl)) {
+    console.log(`[confirmLocalDownload] ⚠️ 非 OSS/CDN URL，无需删除: ${ossUrl.substring(0, 50)}`);
+    return res.json({ success: true, message: '非 OSS/CDN URL，无需删除' });
   }
 
   try {
     // 删除 OSS 文件
     console.log(`[confirmLocalDownload] 🗑️ 正在删除 OSS 文件...`);
-    const { deleteOssFile } = await import('../utils/oss');
     const deleted = await deleteOssFile(ossUrl);
 
     if (deleted) {
@@ -4409,13 +4430,13 @@ export const confirmLocalDownload = asyncHandler(async (req: Request, res: Respo
         if (output?.allImageUrls && Array.isArray(output.allImageUrls)) {
           console.log(`[confirmLocalDownload] 处理多图任务: ${output.allImageUrls.length} 张图片`);
           for (const imgUrl of output.allImageUrls) {
-            if (imgUrl && imgUrl.includes('aliyuncs.com') && imgUrl !== ossUrl) {
+            if (imgUrl && isOssOrCdnUrl(imgUrl) && imgUrl !== ossUrl) {
               await deleteOssFile(imgUrl);
               console.log(`[confirmLocalDownload] ✅ 多图文件已删除: ${imgUrl.substring(0, 80)}`);
             }
           }
         }
-        
+
         // 删除参考素材（referenceImages）的临时 OSS 文件
         // 这些是提交任务时从本地上传到 OSS 的临时文件，任务完成后应删除
         // 用户的原始文件仍保存在 tenant-server 本地，不受影响
@@ -4423,8 +4444,8 @@ export const confirmLocalDownload = asyncHandler(async (req: Request, res: Respo
         if (input?.referenceImages && Array.isArray(input.referenceImages)) {
           console.log(`[confirmLocalDownload] 处理参考素材: ${input.referenceImages.length} 个临时OSS文件`);
           for (const refUrl of input.referenceImages) {
-            // 只删除 OSS 临时文件，跳过 base64 和本地文件
-            if (refUrl && typeof refUrl === 'string' && refUrl.includes('aliyuncs.com')) {
+            // 只删除 OSS/CDN 临时文件，跳过 base64 和本地文件
+            if (refUrl && typeof refUrl === 'string' && isOssOrCdnUrl(refUrl)) {
               try {
                 await deleteOssFile(refUrl);
                 console.log(`[confirmLocalDownload] ✅ 临时OSS文件已删除: ${refUrl.substring(0, 80)}`);

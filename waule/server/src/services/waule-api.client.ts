@@ -162,15 +162,15 @@ export class WauleApiClient {
   }
 
   /**
-   * Future Sora API：创建角色
-   * POST /future-sora/v1/characters
+   * Sora API：创建角色
+   * POST /v1/sora/characters (ai-gateway)
    */
   async futureSoraCreateCharacter(params: {
     url: string;
     timestamps?: string;
   }): Promise<any> {
     const client = this.createClient(true);
-    const resp = await client.post('/future-sora/v1/characters', params);
+    const resp = await client.post('/v1/sora/characters', params);
     return resp.data;
   }
 

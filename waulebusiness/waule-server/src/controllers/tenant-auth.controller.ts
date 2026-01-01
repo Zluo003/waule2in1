@@ -1162,6 +1162,61 @@ export const getUserWorkflows = asyncHandler(async (req: Request, res: Response)
   });
 });
 
+// ==================== 存储设置 ====================
+
+/**
+ * [管理员] 获取存储配置
+ */
+export const getStorageConfig = asyncHandler(async (req: Request, res: Response) => {
+  const tenantUser = req.tenantUser!;
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantUser.tenantId },
+    select: { storageConfig: true },
+  });
+
+  const config = (tenant?.storageConfig as any) || {};
+
+  res.json({
+    success: true,
+    data: {
+      mode: config.mode || 'original',
+      localBaseUrl: config.localBaseUrl || '',
+    },
+  });
+});
+
+/**
+ * [管理员] 更新存储配置
+ */
+export const updateStorageConfig = asyncHandler(async (req: Request, res: Response) => {
+  const tenantUser = req.tenantUser!;
+  const { mode, localBaseUrl } = req.body;
+
+  // 验证存储模式
+  const validModes = ['oss', 'local', 'original'];
+  if (mode && !validModes.includes(mode)) {
+    return res.status(400).json({ success: false, message: '无效的存储模式' });
+  }
+
+  // 本地模式需要配置基础URL
+  if (mode === 'local' && !localBaseUrl?.trim()) {
+    return res.status(400).json({ success: false, message: '本地存储模式需要配置基础URL' });
+  }
+
+  await prisma.tenant.update({
+    where: { id: tenantUser.tenantId },
+    data: {
+      storageConfig: {
+        mode,
+        localBaseUrl: localBaseUrl?.trim() || null,
+      },
+    },
+  });
+
+  res.json({ success: true, message: '存储配置已更新' });
+});
+
 /**
  * 客户端心跳上报
  */

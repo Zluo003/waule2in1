@@ -3,6 +3,7 @@ import imagesRouter from './images';
 import videosRouter from './videos';
 import audioRouter from './audio';
 import chatRouter from './chat';
+import soraRouter from './sora';
 
 const router = Router();
 
@@ -10,9 +11,10 @@ router.use('/images', imagesRouter);
 router.use('/videos', videosRouter);
 router.use('/audio', audioRouter);
 router.use('/chat', chatRouter);
+router.use('/sora', soraRouter);
 
 // 模型列表
-router.get('/models', (req, res) => {
+router.get('/models', (_req, res) => {
   res.json({
     data: [
       // Doubao
@@ -37,6 +39,9 @@ router.get('/models', (req, res) => {
       { id: 'gemini-3-pro-preview', provider: 'gemini', type: 'chat' },
       { id: 'gemini-3-flash-preview', provider: 'gemini', type: 'chat' },
       { id: 'gemini-3-pro-image-preview', provider: 'gemini', type: 'image' },
+      // Sora
+      { id: 'sora-2', provider: 'sora', type: 'video' },
+      { id: 'sora-2-hd', provider: 'sora', type: 'video' },
     ]
   });
 });
