@@ -389,10 +389,12 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             // 不是 JSON，使用原始 URL
           }
 
+          // 下载原始图片和切片到本地
           const processedResult = await processTaskResult({
             taskId,
             resultUrl: originalUrl,
             type: 'IMAGE',
+            allImageUrls: slicedUrls || undefined, // 传递切片 URL 一起下载
           });
 
           const displayUrl = processedResult.displayUrl;
@@ -403,11 +405,13 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             aspectRatio,
           });
 
-          // 如果后端已切割，直接使用切片 URL
+          // 如果后端已切割，使用下载后的本地 URL
           if (slicedUrls && slicedUrls.length > 0) {
-            updateNodeData({ slicedImages: slicedUrls });
-            toast.success(`成功生成 ${slicedUrls.length} 个分镜`);
-            createAllPreviewNodes(slicedUrls, aspectRatio);
+            // 使用下载后的本地 URL（如果有）
+            const localSlicedUrls = processedResult.allDisplayUrls || slicedUrls;
+            updateNodeData({ slicedImages: localSlicedUrls });
+            toast.success(`成功生成 ${localSlicedUrls.length} 个分镜`);
+            createAllPreviewNodes(localSlicedUrls, aspectRatio);
           } else if (autoSlice) {
             // 后端未切割，前端调用切割 API（兼容旧逻辑）
             await handleSliceAndCreatePreviews(displayUrl);

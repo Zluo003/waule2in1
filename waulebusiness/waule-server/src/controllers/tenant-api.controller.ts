@@ -1853,6 +1853,19 @@ export const sliceImage = asyncHandler(async (req: Request, res: Response) => {
     return res.status(400).json({ success: false, message: '缺少 imageUrl 参数' });
   }
 
+  // 兼容处理：如果 imageUrl 是 JSON 格式（后端已切割），直接返回切片结果
+  try {
+    if (imageUrl.startsWith('{')) {
+      const parsed = JSON.parse(imageUrl);
+      if (parsed.slicedUrls && Array.isArray(parsed.slicedUrls)) {
+        logger.info(`[切割] 检测到已切割的 JSON 结果，直接返回 ${parsed.slicedUrls.length} 个切片`);
+        return res.json({ success: true, data: { urls: parsed.slicedUrls } });
+      }
+    }
+  } catch (e) {
+    // 不是 JSON，继续正常切割
+  }
+
   const { imageSliceService } = require('../services/image-slice.service');
 
   try {
@@ -4371,13 +4384,6 @@ export const confirmLocalDownload = asyncHandler(async (req: Request, res: Respo
 
   console.log(`[confirmLocalDownload] 收到请求: taskId=${taskId}, tenantId=${tenantUser.tenantId}, directOssUrl=${directOssUrl?.substring(0, 50)}`);
 
-  // 如果开启了跳过服务器转存模式，直接返回成功（URL 转发模式下不需要删除任何文件）
-  const { shouldSkipServerTransfer } = await import('../utils/oss');
-  if (await shouldSkipServerTransfer()) {
-    console.log(`[confirmLocalDownload] ⚠️ storage_mode=original，跳过删除逻辑`);
-    return res.json({ success: true, message: 'URL 转发模式，无需删除' });
-  }
-
   // 查找任务
   const task = await prisma.tenantTask.findFirst({
     where: {
@@ -4394,8 +4400,30 @@ export const confirmLocalDownload = asyncHandler(async (req: Request, res: Respo
 
   // 获取要删除的 OSS URL（优先使用直接提供的 URL）
   const output = task?.output as any;
-  const ossUrl = directOssUrl || output?.resultUrl || output?.ossUrl;
-  
+  let ossUrl = directOssUrl || output?.resultUrl || output?.ossUrl;
+  let slicedUrls: string[] = [];
+
+  console.log(`[confirmLocalDownload] output.resultUrl 类型: ${typeof output?.resultUrl}, 前20字符: ${output?.resultUrl?.substring(0, 20)}`);
+
+  // 检查 output.resultUrl 是否是 JSON 格式（智能分镜切割结果）
+  // 即使有 directOssUrl，也要检查 output.resultUrl 以获取切片 URL
+  const resultUrl = output?.resultUrl;
+  if (resultUrl && typeof resultUrl === 'string' && resultUrl.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(resultUrl);
+      if (parsed.slicedUrls && Array.isArray(parsed.slicedUrls)) {
+        slicedUrls = parsed.slicedUrls;
+        console.log(`[confirmLocalDownload] 检测到切片结果: 原始图片 + ${slicedUrls.length} 个切片`);
+      }
+      // 如果没有 directOssUrl，使用 JSON 中的 originalUrl
+      if (!directOssUrl && parsed.originalUrl) {
+        ossUrl = parsed.originalUrl;
+      }
+    } catch (e) {
+      // 不是 JSON，继续使用原始 URL
+    }
+  }
+
   console.log(`[confirmLocalDownload] 任务输出: resultUrl=${ossUrl?.substring(0, 80)}...`);
 
   if (!ossUrl) {
@@ -4440,6 +4468,21 @@ export const confirmLocalDownload = asyncHandler(async (req: Request, res: Respo
             if (imgUrl && isOssOrCdnUrl(imgUrl) && imgUrl !== ossUrl) {
               await deleteOssFile(imgUrl);
               console.log(`[confirmLocalDownload] ✅ 多图文件已删除: ${imgUrl.substring(0, 80)}`);
+            }
+          }
+        }
+
+        // 删除切片文件（智能分镜）
+        if (slicedUrls.length > 0) {
+          console.log(`[confirmLocalDownload] 处理切片文件: ${slicedUrls.length} 个切片`);
+          for (const sliceUrl of slicedUrls) {
+            if (sliceUrl && isOssOrCdnUrl(sliceUrl)) {
+              try {
+                await deleteOssFile(sliceUrl);
+                console.log(`[confirmLocalDownload] ✅ 切片文件已删除: ${sliceUrl.substring(0, 80)}`);
+              } catch (err) {
+                console.warn(`[confirmLocalDownload] ⚠️ 删除切片文件失败: ${sliceUrl.substring(0, 50)}`, err);
+              }
             }
           }
         }
