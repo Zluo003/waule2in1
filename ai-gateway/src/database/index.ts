@@ -919,3 +919,48 @@ export function recordSoraUsage(success: boolean, error?: string): void {
   getDb().run(`UPDATE sora_proxy_config SET ${field}, last_used_at = datetime('now')${errorUpdate} WHERE id = 1`);
   saveDatabase();
 }
+
+// ==================== Session 管理（使用JSON文件，支持多实例共享） ====================
+
+const SESSION_FILE = path.join(DATA_DIR, 'sessions.json');
+
+function loadSessions(): Record<string, { username: string; expires_at: number }> {
+  try {
+    if (fs.existsSync(SESSION_FILE)) {
+      return JSON.parse(fs.readFileSync(SESSION_FILE, 'utf-8'));
+    }
+  } catch (e) {}
+  return {};
+}
+
+function saveSessions(sessions: Record<string, { username: string; expires_at: number }>): void {
+  fs.writeFileSync(SESSION_FILE, JSON.stringify(sessions, null, 2));
+}
+
+export function createSession(token: string, username: string, expiresAt: number): void {
+  const sessions = loadSessions();
+  sessions[token] = { username, expires_at: expiresAt };
+  saveSessions(sessions);
+}
+
+export function getSession(token: string): { username: string; expires_at: number } | null {
+  const sessions = loadSessions();
+  return sessions[token] || null;
+}
+
+export function deleteSession(token: string): void {
+  const sessions = loadSessions();
+  delete sessions[token];
+  saveSessions(sessions);
+}
+
+export function cleanExpiredSessions(): void {
+  const sessions = loadSessions();
+  const now = Date.now();
+  for (const token in sessions) {
+    if (sessions[token].expires_at < now) {
+      delete sessions[token];
+    }
+  }
+  saveSessions(sessions);
+}

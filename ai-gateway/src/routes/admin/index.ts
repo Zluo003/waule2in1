@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { adminAuth, sessionStore } from '../../middleware/auth';
+import { adminAuth } from '../../middleware/auth';
 import { getAdminCredentials, setConfig, getAllConfigs } from '../../config';
 import {
   getApiKeys, addApiKey, updateApiKey, deleteApiKey, getStats, getRequestLogs,
@@ -8,7 +8,8 @@ import {
   getModelChannels, addModelChannel, updateModelChannel, deleteModelChannel,
   getChannelKeys, addChannelKey, updateChannelKey, deleteChannelKey,
   getDiscordAccounts, addDiscordAccount, updateDiscordAccount, deleteDiscordAccount,
-  getMjTasksByStatus
+  getMjTasksByStatus,
+  createSession, getSession, deleteSession
 } from '../../database';
 import { resetOssClient } from '../../services/storage';
 import { midjourneyService } from '../../services/midjourney';
@@ -23,10 +24,8 @@ router.post('/login', (req, res) => {
 
   if (username === credentials.username && password === credentials.password) {
     const sessionToken = uuidv4();
-    sessionStore.set(sessionToken, {
-      username,
-      expires: Date.now() + 24 * 60 * 60 * 1000 // 24小时
-    });
+    const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24小时
+    createSession(sessionToken, username, expiresAt);
     res.cookie('session', sessionToken, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000, sameSite: 'lax' });
     res.json({ success: true });
   } else {
@@ -38,7 +37,7 @@ router.post('/login', (req, res) => {
 router.post('/logout', (req, res) => {
   const sessionToken = req.cookies?.session;
   if (sessionToken) {
-    sessionStore.delete(sessionToken);
+    deleteSession(sessionToken);
   }
   res.clearCookie('session');
   res.json({ success: true });
@@ -47,9 +46,9 @@ router.post('/logout', (req, res) => {
 // 检查认证状态
 router.get('/auth/check', (req, res) => {
   const sessionToken = req.cookies?.session;
-  if (sessionToken && sessionStore.has(sessionToken)) {
-    const session = sessionStore.get(sessionToken);
-    if (session && session.expires > Date.now()) {
+  if (sessionToken) {
+    const session = getSession(sessionToken);
+    if (session && session.expires_at > Date.now()) {
       return res.json({ authenticated: true, username: session.username });
     }
   }

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { getApiSecret } from '../config';
+import { getSession, deleteSession } from '../database';
 
 export function apiAuth(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
@@ -17,22 +18,18 @@ export function apiAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-// Session认证（管理后台）
+// Session认证（管理后台）- 使用JSON文件存储，支持多实例
 export function adminAuth(req: Request, res: Response, next: NextFunction) {
   const sessionToken = req.cookies?.session;
   if (!sessionToken) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
-  // 简单的session验证
-  const validSession = sessionStore.get(sessionToken);
-  if (!validSession || validSession.expires < Date.now()) {
-    sessionStore.delete(sessionToken);
+  const session = getSession(sessionToken);
+  if (!session || session.expires_at < Date.now()) {
+    if (session) deleteSession(sessionToken);
     return res.status(401).json({ error: 'Session expired' });
   }
 
   next();
 }
-
-// 简单的内存session存储
-export const sessionStore = new Map<string, { username: string; expires: number }>();
