@@ -368,6 +368,7 @@
         ];
 
         const foreignProviders = [
+            { id: 'sora', name: 'Sora', icon: '🎬', caps: ['文生视频', '图生视频', '角色创建'] },
             { id: 'veo', name: 'Google Veo', icon: '🎥', caps: ['文生视频', '图生视频', '首帧控制'] },
             { id: 'gemini', name: 'Gemini', icon: '✨', caps: ['对话生成', '图片生成', '多模态', '4K输出'] },
             { id: 'midjourney', name: 'Midjourney', icon: '🎨', caps: ['图片生成', 'U/V操作', '多账号'] }
@@ -416,8 +417,21 @@
                 const data = await res.json();
                 document.getElementById('stat-requests').textContent = data.todayRequests || '0';
                 document.getElementById('stat-success').textContent = (data.successRate || 0) + '%';
-                document.getElementById('stat-keys').textContent = data.activeKeys || '0';
+                document.getElementById('stat-keys').textContent = data.activeKeys || '0/0';
                 document.getElementById('stat-latency').textContent = (data.avgLatency || 0) + 's';
+
+                // 更新每个 provider 的统计数据
+                if (data.providerStats) {
+                    for (const [provider, stats] of Object.entries(data.providerStats)) {
+                        const s = stats;
+                        const callsEl = document.getElementById(`${provider}-calls`);
+                        const keysEl = document.getElementById(`${provider}-keys`);
+                        const rateEl = document.getElementById(`${provider}-rate`);
+                        if (callsEl) callsEl.textContent = String(s.calls);
+                        if (keysEl) keysEl.textContent = s.keys;
+                        if (rateEl) rateEl.textContent = s.rate + '%';
+                    }
+                }
             } catch (e) { console.error(e); }
         }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Veo 3.1 - AI Gateway</title>
+    <title>Sora - AI Gateway</title>
     <link rel="stylesheet" href="/css/common.css">
     <style>
         .channel-list { display: flex; flex-direction: column; gap: 12px; max-width: 800px; }
@@ -58,8 +58,8 @@
             </div>
             <div class="nav-section">
                 <div class="nav-section-title">国外模型</div>
-                <a class="nav-item" href="/providers/sora.html"><span class="icon">🎬</span><span>Sora</span></a>
-                <a class="nav-item active" href="/providers/veo.html"><span class="icon">🎥</span><span>Veo</span></a>
+                <a class="nav-item active" href="/providers/sora.html"><span class="icon">🎬</span><span>Sora</span></a>
+                <a class="nav-item" href="/providers/veo.html"><span class="icon">🎥</span><span>Veo</span></a>
                 <a class="nav-item" href="/providers/gemini.html"><span class="icon">✨</span><span>Gemini</span></a>
                 <a class="nav-item" href="/providers/midjourney.html"><span class="icon">🎨</span><span>Midjourney</span></a>
             </div>
@@ -68,9 +68,9 @@
 
     <main class="main-content">
         <div class="header">
-            <div class="provider-icon veo">🎥</div>
+            <div class="provider-icon" style="background: linear-gradient(135deg, #ff6b6b, #feca57);">🎬</div>
             <div>
-                <h2>Google Veo 3.1</h2>
+                <h2>Sora</h2>
                 <span class="status online">● 运行中</span>
             </div>
         </div>
@@ -80,7 +80,10 @@
             <table>
                 <thead><tr><th>接口</th><th>方法</th><th>说明</th><th>状态</th></tr></thead>
                 <tbody>
-                    <tr><td><code>/v1/videos/generations</code></td><td>POST</td><td>视频生成（文生视频、图生视频）</td><td><span class="badge badge-success">可用</span></td></tr>
+                    <tr><td><code>/v1/sora/videos</code></td><td>POST</td><td>创建视频任务</td><td><span class="badge badge-success">可用</span></td></tr>
+                    <tr><td><code>/v1/sora/videos/:taskId</code></td><td>GET</td><td>查询视频任务状态</td><td><span class="badge badge-success">可用</span></td></tr>
+                    <tr><td><code>/v1/sora/chat/completions</code></td><td>POST</td><td>OpenAI 兼容接口（同步等待）</td><td><span class="badge badge-success">可用</span></td></tr>
+                    <tr><td><code>/v1/sora/health</code></td><td>GET</td><td>健康检查</td><td><span class="badge badge-success">可用</span></td></tr>
                 </tbody>
             </table>
         </div>
@@ -103,15 +106,24 @@
 
         <div class="card">
             <h2>请求参数</h2>
+            <h3 style="font-size:14px;margin:16px 0 8px;">POST /v1/sora/videos</h3>
             <table>
                 <thead><tr><th>参数</th><th>类型</th><th>说明</th></tr></thead>
                 <tbody>
-                    <tr><td><code>model</code></td><td>string</td><td>模型ID: veo3.1、veo3.1-pro 或 veo3.1-components</td></tr>
+                    <tr><td><code>model</code></td><td>string</td><td>模型 ID</td></tr>
                     <tr><td><code>prompt</code></td><td>string</td><td>视频描述提示词</td></tr>
-                    <tr><td><code>aspect_ratio</code></td><td>string</td><td>宽高比: 16:9 或 9:16，默认 16:9</td></tr>
-                    <tr><td><code>enhance_prompt</code></td><td>boolean</td><td>是否增强提示词，默认 true</td></tr>
-                    <tr><td><code>first_frame_image</code></td><td>string</td><td>首帧图片URL（veo3.1/veo3.1-pro 最多1张）</td></tr>
-                    <tr><td><code>reference_images</code></td><td>array</td><td>参考图片URL列表（veo3.1-components 最多3张）</td></tr>
+                    <tr><td><code>orientation</code></td><td>string</td><td>方向：landscape（横屏）或 portrait（竖屏）</td></tr>
+                    <tr><td><code>seconds</code></td><td>number</td><td>视频时长（秒），默认 10</td></tr>
+                    <tr><td><code>imageUrl</code></td><td>string</td><td>参考图片 URL（可选）</td></tr>
+                </tbody>
+            </table>
+
+            <h3 style="font-size:14px;margin:16px 0 8px;">POST /v1/sora/chat/completions（OpenAI 兼容）</h3>
+            <table>
+                <thead><tr><th>参数</th><th>类型</th><th>说明</th></tr></thead>
+                <tbody>
+                    <tr><td><code>model</code></td><td>string</td><td>模型 ID，如 sora-video-landscape-10s</td></tr>
+                    <tr><td><code>messages</code></td><td>array</td><td>消息数组，支持 text 和 image_url 类型</td></tr>
                 </tbody>
             </table>
         </div>
@@ -143,7 +155,7 @@
             <p style="color:var(--text-secondary);font-size:12px;margin-bottom:12px;" id="target-models-hint"></p>
             <div class="form-group">
                 <label>目标模型名称（每行一个，留空则使用原模型名称）</label>
-                <textarea id="target-models-input" rows="5" style="width:100%;padding:8px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-family:monospace;resize:vertical;" placeholder="veo3.1&#10;veo3.1-pro"></textarea>
+                <textarea id="target-models-input" rows="5" style="width:100%;padding:8px;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-family:monospace;resize:vertical;" placeholder="sora-2&#10;sora-2-pro"></textarea>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeTargetModelsModal()">取消</button>
@@ -153,7 +165,7 @@
     </div>
 
     <script>
-        const PROVIDER = 'veo';
+        const PROVIDER = 'sora';
         let channels = [];
         let channelKeys = {};
         let editingChannelId = null;
@@ -360,7 +372,7 @@
         }
 
         // 模型渠道映射
-        const VEO_MODELS = ['veo3.1', 'veo3.1-pro', 'veo3.1-components'];
+        const SORA_MODELS = ['sora-2', 'sora-2-pro', 'sora-video-landscape-10s', 'sora-video-portrait-10s'];
         let modelMappings = {};
         let editingModelName = null;
 
@@ -385,7 +397,7 @@
                 return;
             }
 
-            container.innerHTML = VEO_MODELS.map(modelName => {
+            container.innerHTML = SORA_MODELS.map(modelName => {
                 const mapping = modelMappings[modelName];
                 const selectedChannelId = mapping?.channel_id || '';
                 const selectedChannel = channels.find(c => c.id === selectedChannelId);
@@ -393,7 +405,7 @@
 
                 return `
                 <div class="model-mapping-item" style="flex-wrap:wrap;">
-                    <span class="model-name" style="min-width:180px;">${modelName}</span>
+                    <span class="model-name" style="min-width:220px;">${modelName}</span>
                     <select class="storage-select" style="min-width:150px;" onchange="updateModelChannel('${modelName}', this.value)">
                         <option value="">-- 未配置 --</option>
                         ${activeChannels.map(c => `<option value="${c.id}" ${c.id === selectedChannelId ? 'selected' : ''}>${c.name}</option>`).join('')}

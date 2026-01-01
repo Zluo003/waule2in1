@@ -5,20 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>豆包 Doubao - AI Gateway</title>
     <link rel="stylesheet" href="/css/common.css">
+    <style>
+        .header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+        .header h2 { font-size: 24px; font-weight: 600; }
+    </style>
 </head>
-<body>
-    <div class="page-header">
-        <a href="/manage" class="back-btn">← 返回</a>
-        <div class="provider-title">
+<body class="with-sidebar">
+    <aside class="sidebar">
+        <div class="logo"><h1>AI Gateway</h1></div>
+        <nav>
+            <div class="nav-section">
+                <div class="nav-section-title">导航</div>
+                <a class="nav-item" href="/manage"><span class="icon">📊</span><span>仪表盘</span></a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">国内模型</div>
+                <a class="nav-item active" href="/providers/doubao.html"><span class="icon">🔮</span><span>豆包</span></a>
+                <a class="nav-item" href="/providers/vidu.html"><span class="icon">🎬</span><span>Vidu</span></a>
+                <a class="nav-item" href="/providers/wanx.html"><span class="icon">🎨</span><span>通义万相</span></a>
+                <a class="nav-item" href="/providers/minimax.html"><span class="icon">🤖</span><span>MiniMax</span></a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">国外模型</div>
+                <a class="nav-item" href="/providers/sora.html"><span class="icon">🎬</span><span>Sora</span></a>
+                <a class="nav-item" href="/providers/veo.html"><span class="icon">🎥</span><span>Veo</span></a>
+                <a class="nav-item" href="/providers/gemini.html"><span class="icon">✨</span><span>Gemini</span></a>
+                <a class="nav-item" href="/providers/midjourney.html"><span class="icon">🎨</span><span>Midjourney</span></a>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="header">
             <div class="provider-icon doubao">🔮</div>
             <div>
-                <h1>豆包 Doubao</h1>
+                <h2>豆包 Doubao</h2>
                 <span class="status online">● 运行中</span>
             </div>
         </div>
-    </div>
 
-    <div class="container">
         <!-- 接口定义 -->
         <div class="card">
             <h2>支持的接口</h2>
@@ -115,7 +140,7 @@
                 </tbody>
             </table>
         </div>
-    </div>
+    </main>
 
     <!-- 添加密钥弹窗 -->
     <div id="modal" class="modal">

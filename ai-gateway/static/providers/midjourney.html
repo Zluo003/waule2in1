@@ -28,21 +28,44 @@
         .badge-in_progress { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
         .badge-success { background: rgba(34, 197, 94, 0.2); color: var(--accent-green); }
         .badge-failure { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+        .header h2 { font-size: 24px; font-weight: 600; }
     </style>
 </head>
-<body>
-    <div class="page-header">
-        <a href="/manage" class="back-btn">← 返回</a>
-        <div class="provider-title">
+<body class="with-sidebar">
+    <aside class="sidebar">
+        <div class="logo"><h1>AI Gateway</h1></div>
+        <nav>
+            <div class="nav-section">
+                <div class="nav-section-title">导航</div>
+                <a class="nav-item" href="/manage"><span class="icon">📊</span><span>仪表盘</span></a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">国内模型</div>
+                <a class="nav-item" href="/providers/doubao.html"><span class="icon">🔮</span><span>豆包</span></a>
+                <a class="nav-item" href="/providers/vidu.html"><span class="icon">🎬</span><span>Vidu</span></a>
+                <a class="nav-item" href="/providers/wanx.html"><span class="icon">🎨</span><span>通义万相</span></a>
+                <a class="nav-item" href="/providers/minimax.html"><span class="icon">🤖</span><span>MiniMax</span></a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-title">国外模型</div>
+                <a class="nav-item" href="/providers/sora.html"><span class="icon">🎬</span><span>Sora</span></a>
+                <a class="nav-item" href="/providers/veo.html"><span class="icon">🎥</span><span>Veo</span></a>
+                <a class="nav-item" href="/providers/gemini.html"><span class="icon">✨</span><span>Gemini</span></a>
+                <a class="nav-item active" href="/providers/midjourney.html"><span class="icon">🎨</span><span>Midjourney</span></a>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="header">
             <div class="provider-icon midjourney" style="background:linear-gradient(135deg,#1a1a2e,#16213e);">🎨</div>
             <div>
-                <h1>Midjourney</h1>
+                <h2>Midjourney</h2>
                 <span class="status" id="service-status">● 检查中...</span>
             </div>
         </div>
-    </div>
 
-    <div class="container">
         <div class="card">
             <h2>服务状态</h2>
             <div class="status-card">
@@ -112,7 +135,7 @@
                 <div style="text-align:center;color:var(--text-secondary);padding:20px;">加载中...</div>
             </div>
         </div>
-    </div>
+    </main>
 
     <!-- 添加账号弹窗 -->
     <div id="account-modal" class="modal">

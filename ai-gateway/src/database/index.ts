@@ -53,6 +53,7 @@ function initTables() {
     use_count INTEGER DEFAULT 0,
     success_count INTEGER DEFAULT 0,
     fail_count INTEGER DEFAULT 0,
+    consecutive_fails INTEGER DEFAULT 0,
     last_used_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (channel_id) REFERENCES channels(id)
@@ -85,6 +86,13 @@ function initTables() {
   // 迁移：为 channels 表添加 storage_type 字段
   try {
     db.run(`ALTER TABLE channels ADD COLUMN storage_type TEXT DEFAULT 'forward'`);
+  } catch (e) {
+    // 字段已存在，忽略
+  }
+
+  // 迁移：为 channel_keys 表添加 consecutive_fails 字段
+  try {
+    db.run(`ALTER TABLE channel_keys ADD COLUMN consecutive_fails INTEGER DEFAULT 0`);
   } catch (e) {
     // 字段已存在，忽略
   }
@@ -125,6 +133,28 @@ function initTables() {
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_mj_tasks_status ON mj_tasks(status)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_mj_tasks_user ON mj_tasks(user_id)`);
+
+  // Sora 中转 API 配置表
+  db.run(`CREATE TABLE IF NOT EXISTS sora_proxy_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider TEXT DEFAULT 'future-api',
+    base_url TEXT DEFAULT 'https://future-api.vodeshop.com',
+    api_key TEXT,
+    is_active INTEGER DEFAULT 0,
+    channel TEXT DEFAULT 'future-sora-api',
+    request_count INTEGER DEFAULT 0,
+    error_count INTEGER DEFAULT 0,
+    last_used_at DATETIME,
+    last_error TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // 初始化 Sora 配置（如果不存在）
+  const soraConfig = db.exec('SELECT id FROM sora_proxy_config LIMIT 1');
+  if (soraConfig.length === 0 || soraConfig[0].values.length === 0) {
+    db.run('INSERT INTO sora_proxy_config (provider, base_url) VALUES (?, ?)', ['future-api', 'https://future-api.vodeshop.com']);
+  }
 
   const defaultConfigs: Record<string, string> = {
     'admin_username': process.env.ADMIN_USERNAME || 'admin',
@@ -268,20 +298,81 @@ export function getStats() {
   const today = new Date().toISOString().split('T')[0];
   const todayRequests = d.exec("SELECT COUNT(*) FROM request_logs WHERE date(created_at) = ?", [today]);
   const todaySuccess = d.exec("SELECT COUNT(*) FROM request_logs WHERE date(created_at) = ? AND status = 'success'", [today]);
-  const activeKeys = d.exec('SELECT COUNT(*) FROM api_keys WHERE is_active = 1');
   const avgDuration = d.exec("SELECT AVG(duration) FROM request_logs WHERE date(created_at) = ? AND status = 'success'", [today]);
+
+  // api_keys 表的活跃/总数
+  const activeApiKeys = d.exec('SELECT COUNT(*) FROM api_keys WHERE is_active = 1');
+  const totalApiKeys = d.exec('SELECT COUNT(*) FROM api_keys');
+  // channel_keys 表的活跃/总数
+  const activeChannelKeys = d.exec('SELECT COUNT(*) FROM channel_keys WHERE is_active = 1');
+  const totalChannelKeys = d.exec('SELECT COUNT(*) FROM channel_keys');
+  // discord_accounts 表的活跃/总数 (Midjourney)
+  const activeDiscordAccounts = d.exec('SELECT COUNT(*) FROM discord_accounts WHERE is_active = 1');
+  const totalDiscordAccounts = d.exec('SELECT COUNT(*) FROM discord_accounts');
 
   const tr = todayRequests.length > 0 ? Number(todayRequests[0].values[0][0]) : 0;
   const ts = todaySuccess.length > 0 ? Number(todaySuccess[0].values[0][0]) : 0;
-  const ak = activeKeys.length > 0 ? Number(activeKeys[0].values[0][0]) : 0;
   const ad = avgDuration.length > 0 && avgDuration[0].values[0][0] !== null ? Number(avgDuration[0].values[0][0]) : 0;
+
+  const akActive = (activeApiKeys.length > 0 ? Number(activeApiKeys[0].values[0][0]) : 0) +
+                   (activeChannelKeys.length > 0 ? Number(activeChannelKeys[0].values[0][0]) : 0) +
+                   (activeDiscordAccounts.length > 0 ? Number(activeDiscordAccounts[0].values[0][0]) : 0);
+  const akTotal = (totalApiKeys.length > 0 ? Number(totalApiKeys[0].values[0][0]) : 0) +
+                  (totalChannelKeys.length > 0 ? Number(totalChannelKeys[0].values[0][0]) : 0) +
+                  (totalDiscordAccounts.length > 0 ? Number(totalDiscordAccounts[0].values[0][0]) : 0);
+
+  // 按 provider 统计
+  const providerList = ['doubao', 'vidu', 'wanx', 'minimax', 'sora', 'veo', 'gemini', 'midjourney'];
+  const providerStats: Record<string, { calls: number; keys: string; rate: number }> = {};
+
+  for (const provider of providerList) {
+    // 今日调用数
+    const calls = d.exec("SELECT COUNT(*) FROM request_logs WHERE provider = ? AND date(created_at) = ?", [provider, today]);
+    const callCount = calls.length > 0 ? Number(calls[0].values[0][0]) : 0;
+
+    // 今日成功数
+    const success = d.exec("SELECT COUNT(*) FROM request_logs WHERE provider = ? AND date(created_at) = ? AND status = 'success'", [provider, today]);
+    const successCount = success.length > 0 ? Number(success[0].values[0][0]) : 0;
+
+    let providerActiveKeys = 0;
+    let providerTotalKeys = 0;
+
+    if (provider === 'midjourney') {
+      // Midjourney 使用 Discord 账号
+      const activeDA = d.exec('SELECT COUNT(*) FROM discord_accounts WHERE is_active = 1');
+      const totalDA = d.exec('SELECT COUNT(*) FROM discord_accounts');
+      providerActiveKeys = activeDA.length > 0 ? Number(activeDA[0].values[0][0]) : 0;
+      providerTotalKeys = totalDA.length > 0 ? Number(totalDA[0].values[0][0]) : 0;
+    } else {
+      // API密钥数 (api_keys 表)
+      const activeK = d.exec('SELECT COUNT(*) FROM api_keys WHERE provider = ? AND is_active = 1', [provider]);
+      const totalK = d.exec('SELECT COUNT(*) FROM api_keys WHERE provider = ?', [provider]);
+      const activeKCount = activeK.length > 0 ? Number(activeK[0].values[0][0]) : 0;
+      const totalKCount = totalK.length > 0 ? Number(totalK[0].values[0][0]) : 0;
+
+      // channel_keys 通过 channels 表关联
+      const activeCK = d.exec('SELECT COUNT(*) FROM channel_keys ck JOIN channels c ON ck.channel_id = c.id WHERE c.provider = ? AND ck.is_active = 1', [provider]);
+      const totalCK = d.exec('SELECT COUNT(*) FROM channel_keys ck JOIN channels c ON ck.channel_id = c.id WHERE c.provider = ?', [provider]);
+      const activeCKCount = activeCK.length > 0 ? Number(activeCK[0].values[0][0]) : 0;
+      const totalCKCount = totalCK.length > 0 ? Number(totalCK[0].values[0][0]) : 0;
+
+      providerActiveKeys = activeKCount + activeCKCount;
+      providerTotalKeys = totalKCount + totalCKCount;
+    }
+
+    providerStats[provider] = {
+      calls: callCount,
+      keys: `${providerActiveKeys}/${providerTotalKeys}`,
+      rate: callCount > 0 ? Math.round((successCount / callCount) * 100) : 0
+    };
+  }
 
   return {
     todayRequests: tr,
     successRate: tr > 0 ? Math.round((ts / tr) * 100 * 10) / 10 : 0,
-    activeKeys: ak,
+    activeKeys: `${akActive}/${akTotal}`,
     avgLatency: ad ? Math.round(ad / 100) / 10 : 0,
-    providerStats: []
+    providerStats
   };
 }
 
@@ -366,6 +457,7 @@ export interface ChannelKey {
   use_count: number;
   success_count: number;
   fail_count: number;
+  consecutive_fails: number;
   last_used_at: string | null;
   created_at: string;
 }
@@ -408,8 +500,14 @@ export function deleteChannelKey(id: number): void {
 }
 
 export function recordChannelKeyUsage(id: number, success: boolean): void {
-  const field = success ? 'success_count' : 'fail_count';
-  getDb().run(`UPDATE channel_keys SET use_count = use_count + 1, ${field} = ${field} + 1, last_used_at = datetime('now') WHERE id = ?`, [id]);
+  if (success) {
+    // 成功时重置连续失败计数
+    getDb().run(`UPDATE channel_keys SET use_count = use_count + 1, success_count = success_count + 1, consecutive_fails = 0, last_used_at = datetime('now') WHERE id = ?`, [id]);
+  } else {
+    // 失败时增加连续失败计数，达到5次自动禁用
+    getDb().run(`UPDATE channel_keys SET use_count = use_count + 1, fail_count = fail_count + 1, consecutive_fails = consecutive_fails + 1, last_used_at = datetime('now') WHERE id = ?`, [id]);
+    getDb().run(`UPDATE channel_keys SET is_active = 0 WHERE id = ? AND consecutive_fails >= 5`, [id]);
+  }
   saveDatabase();
 }
 
@@ -697,4 +795,54 @@ export function getPendingMjTasks(accountId?: number): MjTask[] {
   const result = getDb().exec(sql, params);
   if (result.length === 0) return [];
   return result[0].values.map((row: any[]) => rowToMjTask(result[0].columns, row));
+}
+
+// ==================== Sora 中转 API 配置 ====================
+
+export interface SoraProxyConfig {
+  id: number;
+  provider: string;
+  base_url: string;
+  api_key: string | null;
+  is_active: number;
+  channel: string;
+  request_count: number;
+  error_count: number;
+  last_used_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function rowToSoraProxyConfig(columns: string[], values: any[]): SoraProxyConfig {
+  const obj: any = {};
+  columns.forEach((col, i) => { obj[col] = values[i]; });
+  return obj as SoraProxyConfig;
+}
+
+export function getSoraProxyConfig(): SoraProxyConfig | null {
+  const result = getDb().exec('SELECT * FROM sora_proxy_config LIMIT 1');
+  if (result.length === 0 || result[0].values.length === 0) return null;
+  return rowToSoraProxyConfig(result[0].columns, result[0].values[0] as any[]);
+}
+
+export function updateSoraProxyConfig(data: Partial<Pick<SoraProxyConfig, 'provider' | 'base_url' | 'api_key' | 'is_active' | 'channel'>>): boolean {
+  const updates: string[] = ["updated_at = datetime('now')"];
+  const values: (string | number | null)[] = [];
+  if (data.provider !== undefined) { updates.push('provider = ?'); values.push(data.provider); }
+  if (data.base_url !== undefined) { updates.push('base_url = ?'); values.push(data.base_url); }
+  if (data.api_key !== undefined) { updates.push('api_key = ?'); values.push(data.api_key); }
+  if (data.is_active !== undefined) { updates.push('is_active = ?'); values.push(data.is_active); }
+  if (data.channel !== undefined) { updates.push('channel = ?'); values.push(data.channel); }
+  if (updates.length === 1) return false;
+  getDb().run(`UPDATE sora_proxy_config SET ${updates.join(', ')} WHERE id = 1`, values);
+  saveDatabase();
+  return true;
+}
+
+export function recordSoraUsage(success: boolean, error?: string): void {
+  const field = success ? 'request_count = request_count + 1' : 'error_count = error_count + 1';
+  const errorUpdate = error ? `, last_error = '${error.replace(/'/g, "''")}'` : '';
+  getDb().run(`UPDATE sora_proxy_config SET ${field}, last_used_at = datetime('now')${errorUpdate} WHERE id = 1`);
+  saveDatabase();
 }
