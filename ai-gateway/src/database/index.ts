@@ -20,6 +20,76 @@ function saveDatabase() {
   }
 }
 
+// 初始化默认渠道和模型配置
+function initDefaultChannels() {
+  if (!db) return;
+
+  // 检查是否已有渠道数据
+  const existingChannels = db.exec('SELECT COUNT(*) FROM channels');
+  if (existingChannels.length > 0 && Number(existingChannels[0].values[0][0]) > 0) {
+    return; // 已有数据，跳过初始化
+  }
+
+  // 默认渠道配置（每个 provider 一个官方渠道）
+  const defaultChannels = [
+    { name: 'Doubao 官方', provider: 'doubao', channel_type: 'official' },
+    { name: 'Vidu 官方', provider: 'vidu', channel_type: 'official' },
+    { name: '通义万相 官方', provider: 'wanx', channel_type: 'official' },
+    { name: 'MiniMax 官方', provider: 'minimax', channel_type: 'official' },
+    { name: 'Sora 官方', provider: 'sora', channel_type: 'official' },
+    { name: 'Veo 官方', provider: 'veo', channel_type: 'official' },
+    { name: 'Gemini 官方', provider: 'gemini', channel_type: 'official' },
+    { name: 'Midjourney 官方', provider: 'midjourney', channel_type: 'official' },
+  ];
+
+  // 模型到 provider 的映射（基于代码中实际使用的默认模型）
+  const defaultModels = [
+    // Doubao - 图片: doubao-seedream-4-5-251128, 视频: doubao-seedance-1-0-pro-250528
+    { model_name: 'doubao-seedream-4-5-251128', provider: 'doubao' },
+    { model_name: 'doubao-seedance-1-0-pro-250528', provider: 'doubao' },
+    // Vidu - 视频: vidu-q2
+    { model_name: 'vidu-q2', provider: 'vidu' },
+    // 通义万相 - 图片: wanx-v1, 视频: wanx-video-synthesis, videoretalk, video-style-transform, 语音: cosyvoice-v1
+    { model_name: 'wanx-v1', provider: 'wanx' },
+    { model_name: 'wanx-video-synthesis', provider: 'wanx' },
+    { model_name: 'videoretalk', provider: 'wanx' },
+    { model_name: 'video-style-transform', provider: 'wanx' },
+    { model_name: 'cosyvoice-v1', provider: 'wanx' },
+    // MiniMax - 图片: image-01, 视频: video-01, 语音: speech-01
+    { model_name: 'image-01', provider: 'minimax' },
+    { model_name: 'video-01', provider: 'minimax' },
+    { model_name: 'speech-01', provider: 'minimax' },
+    // Sora - 视频: sora-2
+    { model_name: 'sora-2', provider: 'sora' },
+    // Veo - 视频: veo3.1
+    { model_name: 'veo3.1', provider: 'veo' },
+    // Gemini - 图片: gemini-3-pro-image-preview, 对话: gemini-3-pro-preview, gemini-3-flash-preview
+    { model_name: 'gemini-3-pro-preview', provider: 'gemini' },
+    { model_name: 'gemini-3-flash-preview', provider: 'gemini' },
+    { model_name: 'gemini-3-pro-image-preview', provider: 'gemini' },
+  ];
+
+  // 插入渠道并记录 ID
+  const channelIds: Record<string, number> = {};
+  for (const ch of defaultChannels) {
+    db.run('INSERT INTO channels (name, provider, channel_type) VALUES (?, ?, ?)',
+      [ch.name, ch.provider, ch.channel_type]);
+    const result = db.exec('SELECT last_insert_rowid()');
+    channelIds[ch.provider] = Number(result[0].values[0][0]);
+  }
+
+  // 插入模型渠道映射
+  for (const m of defaultModels) {
+    const channelId = channelIds[m.provider];
+    if (channelId) {
+      db.run('INSERT INTO model_channels (model_name, channel_id) VALUES (?, ?)',
+        [m.model_name, channelId]);
+    }
+  }
+
+  console.log('[DB] 已初始化默认渠道和模型配置');
+}
+
 // 初始化表结构
 function initTables() {
   if (!db) return;
@@ -155,6 +225,9 @@ function initTables() {
   if (soraConfig.length === 0 || soraConfig[0].values.length === 0) {
     db.run('INSERT INTO sora_proxy_config (provider, base_url) VALUES (?, ?)', ['future-api', 'https://future-api.vodeshop.com']);
   }
+
+  // 初始化默认渠道和模型配置（如果不存在）
+  initDefaultChannels();
 
   const defaultConfigs: Record<string, string> = {
     'admin_username': process.env.ADMIN_USERNAME || 'admin',
