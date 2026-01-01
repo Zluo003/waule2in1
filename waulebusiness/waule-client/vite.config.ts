@@ -55,8 +55,7 @@ export default defineConfig(({ mode }) => {
     chunkSizeWarningLimit: 600,
   },
   esbuild: {
-    // 生产环境移除 console.log 和 debugger（临时禁用以便调试）
-    // drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+    drop: ['console', 'debugger'],
   },
   server: {
     port: 8852, // 商业版前端开发服务器端口

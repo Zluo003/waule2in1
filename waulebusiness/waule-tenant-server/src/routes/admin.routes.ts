@@ -21,6 +21,7 @@ import {
   setConfigValue,
 } from '../services/database.service';
 import { storageService } from '../services/storage.service';
+import { monitorService } from '../services/monitor.service';
 import logger from '../utils/logger';
 import { getDeviceId } from '../utils/deviceId';
 
@@ -615,6 +616,21 @@ router.get('/api/storage-stats', requireAuth, (req: Request, res: Response) => {
 });
 
 /**
+ * 获取性能监控数据 API
+ * GET /admin/api/monitor
+ */
+router.get('/api/monitor', requireAuth, (req: Request, res: Response) => {
+  try {
+    const config = getAllConfig();
+    const data = monitorService.getMonitorData(config.storagePath);
+    res.json({ success: true, data });
+  } catch (error: any) {
+    logger.error(`获取监控数据失败: ${error.message}`);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * 修改管理员密码
  * POST /admin/api/auth/change-password
  */
@@ -699,28 +715,27 @@ function getAdminPageHTML(config: any, localIP: string, displayUrl: string, isCo
       display: flex;
       flex-direction: column;
     }
-    /* Electron 标题栏 */
+    /* Electron 标题栏 - Windows 风格 */
     .electron-titlebar {
       display: flex;
       height: 32px;
       min-height: 32px;
       background: rgba(0, 0, 0, 0.3);
       -webkit-app-region: drag;
-      padding-left: 12px;
       align-items: center;
     }
     .electron-titlebar.hidden { display: none; }
-    .traffic-lights { display: flex; gap: 8px; -webkit-app-region: no-drag; }
-    .traffic-light {
-      width: 12px; height: 12px; border-radius: 50%; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
+    .titlebar-title { flex: 1; text-align: center; font-size: 13px; color: rgba(255,255,255,0.7); padding-left: 12px; }
+    .window-controls { display: flex; -webkit-app-region: no-drag; }
+    .window-btn {
+      width: 46px; height: 32px; border: none; background: transparent;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      transition: background-color 0.15s;
     }
-    .traffic-light.close { background: #ff5f57; }
-    .traffic-light.minimize { background: #ffbd2e; }
-    .traffic-light.maximize { background: #28c840; }
-    .traffic-light svg { width: 6px; height: 6px; opacity: 0; }
-    .traffic-lights:hover .traffic-light svg { opacity: 0.6; }
-    .titlebar-title { flex: 1; text-align: center; font-size: 13px; color: rgba(255,255,255,0.7); margin-right: 60px; }
+    .window-btn svg { width: 10px; height: 10px; fill: rgba(255,255,255,0.8); }
+    .window-btn:hover { background: rgba(255,255,255,0.1); }
+    .window-btn.close:hover { background: #e81123; }
+    .window-btn.close:hover svg { fill: #fff; }
     
     /* 主布局 - 横向 */
     .main-layout { display: flex; flex: 1; overflow: hidden; }
@@ -857,20 +872,20 @@ function getAdminPageHTML(config: any, localIP: string, displayUrl: string, isCo
   </style>
 </head>
 <body>
-  <!-- Electron 标题栏 -->
+  <!-- Electron 标题栏 - Windows 风格 -->
   <div id="electronTitlebar" class="electron-titlebar">
-    <div class="traffic-lights">
-      <div class="traffic-light close" onclick="window.electronAPI?.windowClose()">
-        <svg viewBox="0 0 6 6" fill="currentColor"><path d="M0 0h1.5v1.5H0zM4.5 0H6v1.5H4.5zM0 4.5h1.5V6H0zM4.5 4.5H6V6H4.5z"/></svg>
-      </div>
-      <div class="traffic-light minimize" onclick="window.electronAPI?.windowMinimize()">
-        <svg viewBox="0 0 6 6" fill="currentColor"><rect y="2.5" width="6" height="1"/></svg>
-      </div>
-      <div class="traffic-light maximize" onclick="window.electronAPI?.windowMaximize()">
-        <svg viewBox="0 0 6 6" fill="currentColor"><path d="M0 0v6h6V0H0zm5 5H1V1h4v4z"/></svg>
-      </div>
-    </div>
     <div class="titlebar-title">Waule 企业版服务端</div>
+    <div class="window-controls">
+      <button class="window-btn minimize" onclick="window.electronAPI?.windowMinimize()" title="最小化">
+        <svg viewBox="0 0 10 10"><rect x="0" y="4.5" width="10" height="1"/></svg>
+      </button>
+      <button class="window-btn maximize" onclick="window.electronAPI?.windowMaximize()" title="最大化">
+        <svg viewBox="0 0 10 10"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+      </button>
+      <button class="window-btn close" onclick="window.electronAPI?.windowClose()" title="关闭">
+        <svg viewBox="0 0 10 10"><path d="M0 0L10 10M10 0L0 10" stroke="currentColor" stroke-width="1.2"/></svg>
+      </button>
+    </div>
   </div>
 
   <!-- 登录/设置密码界面 -->
@@ -940,6 +955,10 @@ function getAdminPageHTML(config: any, localIP: string, displayUrl: string, isCo
         <div class="nav-tab" onclick="switchTab('config')">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           平台配置
+        </div>
+        <div class="nav-tab" onclick="switchTab('monitor')">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          性能监控
         </div>
         <div class="nav-tab" onclick="switchTab('help')">
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -1042,6 +1061,47 @@ function getAdminPageHTML(config: any, localIP: string, displayUrl: string, isCo
             <p><strong>4.</strong> 保存配置后，在客户端「设置」页面启用本地存储</p>
             <p><strong>5.</strong> 客户端设置中填写：<strong>${displayUrl}</strong></p>
             <p style="margin-top:12px;color:#666;">💡 保持此程序运行，AI 生成的内容将自动下载到本地</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 性能监控 Tab -->
+      <div id="tab-monitor" class="tab-panel">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">📊 系统资源</div>
+          <div class="stats-row">
+            <div class="stat-box"><div class="val" id="cpuUsage">-</div><div class="lbl">CPU 使用率</div></div>
+            <div class="stat-box"><div class="val" id="memUsage">-</div><div class="lbl">内存使用率</div></div>
+            <div class="stat-box"><div class="val" id="diskUsage">-</div><div class="lbl">磁盘使用率</div></div>
+            <div class="stat-box"><div class="val" id="diskFree">-</div><div class="lbl">磁盘剩余</div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">⚡ 集群与进程</div>
+          <div class="stats-row">
+            <div class="stat-box"><div class="val" id="clusterWorkers">-</div><div class="lbl">当前进程数</div></div>
+            <div class="stat-box"><div class="val" id="clusterMax">-</div><div class="lbl">最大进程数</div></div>
+            <div class="stat-box"><div class="val" id="processMemory">-</div><div class="lbl">进程内存</div></div>
+            <div class="stat-box"><div class="val" id="processUptime">-</div><div class="lbl">运行时间</div></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">🌐 请求统计</div>
+          <div class="stats-row">
+            <div class="stat-box"><div class="val" id="reqTotal">-</div><div class="lbl">总请求数</div></div>
+            <div class="stat-box"><div class="val" id="reqSuccess">-</div><div class="lbl">成功</div></div>
+            <div class="stat-box"><div class="val" id="reqError">-</div><div class="lbl">失败</div></div>
+            <div class="stat-box"><div class="val" id="reqAvgTime">-</div><div class="lbl">平均响应</div></div>
+            <div class="stat-box"><div class="val" id="reqPerMin">-</div><div class="lbl">请求/分钟</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">💻 系统信息</div>
+          <div class="info-grid">
+            <div class="info-item"><div class="label">主机名</div><div class="value" id="sysHostname">-</div></div>
+            <div class="info-item"><div class="label">平台</div><div class="value" id="sysPlatform">-</div></div>
+            <div class="info-item"><div class="label">CPU</div><div class="value" id="sysCpu">-</div></div>
+            <div class="info-item"><div class="label">Node 版本</div><div class="value" id="sysNode">-</div></div>
           </div>
         </div>
       </div>
@@ -1405,9 +1465,63 @@ function getAdminPageHTML(config: any, localIP: string, displayUrl: string, isCo
     // 页面加载时获取统计和检查连接状态
     loadStorageStats();
     checkConnectionStatus();
+    loadMonitorData();
     // 每30秒刷新一次
     setInterval(loadStorageStats, 30000);
     setInterval(checkConnectionStatus, 30000);
+    // 监控数据每5秒刷新
+    setInterval(loadMonitorData, 5000);
+
+    // 加载性能监控数据
+    async function loadMonitorData() {
+      try {
+        const res = await fetch('/admin/api/monitor');
+        const data = await res.json();
+        if (data.success) {
+          const d = data.data;
+          // 系统资源
+          document.getElementById('cpuUsage').textContent = d.cpu.usage + '%';
+          document.getElementById('memUsage').textContent = d.memory.usagePercent + '%';
+          document.getElementById('diskUsage').textContent = d.disk.usagePercent + '%';
+          document.getElementById('diskFree').textContent = (d.disk.free / 1024 / 1024 / 1024).toFixed(1) + ' GB';
+          // 集群与进程
+          document.getElementById('clusterWorkers').textContent = d.cluster.enabled ? d.cluster.workers : '1 (单进程)';
+          document.getElementById('clusterMax').textContent = d.cluster.maxWorkers;
+          document.getElementById('processMemory').textContent = formatBytes(d.memory.processUsed);
+          document.getElementById('processUptime').textContent = formatUptime(d.process.uptime);
+          // 请求统计
+          document.getElementById('reqTotal').textContent = d.requests.total;
+          document.getElementById('reqSuccess').textContent = d.requests.success;
+          document.getElementById('reqError').textContent = d.requests.error;
+          document.getElementById('reqAvgTime').textContent = d.requests.avgResponseTime + 'ms';
+          document.getElementById('reqPerMin').textContent = d.requests.requestsPerMinute;
+          // 系统信息
+          document.getElementById('sysHostname').textContent = d.system.hostname;
+          document.getElementById('sysPlatform').textContent = d.system.platform + ' (' + d.system.arch + ')';
+          document.getElementById('sysCpu').textContent = d.cpu.cores + ' 核';
+          document.getElementById('sysNode').textContent = d.system.nodeVersion;
+        }
+      } catch (error) {
+        console.error('加载监控数据失败:', error);
+      }
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function formatUptime(seconds) {
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      if (h > 0) return h + '时' + m + '分';
+      if (m > 0) return m + '分' + s + '秒';
+      return s + '秒';
+    }
     
     // 检测是否在浏览器中（非 Electron），隐藏标题栏
     if (!window.electronAPI?.isElectron) {

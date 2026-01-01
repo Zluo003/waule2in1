@@ -76,7 +76,7 @@ function startServer() {
       fs.mkdirSync(dataPath, { recursive: true });
     }
     
-    // 尝试多个可能的路径
+    // 尝试多个可能的路径（Electron 使用单进程模式）
     const possiblePaths = app.isPackaged
       ? [
           path.join(process.resourcesPath, 'app', 'dist', 'index.js'),

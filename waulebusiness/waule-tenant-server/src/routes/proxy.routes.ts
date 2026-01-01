@@ -124,11 +124,13 @@ function isTaskSubmitRequest(method: string, url: string): boolean {
  */
 async function proxyRequest(req: Request, res: Response) {
   const config = getAppConfig();
-  
+
   logger.info(`[Proxy] 收到请求: ${req.method} ${req.originalUrl}`);
+  logger.info(`[Proxy] 请求体: ${JSON.stringify(req.body).substring(0, 200)}`);
   logger.info(`[Proxy] platformServerUrl: ${config.platformServerUrl || '(未配置)'}`);
-  
+
   if (!config.platformServerUrl) {
+    logger.error(`[Proxy] 平台地址未配置，拒绝请求`);
     return res.status(503).json({
       success: false,
       message: '企业服务端未配置平台地址，请先在管理页面完成配置',
@@ -168,18 +170,22 @@ async function proxyRequest(req: Request, res: Response) {
     
     const axiosConfig: AxiosRequestConfig = {
       method: req.method as Method,
-      url: targetUrl, // URL 已包含查询参数 (req.originalUrl)
+      url: targetUrl,
       headers,
-      timeout: 600000, // 10分钟超时（AI 任务可能很慢）
-      // 对于非 GET 请求，转发 body
+      timeout: 1200000,
       ...(req.method !== 'GET' && req.method !== 'HEAD' && { data: requestBody }),
-      validateStatus: () => true, // 不抛出 HTTP 错误，让我们处理
+      validateStatus: () => true,
+      maxRedirects: 0, // 禁用重定向，确保请求到达目标
     };
-    
-    logger.info(`[Proxy] ${req.method} ${req.originalUrl} -> ${targetUrl}`);
-    
+
+    logger.info(`[Proxy] 目标URL: ${targetUrl}`);
+    logger.info(`[Proxy] 请求头: ${JSON.stringify(headers).substring(0, 300)}`);
+    logger.info(`[Proxy] 开始发送请求...`);
+
     const response = await axios(axiosConfig);
-    
+
+    logger.info(`[Proxy] 收到响应，状态: ${response.status}`);
+
     logger.info(`[Proxy] 响应状态: ${response.status}, 数据长度: ${JSON.stringify(response.data).length}`);
     logger.info(`[Proxy] 响应数据: ${JSON.stringify(response.data).substring(0, 500)}`);
     

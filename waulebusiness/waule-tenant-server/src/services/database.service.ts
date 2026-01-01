@@ -6,6 +6,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import NodeCache from 'node-cache';
 
 // 获取应用数据目录
 function getAppDataPath(): string {
@@ -42,8 +43,17 @@ if (!fs.existsSync(dataDir)) {
 
 // 创建数据库连接（使用同步模式确保数据立即写入）
 const db: InstanceType<typeof Database> = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
-db.pragma('synchronous = FULL');
+
+// SQLite 性能优化
+db.pragma('journal_mode = WAL');           // 预写日志模式，提升并发性能
+db.pragma('synchronous = NORMAL');         // 平衡性能和安全性（从 FULL 改为 NORMAL）
+db.pragma('cache_size = -64000');          // 64MB 缓存
+db.pragma('temp_store = MEMORY');          // 临时表存内存
+db.pragma('mmap_size = 268435456');        // 256MB 内存映射
+db.pragma('busy_timeout = 5000');          // 忙等待超时 5 秒
+
+// 内存缓存（减少数据库访问）
+const configCache = new NodeCache({ stdTTL: 30, checkperiod: 60 }); // 30秒过期
 
 // 初始化表结构
 db.exec(`
@@ -95,21 +105,36 @@ const defaultConfig: AppConfig = {
 };
 
 /**
- * 获取配置值
+ * 获取配置值（带缓存）
  */
 export function getConfigValue(key: string): string | null {
+  // 先从缓存获取
+  const cached = configCache.get<string>(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   const row = db.prepare('SELECT value FROM config WHERE key = ?').get(key) as { value: string } | undefined;
-  return row?.value || null;
+  const value = row?.value || null;
+
+  // 写入缓存
+  if (value !== null) {
+    configCache.set(key, value);
+  }
+  return value;
 }
 
 /**
- * 设置配置值
+ * 设置配置值（同时更新缓存）
  */
 export function setConfigValue(key: string, value: string): void {
   db.prepare(`
     INSERT INTO config (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
   `).run(key, value, value);
+
+  // 更新缓存
+  configCache.set(key, value);
 }
 
 /**

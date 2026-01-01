@@ -8,10 +8,10 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('electronAPI', {
   // 获取应用版本
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
-  
+
   // 获取平台信息
   getPlatform: () => ipcRenderer.invoke('get-platform'),
-  
+
   // 检查是否在 Electron 环境中运行
   isElectron: true,
 
@@ -20,9 +20,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   windowMaximize: () => ipcRenderer.send('window-maximize'),
   windowClose: () => ipcRenderer.send('window-close'),
   windowIsMaximized: () => ipcRenderer.invoke('window-is-maximized'),
+
+  // 日志相关
+  getLogPath: () => ipcRenderer.invoke('get-log-path'),
+  getLogs: () => ipcRenderer.invoke('get-logs'),
 });
 
-// 声明类型（供 TypeScript 使用）
+// 声明类型(供 TypeScript 使用)
 declare global {
   interface Window {
     electronAPI: {
@@ -33,6 +37,8 @@ declare global {
       windowMaximize: () => void;
       windowClose: () => void;
       windowIsMaximized: () => Promise<boolean>;
+      getLogPath: () => Promise<string>;
+      getLogs: () => Promise<string>;
     };
   }
 }

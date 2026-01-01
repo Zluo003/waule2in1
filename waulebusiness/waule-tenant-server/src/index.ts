@@ -16,9 +16,11 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import axios from 'axios';
+import cluster from 'cluster';
 import { createServer } from 'http';
 import { createProxyServer } from 'http-proxy';
 import { getAppConfig, isAppConfigured } from './services/database.service';
+import { monitorService } from './services/monitor.service';
 import { getDeviceId } from './utils/deviceId';
 import logger from './utils/logger';
 
@@ -60,6 +62,17 @@ function startServer() {
   }));
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+  // 请求监控中间件
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      const isSuccess = res.statusCode < 400;
+      monitorService.recordRequest(duration, isSuccess);
+    });
+    next();
+  });
 
   // 确保存储目录存在
   const storagePath = path.resolve(appConfig.storagePath);
@@ -147,10 +160,10 @@ function startServer() {
   // 创建 HTTP 服务器
   const server = createServer(app);
 
-  // 设置服务器超时（10分钟，支持长时间的 AI 请求）
-  server.timeout = 600000; // 10分钟
-  server.keepAliveTimeout = 620000; // 比 timeout 稍长
-  server.headersTimeout = 630000; // 比 keepAliveTimeout 稍长
+  // 设置服务器超时（20分钟，支持视频生成等长时间的 AI 请求）
+  server.timeout = 1200000; // 20分钟
+  server.keepAliveTimeout = 1220000; // 比 timeout 稍长
+  server.headersTimeout = 1230000; // 比 keepAliveTimeout 稍长
 
   // 创建 WebSocket 代理
   const wsProxy = createProxyServer({
@@ -188,9 +201,12 @@ function startServer() {
   server.listen(port, '0.0.0.0', () => {
     console.log(`[Server] 服务已启动 - http://${localIP}:${port}`);
     console.log(`[Server] WebSocket 代理已启用`);
-    
-    // 启动心跳上报（每30秒一次）
-    startHeartbeat();
+
+    // 集群模式下只让一个 worker 发送心跳（通过环境变量标记）
+    // 非集群模式或第一个 worker 才启动心跳
+    if (!cluster.isWorker || process.env.HEARTBEAT_WORKER === 'true') {
+      startHeartbeat();
+    }
   });
 }
 

@@ -5,8 +5,10 @@
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev:cluster": "ts-node-dev --respawn --transpile-only src/cluster.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "start:cluster": "node dist/cluster.js",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop waule-tenant-server",
     "pm2:restart": "pm2 restart waule-tenant-server",
@@ -34,6 +36,7 @@
     "express": "^4.21.2",
     "http-proxy": "^1.18.1",
     "multer": "^1.4.5-lts.1",
+    "node-cache": "^5.1.2",
     "uuid": "^11.0.5"
   },
   "devDependencies": {
