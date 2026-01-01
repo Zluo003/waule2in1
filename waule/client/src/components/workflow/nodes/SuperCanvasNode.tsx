@@ -223,6 +223,7 @@ const SuperCanvasNode = ({ data, id, selected }: NodeProps<SuperCanvasNodeData>)
                 const sanitizeObject = (o: any): any => {
                     if (!o || typeof o !== 'object') return o;
                     if (o.type === 'image') {
+                        o.crossOrigin = 'anonymous';
                         if (o.originalUrl) {
                             o.src = o.originalUrl;
                         } else if (o.sourceNodeId) {
@@ -245,7 +246,10 @@ const SuperCanvasNode = ({ data, id, selected }: NodeProps<SuperCanvasNodeData>)
                 const fixImg = (img: any) => {
                     if (!img) return img;
                     if (typeof img?.src === 'string' && img.src.startsWith('blob:')) return null;
-                    if (img.type === 'image') return sanitizeObject(img);
+                    if (img.type === 'image') {
+                        img.crossOrigin = 'anonymous';
+                        return sanitizeObject(img);
+                    }
                     return img;
                 };
 
@@ -1357,21 +1361,22 @@ const SuperCanvasNode = ({ data, id, selected }: NodeProps<SuperCanvasNodeData>)
                             const currentNode = getNode(id);
                             if (!currentNode) return;
 
-                            // 🚀 上传 base64 到 OSS，避免工作流数据膨胀
-                            let finalImageUrl = dataURL;
-                            try {
-                                // 将 base64 转换为 Blob
-                                const base64Data = dataURL.split(',')[1];
-                                const byteCharacters = atob(base64Data);
-                                const byteNumbers = new Array(byteCharacters.length);
-                                for (let i = 0; i < byteCharacters.length; i++) {
-                                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                }
-                                const byteArray = new Uint8Array(byteNumbers);
-                                const blob = new Blob([byteArray], { type: 'image/png' });
+                            // 🚀 上传图片到存储，避免工作流数据膨胀
+                            // 将 base64 转换为 Blob
+                            const base64Data = dataURL.split(',')[1];
+                            const byteCharacters = atob(base64Data);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let i = 0; i < byteCharacters.length; i++) {
+                                byteNumbers[i] = byteCharacters.charCodeAt(i);
+                            }
+                            const byteArray = new Uint8Array(byteNumbers);
+                            const blob = new Blob([byteArray], { type: 'image/png' });
+                            const fileName = `canvas-export-${Date.now()}.png`;
 
-                                // 获取预签名 URL
-                                const fileName = `canvas-export-${Date.now()}.png`;
+                            let finalImageUrl: string | null = null;
+
+                            // 1. 先尝试 OSS 预签名直传
+                            try {
                                 const presignedRes = await apiClient.post('/assets/presigned-url', {
                                     fileName,
                                     contentType: 'image/png',
@@ -1379,20 +1384,39 @@ const SuperCanvasNode = ({ data, id, selected }: NodeProps<SuperCanvasNodeData>)
 
                                 if (presignedRes.success && presignedRes.data) {
                                     const { uploadUrl, publicUrl } = presignedRes.data;
-                                    
-                                    // 直传到 OSS
                                     const axios = (await import('axios')).default;
                                     await axios.put(uploadUrl, blob, {
                                         headers: { 'Content-Type': 'image/png' },
                                         timeout: 300000,
                                     });
-                                    
                                     finalImageUrl = publicUrl;
                                     console.log('[SuperCanvas] 图片已上传到 OSS:', publicUrl);
                                 }
-                            } catch (uploadError) {
-                                console.warn('[SuperCanvas] 上传到 OSS 失败，使用 base64:', uploadError);
-                                // 失败时回退使用 base64（但后端会清理）
+                            } catch (ossError) {
+                                console.warn('[SuperCanvas] OSS 预签名上传失败，尝试服务器上传:', ossError);
+                            }
+
+                            // 2. OSS 失败则通过服务器上传（会存到 OSS 或本地）
+                            if (!finalImageUrl) {
+                                try {
+                                    const formData = new FormData();
+                                    formData.append('file', blob, fileName);
+                                    const uploadRes = await apiClient.post('/assets/upload', formData, {
+                                        headers: { 'Content-Type': 'multipart/form-data' },
+                                    });
+                                    if (uploadRes.success && uploadRes.data?.url) {
+                                        finalImageUrl = uploadRes.data.url;
+                                        console.log('[SuperCanvas] 图片已通过服务器上传:', finalImageUrl);
+                                    }
+                                } catch (serverError) {
+                                    console.error('[SuperCanvas] 服务器上传也失败:', serverError);
+                                }
+                            }
+
+                            // 3. 如果都失败，不创建预览节点
+                            if (!finalImageUrl) {
+                                console.error('[SuperCanvas] 无法上传图片，取消创建预览节点');
+                                return;
                             }
 
                             const zoom = (getViewport && (getViewport() as any)?.zoom) || 1;

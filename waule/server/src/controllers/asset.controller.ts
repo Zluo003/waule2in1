@@ -585,7 +585,8 @@ export const getPresignedUrl = async (req: Request, res: Response) => {
       });
     }
 
-    // OSS 模式：返回预签名 URL
+    // OSS 模式或 original 模式：返回预签名 URL
+    // original 模式下，用户创建的内容（如画布导出）仍需上传到 OSS
     const ext = path.extname(fileName);
     const result = await generatePresignedUrl(ext, contentType);
 

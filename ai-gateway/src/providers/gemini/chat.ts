@@ -108,7 +108,8 @@ export async function chatCompletion(params: ChatCompletionParams): Promise<Chat
     apiBase = GEMINI_API_BASE;
   }
 
-  const temperature = params.temperature ?? 1;
+  // Gemini 3 系列模型强制使用温度 1
+  const temperature = modelId.includes('gemini-3') ? 1 : (params.temperature ?? 1);
 
   try {
     log('gemini', 'Chat completion', { model: modelId, actualModel, messageCount: params.messages.length });

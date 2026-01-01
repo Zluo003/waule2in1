@@ -7,7 +7,7 @@ import crypto from 'crypto';
 import axios from 'axios';
 import { logger } from '../utils/logger';
 
-export type StorageMode = 'oss' | 'local';
+export type StorageMode = 'oss' | 'local' | 'original';
 
 const STORAGE_MODE_CACHE_KEY = 'storage:mode';
 
@@ -27,7 +27,7 @@ class StorageService {
 
       // 2. 从数据库读取
       const mode = await settingsService.get('storage_mode');
-      const result = (mode === 'local' ? 'local' : 'oss') as StorageMode;
+      const result = (mode && ['local', 'original'].includes(mode) ? mode : 'oss') as StorageMode;
 
       // 3. 写入 Redis 缓存
       await redis.set(STORAGE_MODE_CACHE_KEY, result);
@@ -127,6 +127,13 @@ class StorageService {
     if (!url) return url;
 
     const mode = await this.getStorageMode();
+
+    // 原始URL模式：直接返回原始URL，不做任何转存
+    if (mode === 'original') {
+      const trimmed = url.trim().replace(/^`+|`+$/g, '').replace(/^"+|"+$/g, "");
+      logger.info(`[Storage] 原始URL模式，直接返回: ${trimmed.substring(0, 80)}...`);
+      return trimmed;
+    }
 
     // 如果是 OSS 模式，使用原有的 ensureAliyunOssUrl 逻辑
     if (mode === 'oss') {

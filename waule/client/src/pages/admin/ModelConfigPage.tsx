@@ -36,6 +36,7 @@ const GOOGLE_PRO_ID = 'gemini-2.5-pro'
 const GOOGLE_FLASH_TEXT_ID = 'gemini-2.5-flash'
 const GOOGLE_FLASH_IMAGE_ID = 'gemini-2.5-flash-image'
 const GOOGLE_GEMINI_3_ID = 'gemini-3-pro-preview'
+const GOOGLE_GEMINI_3_FLASH_ID = 'gemini-3-flash-preview'
 const GOOGLE_GEMINI_3_IMAGE_ID = 'gemini-3-pro-image-preview'
 const DOUBAO_SEEDANCE_PRO_ID = 'doubao-seedance-1-0-pro-250528'
 const DOUBAO_SEEDANCE_FAST_ID = 'doubao-seedance-1-0-pro-fast-251015'
@@ -68,7 +69,7 @@ const defaultViduApiUrl = 'https://api.vidu.cn/ent/v2'
 const ModelConfigPage = () => {
   const [loading, setLoading] = useState(false)
   const [existingModels, setExistingModels] = useState<AIModel[]>([])
-  const [selectedKey, setSelectedKey] = useState<'google_pro' | 'google_flash_text' | 'google_flash' | 'google_gemini3' | 'google_gemini3_image' | 'doubao_seedance_pro' | 'doubao_seedance_fast' | 'doubao_seedream' | 'doubao_seedream_45' | 'aliyun_qwen_image_edit' | 'aliyun_animate_move' | 'aliyun_animate_mix' | 'aliyun_video_style' | 'aliyun_videoretalk' | 'minimaxi_hailuo_23' | 'minimaxi_hailuo_23_fast' | 'minimaxi_hailuo_02' | 'minimaxi_speech_26_hd' | 'sora_image' | 'sora_video' | 'vidu_q2_pro' | 'vidu_q2_pro_fast' | 'vidu_q2_turbo' | 'vidu_q2' | 'veo3.1' | 'veo3.1-pro' | 'veo3.1-components'>('google_pro')
+  const [selectedKey, setSelectedKey] = useState<'google_pro' | 'google_flash_text' | 'google_flash' | 'google_gemini3' | 'google_gemini3_flash' | 'google_gemini3_image' | 'doubao_seedance_pro' | 'doubao_seedance_fast' | 'doubao_seedream' | 'doubao_seedream_45' | 'aliyun_qwen_image_edit' | 'aliyun_animate_move' | 'aliyun_animate_mix' | 'aliyun_video_style' | 'aliyun_videoretalk' | 'minimaxi_hailuo_23' | 'minimaxi_hailuo_23_fast' | 'minimaxi_hailuo_02' | 'minimaxi_speech_26_hd' | 'sora_image' | 'sora_video' | 'vidu_q2_pro' | 'vidu_q2_pro_fast' | 'vidu_q2_turbo' | 'vidu_q2' | 'veo3.1' | 'veo3.1-pro' | 'veo3.1-components'>('google_pro')
   
   // Midjourney 设置
   const [mjFastEnabled, setMjFastEnabled] = useState(true)
@@ -120,6 +121,17 @@ const ModelConfigPage = () => {
   const [gemini3ImageApiUrl, setGemini3ImageApiUrl] = useState('')
   const [gemini3ImageAccepted, setGemini3ImageAccepted] = useState<string[]>(['TEXT', 'IMAGE'])
   const [gemini3ImageConfig, setGemini3ImageConfig] = useState({ supportedRatios: ASPECT_RATIOS.map(r => r.value), supportedResolutions: ['2K', '4K'], supportsImageToImage: true, supportsImageEditing: true, maxReferenceImages: 1, capabilities: ['google_search', 'reasoning', 'text_rendering'] })
+
+  const [gemini3FlashId, setGemini3FlashId] = useState<string | null>(null)
+  const [gemini3FlashName, setGemini3FlashName] = useState('Gemini 3 Flash')
+  const [gemini3FlashIsActive, setGemini3FlashIsActive] = useState(true)
+  const [gemini3FlashPrice, setGemini3FlashPrice] = useState('')
+  const [gemini3FlashApiKey, setGemini3FlashApiKey] = useState('')
+  const [gemini3FlashApiUrl, setGemini3FlashApiUrl] = useState('')
+  const [gemini3FlashAccepted, setGemini3FlashAccepted] = useState<string[]>(['TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'])
+  const [gemini3FlashTextConfig, setGemini3FlashTextConfig] = useState({ maxTokens: 8192, temperature: 0.7, topP: 0.95, topK: 40, frequencyPenalty: 0, presencePenalty: 0 })
+  const [gemini3FlashThinkingConfig, setGemini3FlashThinkingConfig] = useState({ enableThinkingMode: true, thinkingLevel: 'medium' })
+  const [gemini3FlashMediaConfig, setGemini3FlashMediaConfig] = useState({ imageResolution: 'media_resolution_high', pdfResolution: 'media_resolution_medium', videoResolution: 'media_resolution_low' })
 
   const [sdProId, setSdProId] = useState<string | null>(null)
   const [sdProName, setSdProName] = useState('Doubao SeeDance 1.0 Pro')
@@ -504,6 +516,45 @@ const ModelConfigPage = () => {
           setGemini3ImageApiUrl(defaultGoogleApiUrl(GOOGLE_GEMINI_3_IMAGE_ID))
           setGemini3ImageAccepted(['TEXT', 'IMAGE'])
           setGemini3ImageConfig({ supportedRatios: ASPECT_RATIOS.map(r => r.value), supportedResolutions: ['2K', '4K'], supportsImageToImage: true, supportsImageEditing: true, maxReferenceImages: 1, capabilities: ['google_search', 'reasoning', 'text_rendering'] })
+        }
+
+        const gGemini3Flash = list.find(m => m.modelId === GOOGLE_GEMINI_3_FLASH_ID)
+        if (gGemini3Flash) {
+          setGemini3FlashId(gGemini3Flash.id)
+          setGemini3FlashName(gGemini3Flash.name)
+          setGemini3FlashIsActive(gGemini3Flash.isActive)
+          setGemini3FlashPrice(gGemini3Flash.pricePerUse || '')
+          setGemini3FlashApiKey(gGemini3Flash.apiKey || '')
+          setGemini3FlashApiUrl(gGemini3Flash.apiUrl || defaultGoogleApiUrl(GOOGLE_GEMINI_3_FLASH_ID))
+          setGemini3FlashAccepted(Array.isArray(gGemini3Flash.config?.acceptedInputs) ? gGemini3Flash.config.acceptedInputs : ['TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'])
+          setGemini3FlashTextConfig({
+            maxTokens: gGemini3Flash.config?.maxTokens ?? 8192,
+            temperature: gGemini3Flash.config?.temperature ?? 0.7,
+            topP: gGemini3Flash.config?.topP ?? 0.95,
+            topK: gGemini3Flash.config?.topK ?? 40,
+            frequencyPenalty: gGemini3Flash.config?.frequencyPenalty ?? 0,
+            presencePenalty: gGemini3Flash.config?.presencePenalty ?? 0,
+          })
+          setGemini3FlashThinkingConfig({
+            enableThinkingMode: gGemini3Flash.config?.enableThinkingMode ?? true,
+            thinkingLevel: gGemini3Flash.config?.thinkingLevel || 'medium',
+          })
+          setGemini3FlashMediaConfig({
+            imageResolution: gGemini3Flash.config?.imageResolution || 'media_resolution_high',
+            pdfResolution: gGemini3Flash.config?.pdfResolution || 'media_resolution_medium',
+            videoResolution: gGemini3Flash.config?.videoResolution || 'media_resolution_low',
+          })
+        } else {
+          setGemini3FlashId(null)
+          setGemini3FlashName('Gemini 3 Flash')
+          setGemini3FlashIsActive(true)
+          setGemini3FlashPrice('')
+          setGemini3FlashApiKey('')
+          setGemini3FlashApiUrl(defaultGoogleApiUrl(GOOGLE_GEMINI_3_FLASH_ID))
+          setGemini3FlashAccepted(['TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'])
+          setGemini3FlashTextConfig({ maxTokens: 8192, temperature: 0.7, topP: 0.95, topK: 40, frequencyPenalty: 0, presencePenalty: 0 })
+          setGemini3FlashThinkingConfig({ enableThinkingMode: true, thinkingLevel: 'medium' })
+          setGemini3FlashMediaConfig({ imageResolution: 'media_resolution_high', pdfResolution: 'media_resolution_medium', videoResolution: 'media_resolution_low' })
         }
 
         const sdPro = list.find(m => m.modelId === DOUBAO_SEEDANCE_PRO_ID)
@@ -1263,6 +1314,50 @@ const ModelConfigPage = () => {
     }
   }
 
+  const saveGemini3Flash = async () => {
+    try {
+      const payload = {
+        name: gemini3FlashName,
+        provider: 'google',
+        modelId: GOOGLE_GEMINI_3_FLASH_ID,
+        type: 'TEXT_GENERATION' as ModelType,
+        apiKey: gemini3FlashApiKey,
+        apiUrl: gemini3FlashApiUrl,
+        isActive: gemini3FlashIsActive,
+        pricePerUse: gemini3FlashPrice ? parseFloat(gemini3FlashPrice) : undefined,
+        config: { ...gemini3FlashTextConfig, ...gemini3FlashThinkingConfig, ...gemini3FlashMediaConfig, acceptedInputs: gemini3FlashAccepted },
+      }
+      const existing = existingModels.find(m => m.provider === 'google' && m.modelId === GOOGLE_GEMINI_3_FLASH_ID)
+      const targetId = gemini3FlashId || existing?.id
+      if (targetId) {
+        const resp = await apiClient.admin.updateAIModel(targetId, payload)
+        const saved = resp?.data || resp
+        setGemini3FlashId(saved?.id || targetId)
+        toast.success('已保存 Gemini 3 Flash 配置')
+      } else {
+        try {
+          const resp = await apiClient.admin.createAIModel(payload)
+          const saved = resp?.data || resp
+          setGemini3FlashId(saved?.id || null)
+          toast.success('已创建 Gemini 3 Flash 配置')
+        } catch (e) {
+          const dup = existingModels.find(m => m.provider === 'google' && m.modelId === GOOGLE_GEMINI_3_FLASH_ID)
+          if (dup) {
+            const resp2 = await apiClient.admin.updateAIModel(dup.id, payload)
+            const saved2 = resp2?.data || resp2
+            setGemini3FlashId(saved2?.id || dup.id)
+            toast.success('已保存 Gemini 3 Flash 配置')
+          } else {
+            throw e
+          }
+        }
+      }
+      await refreshModels()
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || '保存失败')
+    }
+  }
+
   const saveAliQwenImageEdit = async () => {
     try {
       const payload = {
@@ -1767,6 +1862,13 @@ const ModelConfigPage = () => {
                   <div className="text-xs text-slate-500 dark:text-gray-500 font-mono">{GOOGLE_GEMINI_3_IMAGE_ID}</div>
                 </div>
                 {existingModels.find(m => m.modelId === GOOGLE_GEMINI_3_IMAGE_ID) && (<span className="text-xs text-green-400">已配置</span>)}
+              </button>
+              <button type="button" onClick={() => setSelectedKey('google_gemini3_flash')} className={`w-full text-left p-3 rounded-lg border ${selectedKey === 'google_gemini3_flash' ? 'border-slate-400 dark:border-slate-500 bg-slate-100 dark:bg-slate-700' : 'border-slate-200 dark:border-border-dark'} flex items-center justify-between`}>
+                <div>
+                  <div className="text-slate-900 dark:text-white">Gemini 3 Flash</div>
+                  <div className="text-xs text-slate-500 dark:text-gray-500 font-mono">{GOOGLE_GEMINI_3_FLASH_ID}</div>
+                </div>
+                {existingModels.find(m => m.modelId === GOOGLE_GEMINI_3_FLASH_ID) && (<span className="text-xs text-green-400">已配置</span>)}
               </button>
               {/* Veo 3.1 系列模型 */}
               {VEO_MODELS.map(m => (
@@ -2379,6 +2481,124 @@ const ModelConfigPage = () => {
                   <span className="text-sm text-slate-900 dark:text-white">启用此模型</span>
                 </div>
                 <button onClick={saveGemini3Image} className="px-6 py-2 bg-primary text-white rounded-lg">保存配置</button>
+              </div>
+            </div>
+          )}
+
+          {selectedKey === 'google_gemini3_flash' && (
+            <div className="bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Gemini 3 Flash</h2>
+                <span className="text-xs px-2 py-0.5 rounded bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-gray-300">TEXT_GENERATION</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">模型名称</label>
+                  <input type="text" value={gemini3FlashName} onChange={e => setGemini3FlashName(e.target.value)} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">单次使用价格</label>
+                  <input type="text" value={gemini3FlashPrice} onChange={e => setGemini3FlashPrice(e.target.value)} placeholder="留空则不计费" className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">API Key</label>
+                  <input type="password" value={gemini3FlashApiKey} onChange={e => setGemini3FlashApiKey(e.target.value)} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">API URL</label>
+                  <input type="text" value={gemini3FlashApiUrl} onChange={e => setGemini3FlashApiUrl(e.target.value)} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">接受的输入类型</label>
+                <div className="flex flex-wrap gap-2">
+                  {['TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'].map(t => (
+                    <label key={t} className="flex items-center gap-1 text-sm text-slate-700 dark:text-gray-300">
+                      <input type="checkbox" checked={gemini3FlashAccepted.includes(t)} onChange={e => { if (e.target.checked) setGemini3FlashAccepted([...gemini3FlashAccepted, t]); else setGemini3FlashAccepted(gemini3FlashAccepted.filter(x => x !== t)) }} />
+                      {t}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Max Tokens</label>
+                  <input type="number" value={gemini3FlashTextConfig.maxTokens} onChange={e => setGemini3FlashTextConfig({ ...gemini3FlashTextConfig, maxTokens: Number(e.target.value) })} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Temperature</label>
+                  <input type="number" step="0.1" value={gemini3FlashTextConfig.temperature} onChange={e => setGemini3FlashTextConfig({ ...gemini3FlashTextConfig, temperature: Number(e.target.value) })} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Top P</label>
+                  <input type="number" step="0.01" value={gemini3FlashTextConfig.topP} onChange={e => setGemini3FlashTextConfig({ ...gemini3FlashTextConfig, topP: Number(e.target.value) })} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Top K</label>
+                  <input type="number" value={gemini3FlashTextConfig.topK} onChange={e => setGemini3FlashTextConfig({ ...gemini3FlashTextConfig, topK: Number(e.target.value) })} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Frequency Penalty</label>
+                  <input type="number" step="0.1" value={gemini3FlashTextConfig.frequencyPenalty} onChange={e => setGemini3FlashTextConfig({ ...gemini3FlashTextConfig, frequencyPenalty: Number(e.target.value) })} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Presence Penalty</label>
+                  <input type="number" step="0.1" value={gemini3FlashTextConfig.presencePenalty} onChange={e => setGemini3FlashTextConfig({ ...gemini3FlashTextConfig, presencePenalty: Number(e.target.value) })} className="w-full px-4 py-2 bg-slate-50 dark:bg-background-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white" />
+                </div>
+              </div>
+              <div className="mt-4 p-4 bg-slate-50 dark:bg-background-dark rounded-lg">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">思考模式配置</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" checked={gemini3FlashThinkingConfig.enableThinkingMode} onChange={e => setGemini3FlashThinkingConfig({ ...gemini3FlashThinkingConfig, enableThinkingMode: e.target.checked })} className="w-5 h-5" />
+                    <span className="text-sm text-slate-700 dark:text-gray-300">启用思考模式</span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">思考深度</label>
+                    <select value={gemini3FlashThinkingConfig.thinkingLevel} onChange={e => setGemini3FlashThinkingConfig({ ...gemini3FlashThinkingConfig, thinkingLevel: e.target.value })} className="w-full px-4 py-2 bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white">
+                      <option value="minimal">Minimal - 最短延迟</option>
+                      <option value="low">Low - 简单任务</option>
+                      <option value="medium">Medium - 平衡推理</option>
+                      <option value="high">High - 最大推理深度</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 p-4 bg-slate-50 dark:bg-background-dark rounded-lg">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">媒体分辨率配置</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">图片分辨率</label>
+                    <select value={gemini3FlashMediaConfig.imageResolution} onChange={e => setGemini3FlashMediaConfig({ ...gemini3FlashMediaConfig, imageResolution: e.target.value })} className="w-full px-4 py-2 bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white">
+                      <option value="media_resolution_low">低</option>
+                      <option value="media_resolution_medium">中</option>
+                      <option value="media_resolution_high">高</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">PDF分辨率</label>
+                    <select value={gemini3FlashMediaConfig.pdfResolution} onChange={e => setGemini3FlashMediaConfig({ ...gemini3FlashMediaConfig, pdfResolution: e.target.value })} className="w-full px-4 py-2 bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white">
+                      <option value="media_resolution_low">低</option>
+                      <option value="media_resolution_medium">中</option>
+                      <option value="media_resolution_high">高</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">视频分辨率</label>
+                    <select value={gemini3FlashMediaConfig.videoResolution} onChange={e => setGemini3FlashMediaConfig({ ...gemini3FlashMediaConfig, videoResolution: e.target.value })} className="w-full px-4 py-2 bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-lg text-slate-900 dark:text-white">
+                      <option value="media_resolution_low">低</option>
+                      <option value="media_resolution_medium">中</option>
+                      <option value="media_resolution_high">高</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <input type="checkbox" checked={gemini3FlashIsActive} onChange={e => setGemini3FlashIsActive(e.target.checked)} className="w-5 h-5" />
+                  <span className="text-sm text-slate-900 dark:text-white">启用此模型</span>
+                </div>
+                <button onClick={saveGemini3Flash} className="px-6 py-2 bg-primary text-white rounded-lg">保存配置</button>
               </div>
             </div>
           )}

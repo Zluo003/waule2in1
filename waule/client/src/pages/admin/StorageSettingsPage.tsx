@@ -5,8 +5,8 @@ import { apiClient } from '../../lib/api';
 const StorageSettingsPage = () => {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
-  const [mode, setMode] = useState<'oss' | 'local'>('oss');
-  const [originalMode, setOriginalMode] = useState<'oss' | 'local'>('oss');
+  const [mode, setMode] = useState<'oss' | 'local' | 'original'>('oss');
+  const [originalMode, setOriginalMode] = useState<'oss' | 'local' | 'original'>('oss');
   const [localBaseUrl, setLocalBaseUrl] = useState('');
   const [originalLocalBaseUrl, setOriginalLocalBaseUrl] = useState('');
 
@@ -34,6 +34,10 @@ const StorageSettingsPage = () => {
     if (mode === 'local' && !localBaseUrl.trim()) {
       toast.error('请输入本地存储的基础 URL');
       return;
+    }
+
+    if (mode === 'original') {
+      // 原始URL模式不需要额外配置
     }
 
     setLoading(true);
@@ -65,7 +69,7 @@ const StorageSettingsPage = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">存储设置</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          配置文件存储方式：阿里云 OSS 或本地服务器存储
+          配置文件存储方式：阿里云 OSS、本地服务器存储或直接使用原始 URL
         </p>
       </div>
 
@@ -114,6 +118,27 @@ const StorageSettingsPage = () => {
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   文件存储在服务器本地磁盘，适合开发测试环境
+                </p>
+              </div>
+            </label>
+
+            <label className="flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors hover:border-blue-500 dark:border-gray-700 dark:hover:border-blue-500"
+              style={{ borderColor: mode === 'original' ? '#3b82f6' : undefined }}>
+              <input
+                type="radio"
+                name="storage-mode"
+                value="original"
+                checked={mode === 'original'}
+                onChange={(e) => setMode(e.target.value as 'original')}
+                className="mt-1"
+              />
+              <div className="ml-3 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-purple-600">link</span>
+                  <span className="font-medium text-gray-900 dark:text-white">原始 URL</span>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  直接使用上游返回的原始 URL，节约带宽和流量费用
                 </p>
               </div>
             </label>
