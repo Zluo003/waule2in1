@@ -832,7 +832,7 @@
 
         async function saveOssConfig() {
             try {
-                await fetch('/api/config', {
+                const res = await fetch('/api/config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
@@ -845,7 +845,12 @@
                         oss_cdn_url: document.getElementById('cfg-oss-cdn').value
                     })
                 });
-                showToast('OSS 配置已保存', 'success');
+                if (res.ok) {
+                    showToast('OSS 配置已保存', 'success');
+                } else {
+                    const data = await res.json().catch(() => ({}));
+                    showToast(data.error || '保存失败', 'error');
+                }
             } catch (e) { showToast('保存失败', 'error'); }
         }
 

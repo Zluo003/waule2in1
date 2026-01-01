@@ -114,7 +114,10 @@ export async function generateImage(params: QwenImageParams): Promise<QwenImageR
       throw new Error('No image URL in response');
     }
 
-    const finalUrl = await downloadAndUpload(firstImageUrl, '.png', 'wanx');
+    // 国内模型：使用 apikey 的 storage_type
+    const finalUrl = keyRecord.storage_type === 'oss'
+      ? await downloadAndUpload(firstImageUrl, '.png', 'wanx')
+      : firstImageUrl;
 
     recordKeyUsage(keyRecord.id, true);
     addRequestLog('qwen', '/images/generations', modelName, 'success', Date.now() - startTime);

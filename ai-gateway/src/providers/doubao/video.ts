@@ -161,7 +161,10 @@ export async function generateVideo(params: VideoGenerationParams): Promise<Vide
       throw new Error('Video generation timeout');
     }
 
-    const finalUrl = await downloadAndUpload(videoUrl, '.mp4', 'doubao');
+    // 国内模型：使用 apikey 的 storage_type
+    const finalUrl = keyRecord.storage_type === 'oss'
+      ? await downloadAndUpload(videoUrl, '.mp4', 'doubao')
+      : videoUrl;
 
     recordKeyUsage(keyRecord.id, true);
     addRequestLog('doubao', '/videos/generations', params.model, 'success', Date.now() - startTime);

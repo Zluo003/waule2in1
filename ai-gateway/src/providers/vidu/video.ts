@@ -157,7 +157,10 @@ export async function generateVideo(params: VideoGenerationParams): Promise<Vide
     log('vidu', 'Task created', { taskId, endpoint });
 
     const videoUrl = await waitForTask(keyRecord, taskId);
-    const finalUrl = await downloadAndUpload(videoUrl, '.mp4', 'vidu');
+    // 国内模型：使用 apikey 的 storage_type
+    const finalUrl = keyRecord.storage_type === 'oss'
+      ? await downloadAndUpload(videoUrl, '.mp4', 'vidu')
+      : videoUrl;
 
     recordKeyUsage(keyRecord.id, true);
     addRequestLog('vidu', `/videos/generations`, params.model || 'vidu-q2', 'success', Date.now() - startTime);
@@ -196,7 +199,10 @@ export async function upscaleVideo(params: UpscaleParams): Promise<VideoGenerati
 
     const taskId = await createTask(keyRecord, 'upscale-new', body);
     const videoUrl = await waitForTask(keyRecord, taskId);
-    const finalUrl = await downloadAndUpload(videoUrl, '.mp4', 'vidu');
+    // 国内模型：使用 apikey 的 storage_type
+    const finalUrl = keyRecord.storage_type === 'oss'
+      ? await downloadAndUpload(videoUrl, '.mp4', 'vidu')
+      : videoUrl;
 
     recordKeyUsage(keyRecord.id, true);
     addRequestLog('vidu', '/videos/upscale', 'upscale', 'success', Date.now() - startTime);
@@ -237,7 +243,10 @@ export async function createCommercialVideo(params: CommercialVideoParams): Prom
 
     const taskId = await createTask(keyRecord, 'ad-one-click', body);
     const videoUrl = await waitForTask(keyRecord, taskId);
-    const finalUrl = await downloadAndUpload(videoUrl, '.mp4', 'vidu');
+    // 国内模型：使用 apikey 的 storage_type
+    const finalUrl = keyRecord.storage_type === 'oss'
+      ? await downloadAndUpload(videoUrl, '.mp4', 'vidu')
+      : videoUrl;
 
     recordKeyUsage(keyRecord.id, true);
     addRequestLog('vidu', '/videos/commercial', 'commercial', 'success', Date.now() - startTime);

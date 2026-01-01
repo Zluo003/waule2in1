@@ -30,16 +30,19 @@ async function fetchImageAsBase64(url: string): Promise<{ mimeType: string; data
   if (url.startsWith('data:')) {
     const matches = url.match(/^data:([^;]+);base64,(.+)$/);
     if (matches) {
+      log('gemini', 'Using base64 image data', { mimeType: matches[1], dataLength: matches[2].length });
       return { mimeType: matches[1], data: matches[2] };
     }
   } else if (url.startsWith('http')) {
     try {
+      log('gemini', 'Fetching image from URL', { url: url.substring(0, 80) });
       const resp = await axios.get(url, { responseType: 'arraybuffer', timeout: 30000 });
       const mimeType = resp.headers['content-type'] || 'image/jpeg';
       const data = Buffer.from(resp.data).toString('base64');
+      log('gemini', 'Image fetched successfully', { mimeType, dataLength: data.length });
       return { mimeType, data };
     } catch (e: any) {
-      log('gemini', 'Failed to fetch image', { error: e.message });
+      log('gemini', 'Failed to fetch image', { error: e.message, url: url.substring(0, 80) });
     }
   }
   return null;
@@ -145,25 +148,46 @@ export async function generateImage(params: ImageGenerationParams): Promise<Imag
     if (isProxy && proxyBaseUrl) {
       // 中转API - 使用 Bearer token 认证
       const baseUrl = proxyBaseUrl.replace(/\/+$/, '');
-      response = await axios.post(
-        `${baseUrl}/v1beta/models/${actualModel}:generateContent`,
-        requestBody,
-        {
+      const url = `${baseUrl}/v1beta/models/${actualModel}:generateContent`;
+      log('gemini', 'Calling proxy API', { url, partsCount: parts.length });
+      try {
+        response = await axios.post(url, requestBody, {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`,
             'Accept': 'application/json'
           },
           timeout: 300000
-        }
-      );
+        });
+        log('gemini', 'Proxy API response received', { status: response.status });
+      } catch (axiosErr: any) {
+        log('gemini', 'Axios error', {
+          message: axiosErr.message,
+          code: axiosErr.code,
+          status: axiosErr.response?.status,
+          data: JSON.stringify(axiosErr.response?.data)?.slice(0, 500)
+        });
+        throw axiosErr;
+      }
     } else {
       // 官方API - 使用 key 参数认证
-      response = await axios.post(
-        `${GEMINI_API_BASE}/${actualModel}:generateContent?key=${apiKey}`,
-        requestBody,
-        { headers: { 'Content-Type': 'application/json' }, timeout: 300000 }
-      );
+      const url = `${GEMINI_API_BASE}/${actualModel}:generateContent?key=${apiKey}`;
+      log('gemini', 'Calling official API', { model: actualModel });
+      try {
+        response = await axios.post(url, requestBody, {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 300000
+        });
+        log('gemini', 'Official API response received', { status: response.status });
+      } catch (axiosErr: any) {
+        log('gemini', 'Axios error', {
+          message: axiosErr.message,
+          code: axiosErr.code,
+          status: axiosErr.response?.status,
+          data: JSON.stringify(axiosErr.response?.data)?.slice(0, 500)
+        });
+        throw axiosErr;
+      }
     }
 
     const candidates = response.data?.candidates;
@@ -245,8 +269,15 @@ export async function generateImage(params: ImageGenerationParams): Promise<Imag
     } else if (keyRecordId) {
       recordKeyUsage(keyRecordId, false);
     }
-    addRequestLog('gemini', '/images/generations', modelId, 'error', Date.now() - startTime, error.message);
-    log('gemini', 'Image generation failed', { error: error.message });
-    throw new Error(`Gemini image generation failed: ${error.response?.data?.error?.message || error.message}`);
+
+    // 获取详细错误信息
+    const errorDetail = error.response?.data?.error?.message
+      || error.response?.data?.message
+      || JSON.stringify(error.response?.data)
+      || error.message;
+
+    addRequestLog('gemini', '/images/generations', modelId, 'error', Date.now() - startTime, errorDetail);
+    log('gemini', 'Image generation failed', { error: errorDetail, status: error.response?.status });
+    throw new Error(`Gemini image generation failed: ${errorDetail}`);
   }
 }

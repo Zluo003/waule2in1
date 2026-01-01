@@ -54,9 +54,10 @@ export async function generateImage(params: ImageGenerationParams): Promise<Imag
     const results: Array<{ url: string }> = [];
 
     // 处理不同的响应格式
+    const useOss = keyRecord.storage_type === 'oss';
     if (response.data?.image_urls) {
       for (const url of response.data.image_urls) {
-        const finalUrl = await downloadAndUpload(url, '.png', 'minimax');
+        const finalUrl = useOss ? await downloadAndUpload(url, '.png', 'minimax') : url;
         results.push({ url: finalUrl });
       }
     } else if (response.data?.file_id) {
@@ -69,7 +70,8 @@ export async function generateImage(params: ImageGenerationParams): Promise<Imag
         },
         timeout: 30000,
       });
-      const finalUrl = await downloadAndUpload(fileResponse.file?.download_url, '.png', 'minimax');
+      const downloadUrl = fileResponse.file?.download_url;
+      const finalUrl = useOss ? await downloadAndUpload(downloadUrl, '.png', 'minimax') : downloadUrl;
       results.push({ url: finalUrl });
     }
 

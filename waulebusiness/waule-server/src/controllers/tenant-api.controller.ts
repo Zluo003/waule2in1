@@ -4371,6 +4371,13 @@ export const confirmLocalDownload = asyncHandler(async (req: Request, res: Respo
 
   console.log(`[confirmLocalDownload] 收到请求: taskId=${taskId}, tenantId=${tenantUser.tenantId}, directOssUrl=${directOssUrl?.substring(0, 50)}`);
 
+  // 如果开启了跳过服务器转存模式，直接返回成功（URL 转发模式下不需要删除任何文件）
+  const { shouldSkipServerTransfer } = await import('../utils/oss');
+  if (await shouldSkipServerTransfer()) {
+    console.log(`[confirmLocalDownload] ⚠️ storage_mode=original，跳过删除逻辑`);
+    return res.json({ success: true, message: 'URL 转发模式，无需删除' });
+  }
+
   // 查找任务
   const task = await prisma.tenantTask.findFirst({
     where: {

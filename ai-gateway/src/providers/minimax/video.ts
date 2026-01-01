@@ -100,7 +100,10 @@ export async function generateVideo(params: VideoGenerationParams): Promise<Vide
       throw new Error('No video URL in response');
     }
 
-    const finalUrl = await downloadAndUpload(videoUrl, '.mp4', 'minimax');
+    // 国内模型：使用 apikey 的 storage_type
+    const finalUrl = keyRecord.storage_type === 'oss'
+      ? await downloadAndUpload(videoUrl, '.mp4', 'minimax')
+      : videoUrl;
 
     recordKeyUsage(keyRecord.id, true);
     addRequestLog('minimax', '/videos/generations', params.model || 'video-01', 'success', Date.now() - startTime);

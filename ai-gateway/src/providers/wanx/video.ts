@@ -167,7 +167,10 @@ export async function generateVideo(params: VideoGenerationParams): Promise<Vide
     log('wanx', 'Video task created', { taskId });
 
     const videoUrl = await pollTask(taskId, baseUrl, keyRecord.api_key, 'video');
-    const finalUrl = await downloadAndUpload(videoUrl, '.mp4', 'wanx');
+    // 国内模型：使用 apikey 的 storage_type
+    const finalUrl = keyRecord.storage_type === 'oss'
+      ? await downloadAndUpload(videoUrl, '.mp4', 'wanx')
+      : videoUrl;
 
     recordKeyUsage(keyRecord.id, true);
     addRequestLog('wanx', '/videos/generations', model, 'success', Date.now() - startTime);
@@ -225,7 +228,10 @@ export async function retalkVideo(params: RetalkParams): Promise<VideoGeneration
     log('wanx', 'Retalk task created', { taskId });
 
     const videoUrl = await pollTask(taskId, baseUrl, keyRecord.api_key, 'video');
-    const finalUrl = await downloadAndUpload(videoUrl, '.mp4', 'wanx');
+    // 国内模型：使用 apikey 的 storage_type
+    const finalUrl = keyRecord.storage_type === 'oss'
+      ? await downloadAndUpload(videoUrl, '.mp4', 'wanx')
+      : videoUrl;
 
     recordKeyUsage(keyRecord.id, true);
     addRequestLog('wanx', '/videos/retalk', 'videoretalk', 'success', Date.now() - startTime);
@@ -281,7 +287,10 @@ export async function stylizeVideo(params: VideoStylizeParams): Promise<VideoGen
     log('wanx', 'Stylize task created', { taskId });
 
     const videoUrl = await pollTask(taskId, baseUrl, keyRecord.api_key, 'video');
-    const finalUrl = await downloadAndUpload(videoUrl, '.mp4', 'wanx');
+    // 国内模型：使用 apikey 的 storage_type
+    const finalUrl = keyRecord.storage_type === 'oss'
+      ? await downloadAndUpload(videoUrl, '.mp4', 'wanx')
+      : videoUrl;
 
     recordKeyUsage(keyRecord.id, true);
     addRequestLog('wanx', '/videos/stylize', 'video-style-transform', 'success', Date.now() - startTime);

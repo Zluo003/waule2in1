@@ -262,7 +262,7 @@ export function getConfig(key: string): string | null {
 }
 
 export function setConfig(key: string, value: string): void {
-  getDb().prepare('INSERT INTO system_config (key, value, updated_at) VALUES (?, ?, datetime("now")) ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = datetime("now")').run(key, value, value);
+  getDb().prepare("INSERT INTO system_config (key, value, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = datetime('now')").run(key, value, value);
 }
 
 export function getAllConfigs(): Record<string, string> {

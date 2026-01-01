@@ -97,7 +97,10 @@ export async function generateImage(params: ImageGenerationParams): Promise<Imag
     log('wanx', 'Task created', { taskId });
 
     const imageUrl = await pollTask(taskId, baseUrl, keyRecord.api_key);
-    const finalUrl = await downloadAndUpload(imageUrl, '.png', 'wanx');
+    // 国内模型：使用 apikey 的 storage_type
+    const finalUrl = keyRecord.storage_type === 'oss'
+      ? await downloadAndUpload(imageUrl, '.png', 'wanx')
+      : imageUrl;
 
     recordKeyUsage(keyRecord.id, true);
     addRequestLog('wanx', '/images/generations', modelName, 'success', Date.now() - startTime);

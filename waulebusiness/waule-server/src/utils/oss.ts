@@ -49,11 +49,29 @@ function getProxyAgent(): SocksProxyAgent | undefined {
 }
 
 /**
- * 是否跳过服务器转存，让前端自己处理
- * 设置为 true 时，AI 生成的内容 URL 将直接返回给前端，由前端转存到 OSS
- * 这样可以大幅减少服务器带宽消耗
+ * 是否跳过服务器转存（环境变量默认值，优先使用 shouldSkipServerTransfer 函数）
  */
 export const SKIP_SERVER_TRANSFER = process.env.SKIP_SERVER_TRANSFER === 'true';
+
+/**
+ * 动态获取是否跳过服务器转存（优先使用数据库配置）
+ * storage_mode: 'oss' | 'local' | 'original'
+ * - 'original' = 跳过转存，直接返回原始 URL
+ * - 'oss' = 转存到 OSS
+ * - 'local' = 转存到本地
+ */
+export async function shouldSkipServerTransfer(): Promise<boolean> {
+  try {
+    const { settingsService } = await import('../services/settings.service');
+    const storageMode = await settingsService.get('storage_mode');
+    if (storageMode !== null) {
+      return storageMode === 'original';
+    }
+  } catch (e) {
+    // 数据库未初始化或出错，使用环境变量
+  }
+  return process.env.SKIP_SERVER_TRANSFER === 'true';
+}
 
 /**
  * 获取配置的 CDN 域名列表
@@ -65,16 +83,17 @@ export function getOssCdnDomains(): string[] {
 }
 
 /**
- * 判断 URL 是否是 OSS URL（包括原始 OSS 域名和配置的 CDN 域名）
+ * 判断 URL 是否是 OSS URL（只检查自己配置的 OSS bucket 和 CDN 域名）
  * @param url 要检查的 URL
- * @returns 是否是 OSS 相关的 URL
+ * @returns 是否是自己的 OSS/CDN URL
  */
 export function isOssOrCdnUrl(url: string): boolean {
   if (!url) return false;
   const trimmed = url.trim().toLowerCase();
 
-  // 检查是否是原始 OSS 域名
-  if (trimmed.includes('aliyuncs.com')) {
+  // 检查是否是自己配置的 OSS bucket（而不是所有 aliyuncs.com）
+  const ossBucket = process.env.OSS_BUCKET;
+  if (ossBucket && trimmed.includes(`${ossBucket.toLowerCase()}.oss-`)) {
     return true;
   }
 

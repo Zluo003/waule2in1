@@ -1,6 +1,6 @@
 import { httpRequest } from '../../utils/http';
 import { log } from '../../utils/logger';
-import { getActiveApiKey, recordKeyUsage, addRequestLog } from '../../database';
+import { getActiveApiKey, recordKeyUsage, addRequestLog, getActiveChannelForModel } from '../../database';
 import { downloadAndUpload } from '../../services/storage';
 
 const BASE_URL = 'https://ark.cn-beijing.volces.com/api/v3';
@@ -41,13 +41,17 @@ export interface ImageGenerationResult {
 
 export async function generateImage(params: ImageGenerationParams): Promise<ImageGenerationResult> {
   const startTime = Date.now();
+
   const keyRecord = getActiveApiKey('doubao');
   if (!keyRecord) {
     throw new Error('No active API key for doubao');
   }
 
+  // 国内模型：优先使用 apikey 的 storage_type
+  const storageType = keyRecord.storage_type || 'forward';
+
   try {
-    log('doubao', 'Generating image', { model: params.model, prompt: params.prompt.slice(0, 50), maxImages: params.max_images });
+    log('doubao', 'Generating image', { model: params.model, prompt: params.prompt.slice(0, 50), maxImages: params.max_images, storageType });
 
     const requestBody: any = {
       model: params.model || 'doubao-seedream-4-5-251128',
@@ -86,8 +90,16 @@ export async function generateImage(params: ImageGenerationParams): Promise<Imag
 
     const results: Array<{ url: string; revised_prompt?: string }> = [];
     for (const item of response.data || []) {
-      // 优先使用 AI 服务返回的 URL（豆包 CDN），不再重复上传
-      const url = item.url || await downloadAndUpload(item.b64_json, '.png', 'doubao');
+      let url: string;
+      if (storageType === 'oss') {
+        // OSS 模式：下载图片并上传到 OSS
+        const sourceUrl = item.url || item.b64_json;
+        url = await downloadAndUpload(sourceUrl, '.png', 'doubao');
+        log('doubao', 'Uploaded to OSS', { originalUrl: item.url?.slice(0, 50), ossUrl: url });
+      } else {
+        // forward 模式：直接返回原始 URL
+        url = item.url || await downloadAndUpload(item.b64_json, '.png', 'doubao');
+      }
       results.push({ url, revised_prompt: item.revised_prompt });
     }
 
