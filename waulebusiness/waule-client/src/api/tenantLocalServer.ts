@@ -349,12 +349,14 @@ export async function smartUpload(
 
 /**
  * 处理 AI 任务完成：下载结果到本地并通知平台删除 OSS 文件
+ * @param skipConfirm 是否跳过确认删除（当有多个文件需要下载时，应该在所有文件下载完成后再确认）
  */
 export async function handleTaskCompleted(
   taskId: string,
   ossUrl: string,
   type: 'IMAGE' | 'VIDEO' | 'AUDIO',
-  userId: string
+  userId: string,
+  skipConfirm: boolean = false
 ): Promise<{
   success: boolean;
   localUrl?: string;
@@ -372,11 +374,13 @@ export async function handleTaskCompleted(
     return { success: false, error: downloadResult.error };
   }
 
-  // 2. 通知平台删除 OSS 文件
-  // 传递本地URL以更新服务端记录，传递原始ossUrl用于Midjourney等非TenantTask任务
-  confirmDownloadComplete(taskId, downloadResult.localUrl, ossUrl).catch((err) => {
-    console.warn('[handleTaskCompleted] 确认下载失败，OSS 文件将在过期后自动删除:', err);
-  });
+  // 2. 通知平台删除 OSS 文件（如果不跳过）
+  if (!skipConfirm) {
+    // 传递本地URL以更新服务端记录，传递原始ossUrl用于Midjourney等非TenantTask任务
+    confirmDownloadComplete(taskId, downloadResult.localUrl, ossUrl).catch((err) => {
+      console.warn('[handleTaskCompleted] 确认下载失败，OSS 文件将在过期后自动删除:', err);
+    });
+  }
 
   return {
     success: true,

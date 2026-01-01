@@ -4,7 +4,7 @@
  */
 
 import { isLocalStorageEnabled } from '../store/tenantStorageStore';
-import { handleTaskCompleted, downloadResultToLocal } from '../api/tenantLocalServer';
+import { handleTaskCompleted, downloadResultToLocal, confirmDownloadComplete } from '../api/tenantLocalServer';
 import { useTenantAuthStore } from '../store/tenantAuthStore';
 
 export interface TaskResult {
@@ -62,9 +62,12 @@ export async function processTaskResult(result: TaskResult): Promise<ProcessedRe
     const user = useTenantAuthStore.getState().user;
     const userId = user?.id || 'default';
 
-    // 处理主结果 URL
-    const downloadResult = await handleTaskCompleted(taskId, resultUrl, type, userId);
-    
+    // 判断是否有多图需要下载
+    const hasMultipleImages = allImageUrls && allImageUrls.length > 0;
+
+    // 处理主结果 URL（如果有多图，跳过确认删除，等所有文件下载完成后再确认）
+    const downloadResult = await handleTaskCompleted(taskId, resultUrl, type, userId, hasMultipleImages);
+
     let displayUrl = resultUrl;
     let allDisplayUrls = allImageUrls;
     let isLocalStored = false;
@@ -78,16 +81,16 @@ export async function processTaskResult(result: TaskResult): Promise<ProcessedRe
     // 如果有多图，处理所有图片
     if (allImageUrls && allImageUrls.length > 0) {
       const localUrls: string[] = [];
-      
+
       for (let i = 0; i < allImageUrls.length; i++) {
         const imgUrl = allImageUrls[i];
-        
+
         // 如果已经是本地 URL，直接使用
         if (isLocalUrl(imgUrl)) {
           localUrls.push(imgUrl);
           continue;
         }
-        
+
         // 跳过主图片（已经处理过）
         if (imgUrl === resultUrl && downloadResult.localUrl) {
           localUrls.push(downloadResult.localUrl);
@@ -106,6 +109,11 @@ export async function processTaskResult(result: TaskResult): Promise<ProcessedRe
 
       allDisplayUrls = localUrls;
       console.log(`[TaskResultHandler] 多图已下载到本地: ${localUrls.length} 张`);
+
+      // 所有文件下载完成后，再确认删除 OSS 文件
+      confirmDownloadComplete(taskId, displayUrl, resultUrl).catch((err) => {
+        console.warn('[TaskResultHandler] 确认删除失败，OSS 文件将在过期后自动删除:', err);
+      });
     }
 
     return {
