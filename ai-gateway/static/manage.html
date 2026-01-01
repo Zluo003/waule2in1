@@ -260,6 +260,10 @@
                 <a class="nav-item" data-page="foreign"><span class="icon">🌍</span><span>国外模型</span></a>
             </div>
             <div class="nav-section">
+                <div class="nav-section-title">开发</div>
+                <a class="nav-item" data-page="docs"><span class="icon">📖</span><span>API文档</span></a>
+            </div>
+            <div class="nav-section">
                 <div class="nav-section-title">系统</div>
                 <a class="nav-item" data-page="settings"><span class="icon">⚙️</span><span>系统设置</span></a>
                 <a class="nav-item" data-page="logs"><span class="icon">📋</span><span>请求日志</span></a>
@@ -353,6 +357,355 @@
                         <tbody id="logs-table"></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+
+        <!-- API文档 -->
+        <div id="page-docs" class="page">
+            <div class="header"><h2>API 接入文档</h2></div>
+
+            <div class="card">
+                <h3>快速开始</h3>
+                <p style="color:var(--text-secondary);margin-bottom:16px;">所有 API 请求需要在 Header 中携带 API 密钥进行认证</p>
+                <div style="background:var(--bg-card);padding:16px;border-radius:8px;font-family:monospace;font-size:13px;">
+                    <div style="color:var(--text-secondary);margin-bottom:8px;"># 请求头</div>
+                    <div>Authorization: Bearer <span style="color:var(--accent-blue);">&lt;your-api-key&gt;</span></div>
+                    <div style="margin-top:8px;">Content-Type: application/json</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>🎬 视频生成接口</h3>
+                <p style="color:var(--text-secondary);margin-bottom:16px;">统一的视频生成接口，支持多个模型提供商</p>
+
+                <div style="background:var(--bg-card);padding:12px 16px;border-radius:8px;margin-bottom:16px;">
+                    <span style="background:var(--accent-green);color:white;padding:2px 8px;border-radius:4px;font-size:12px;margin-right:8px;">POST</span>
+                    <code>/v1/videos/generations</code>
+                </div>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">支持的模型</h4>
+                <p style="color:var(--accent-blue);font-size:12px;margin-bottom:8px;">▸ 豆包 Doubao</p>
+                <table style="font-size:12px;margin-bottom:16px;">
+                    <thead><tr><th>模型ID</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>doubao-seedance-1-0-pro-250528</code></td><td>专业版，支持首尾帧，5/10秒，720p/1080p</td></tr>
+                        <tr><td><code>doubao-seedance-1-0-lite-250428</code></td><td>轻量版，快速生成</td></tr>
+                    </tbody>
+                </table>
+                <p style="color:var(--accent-blue);font-size:12px;margin-bottom:8px;">▸ Vidu</p>
+                <table style="font-size:12px;margin-bottom:16px;">
+                    <thead><tr><th>模型ID</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>vidu-2.0</code></td><td>文生视频/图生视频，4/8秒，支持首尾帧、音视频直出</td></tr>
+                        <tr><td><code>vidu-2.0-master</code></td><td>大师版，更高质量</td></tr>
+                    </tbody>
+                </table>
+                <p style="color:var(--accent-blue);font-size:12px;margin-bottom:8px;">▸ MiniMax</p>
+                <table style="font-size:12px;margin-bottom:16px;">
+                    <thead><tr><th>模型ID</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>video-01</code></td><td>海螺视频生成，支持首尾帧</td></tr>
+                    </tbody>
+                </table>
+                <p style="color:var(--accent-blue);font-size:12px;margin-bottom:8px;">▸ Sora</p>
+                <table style="font-size:12px;margin-bottom:16px;">
+                    <thead><tr><th>模型ID</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>sora-2</code></td><td>OpenAI Sora 视频生成</td></tr>
+                        <tr><td><code>sora-2-hd</code></td><td>高清版本</td></tr>
+                    </tbody>
+                </table>
+                <p style="color:var(--accent-blue);font-size:12px;margin-bottom:8px;">▸ Google Veo</p>
+                <table style="font-size:12px;">
+                    <thead><tr><th>模型ID</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>veo3.1</code></td><td>Google Veo 视频生成</td></tr>
+                        <tr><td><code>veo3.1-pro</code></td><td>专业版</td></tr>
+                        <tr><td><code>veo3.1-components</code></td><td>组件版</td></tr>
+                    </tbody>
+                </table>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">请求参数</h4>
+                <table style="font-size:12px;">
+                    <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>model</code></td><td>string</td><td>是</td><td>模型ID</td></tr>
+                        <tr><td><code>prompt</code></td><td>string</td><td>是</td><td>视频描述提示词</td></tr>
+                        <tr><td><code>first_frame_image</code></td><td>string</td><td>否</td><td>首帧图片URL（图生视频）</td></tr>
+                        <tr><td><code>last_frame_image</code></td><td>string</td><td>否</td><td>尾帧图片URL（首尾帧模式）</td></tr>
+                        <tr><td><code>aspect_ratio</code></td><td>string</td><td>否</td><td>宽高比：16:9, 9:16, 1:1</td></tr>
+                        <tr><td><code>duration</code></td><td>number</td><td>否</td><td>视频时长（秒）：4, 8, 10</td></tr>
+                    </tbody>
+                </table>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">请求示例</h4>
+                <pre style="background:var(--bg-card);padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;"><code>{
+  "model": "vidu-2.0",
+  "prompt": "一只可爱的猫咪在草地上奔跑",
+  "aspect_ratio": "16:9",
+  "duration": 4
+}</code></pre>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">响应示例</h4>
+                <pre style="background:var(--bg-card);padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;"><code>{
+  "id": "task_abc123",
+  "status": "processing",
+  "created_at": 1704067200
+}</code></pre>
+            </div>
+
+            <div class="card">
+                <h3>🔺 Vidu 视频超清接口</h3>
+                <p style="color:var(--text-secondary);margin-bottom:16px;">将视频提升至更高分辨率</p>
+
+                <div style="background:var(--bg-card);padding:12px 16px;border-radius:8px;margin-bottom:16px;">
+                    <span style="background:var(--accent-green);color:white;padding:2px 8px;border-radius:4px;font-size:12px;margin-right:8px;">POST</span>
+                    <code>/v1/videos/upscale</code>
+                </div>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">请求参数</h4>
+                <table style="font-size:12px;">
+                    <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>video_url</code></td><td>string</td><td>是*</td><td>视频URL（与 video_creation_id 二选一）</td></tr>
+                        <tr><td><code>video_creation_id</code></td><td>string</td><td>是*</td><td>Vidu 视频创建ID</td></tr>
+                        <tr><td><code>upscale_resolution</code></td><td>string</td><td>否</td><td>目标分辨率：1080p（默认）</td></tr>
+                    </tbody>
+                </table>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">请求示例</h4>
+                <pre style="background:var(--bg-card);padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;"><code>{
+  "video_url": "https://example.com/video.mp4",
+  "upscale_resolution": "1080p"
+}</code></pre>
+            </div>
+
+            <div class="card">
+                <h3>📺 Vidu 商业视频接口</h3>
+                <p style="color:var(--text-secondary);margin-bottom:16px;">一键生成商业广告视频</p>
+
+                <div style="background:var(--bg-card);padding:12px 16px;border-radius:8px;margin-bottom:16px;">
+                    <span style="background:var(--accent-green);color:white;padding:2px 8px;border-radius:4px;font-size:12px;margin-right:8px;">POST</span>
+                    <code>/v1/videos/commercial</code>
+                </div>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">请求参数</h4>
+                <table style="font-size:12px;">
+                    <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>images</code></td><td>array</td><td>是</td><td>产品图片URL数组</td></tr>
+                        <tr><td><code>prompt</code></td><td>string</td><td>否</td><td>视频描述</td></tr>
+                        <tr><td><code>duration</code></td><td>number</td><td>否</td><td>视频时长，默认15秒</td></tr>
+                        <tr><td><code>aspect_ratio</code></td><td>string</td><td>否</td><td>宽高比，默认16:9</td></tr>
+                        <tr><td><code>language</code></td><td>string</td><td>否</td><td>语言：zh（默认）、en</td></tr>
+                    </tbody>
+                </table>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">请求示例</h4>
+                <pre style="background:var(--bg-card);padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;"><code>{
+  "images": ["https://example.com/product1.jpg", "https://example.com/product2.jpg"],
+  "prompt": "展示产品特点",
+  "duration": 15,
+  "language": "zh"
+}</code></pre>
+            </div>
+
+            <div class="card">
+                <h3>🖼️ 图片生成接口</h3>
+                <p style="color:var(--text-secondary);margin-bottom:16px;">统一的图片生成接口，兼容 OpenAI 格式</p>
+
+                <div style="background:var(--bg-card);padding:12px 16px;border-radius:8px;margin-bottom:16px;">
+                    <span style="background:var(--accent-green);color:white;padding:2px 8px;border-radius:4px;font-size:12px;margin-right:8px;">POST</span>
+                    <code>/v1/images/generations</code>
+                </div>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">支持的模型</h4>
+                <p style="color:var(--accent-blue);font-size:12px;margin-bottom:8px;">▸ 豆包 Doubao</p>
+                <table style="font-size:12px;margin-bottom:16px;">
+                    <thead><tr><th>模型ID</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>doubao-seedream-4-5-251128</code></td><td>SeeDream 4.5，支持组图生成(1-15张)、参考图</td></tr>
+                    </tbody>
+                </table>
+                <p style="color:var(--accent-blue);font-size:12px;margin-bottom:8px;">▸ MiniMax</p>
+                <table style="font-size:12px;margin-bottom:16px;">
+                    <thead><tr><th>模型ID</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>image-01</code></td><td>MiniMax 图片生成，支持主体参考</td></tr>
+                    </tbody>
+                </table>
+                <p style="color:var(--accent-blue);font-size:12px;margin-bottom:8px;">▸ Gemini</p>
+                <table style="font-size:12px;">
+                    <thead><tr><th>模型ID</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>gemini-3-pro-image-preview</code></td><td>Gemini 3 Pro 图片生成</td></tr>
+                    </tbody>
+                </table>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">请求参数</h4>
+                <table style="font-size:12px;">
+                    <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>model</code></td><td>string</td><td>是</td><td>模型ID</td></tr>
+                        <tr><td><code>prompt</code></td><td>string</td><td>是</td><td>图片描述提示词</td></tr>
+                        <tr><td><code>n</code></td><td>number</td><td>否</td><td>生成数量，默认1</td></tr>
+                        <tr><td><code>size</code></td><td>string</td><td>否</td><td>宽高比：1:1, 16:9, 9:16, 4:3, 3:4 等</td></tr>
+                        <tr><td><code>max_images</code></td><td>number</td><td>否</td><td>组图数量(1-15)，仅豆包 SeeDream 4.5</td></tr>
+                        <tr><td><code>reference_images</code></td><td>array</td><td>否</td><td>参考图片URL数组</td></tr>
+                    </tbody>
+                </table>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">请求示例</h4>
+                <pre style="background:var(--bg-card);padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;"><code>{
+  "model": "doubao-seedream-4-5-251128",
+  "prompt": "一幅美丽的山水画，中国风格",
+  "n": 1,
+  "size": "1:1"
+}</code></pre>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">响应示例</h4>
+                <pre style="background:var(--bg-card);padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;"><code>{
+  "created": 1704067200,
+  "data": [
+    {
+      "url": "https://example.com/image.png",
+      "revised_prompt": "..."
+    }
+  ]
+}</code></pre>
+            </div>
+
+            <div class="card">
+                <h3>💬 对话生成接口</h3>
+                <p style="color:var(--text-secondary);margin-bottom:16px;">兼容 OpenAI Chat Completions 格式</p>
+
+                <div style="background:var(--bg-card);padding:12px 16px;border-radius:8px;margin-bottom:16px;">
+                    <span style="background:var(--accent-green);color:white;padding:2px 8px;border-radius:4px;font-size:12px;margin-right:8px;">POST</span>
+                    <code>/v1/chat/completions</code>
+                </div>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">支持的模型</h4>
+                <p style="color:var(--accent-blue);font-size:12px;margin-bottom:8px;">▸ Gemini</p>
+                <table style="font-size:12px;">
+                    <thead><tr><th>模型ID</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>gemini-3-pro-preview</code></td><td>Gemini 3 Pro 对话模型</td></tr>
+                        <tr><td><code>gemini-3-flash-preview</code></td><td>Gemini 3 Flash 快速模型</td></tr>
+                    </tbody>
+                </table>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">请求参数</h4>
+                <table style="font-size:12px;">
+                    <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>model</code></td><td>string</td><td>是</td><td>模型ID</td></tr>
+                        <tr><td><code>messages</code></td><td>array</td><td>是</td><td>消息数组</td></tr>
+                        <tr><td><code>stream</code></td><td>boolean</td><td>否</td><td>是否流式输出</td></tr>
+                        <tr><td><code>temperature</code></td><td>number</td><td>否</td><td>温度参数 0-2</td></tr>
+                        <tr><td><code>max_tokens</code></td><td>number</td><td>否</td><td>最大输出token数</td></tr>
+                    </tbody>
+                </table>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">请求示例</h4>
+                <pre style="background:var(--bg-card);padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;"><code>{
+  "model": "gemini-3-flash-preview",
+  "messages": [
+    {"role": "user", "content": "你好，请介绍一下自己"}
+  ],
+  "stream": false
+}</code></pre>
+            </div>
+
+            <div class="card">
+                <h3>🔊 语音合成接口</h3>
+                <p style="color:var(--text-secondary);margin-bottom:16px;">文本转语音接口</p>
+
+                <div style="background:var(--bg-card);padding:12px 16px;border-radius:8px;margin-bottom:16px;">
+                    <span style="background:var(--accent-green);color:white;padding:2px 8px;border-radius:4px;font-size:12px;margin-right:8px;">POST</span>
+                    <code>/v1/audio/speech</code>
+                </div>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">支持的模型</h4>
+                <p style="color:var(--accent-blue);font-size:12px;margin-bottom:8px;">▸ MiniMax</p>
+                <table style="font-size:12px;">
+                    <thead><tr><th>模型ID</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>speech-01</code></td><td>MiniMax 语音合成，支持多种音色</td></tr>
+                    </tbody>
+                </table>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">请求参数</h4>
+                <table style="font-size:12px;">
+                    <thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>model</code></td><td>string</td><td>是</td><td>模型ID</td></tr>
+                        <tr><td><code>input</code></td><td>string</td><td>是</td><td>要转换的文本</td></tr>
+                        <tr><td><code>voice</code></td><td>string</td><td>否</td><td>音色ID</td></tr>
+                        <tr><td><code>speed</code></td><td>number</td><td>否</td><td>语速 0.5-2.0</td></tr>
+                    </tbody>
+                </table>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">请求示例</h4>
+                <pre style="background:var(--bg-card);padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;"><code>{
+  "model": "speech-01",
+  "input": "你好，欢迎使用AI Gateway",
+  "voice": "female-shaonv",
+  "speed": 1.0
+}</code></pre>
+            </div>
+
+            <div class="card">
+                <h3>📋 任务查询接口</h3>
+                <p style="color:var(--text-secondary);margin-bottom:16px;">查询异步任务状态</p>
+
+                <div style="background:var(--bg-card);padding:12px 16px;border-radius:8px;margin-bottom:16px;">
+                    <span style="background:var(--accent-blue);color:white;padding:2px 8px;border-radius:4px;font-size:12px;margin-right:8px;">GET</span>
+                    <code>/v1/videos/generations/:taskId</code>
+                </div>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">响应示例</h4>
+                <pre style="background:var(--bg-card);padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;"><code>{
+  "id": "task_abc123",
+  "status": "succeeded",
+  "video_url": "https://example.com/video.mp4",
+  "created_at": 1704067200,
+  "completed_at": 1704067260
+}</code></pre>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">任务状态说明</h4>
+                <table style="font-size:12px;">
+                    <thead><tr><th>状态</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>pending</code></td><td>任务已提交，等待处理</td></tr>
+                        <tr><td><code>processing</code></td><td>任务正在处理中</td></tr>
+                        <tr><td><code>succeeded</code></td><td>任务完成</td></tr>
+                        <tr><td><code>failed</code></td><td>任务失败</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h3>❌ 错误码说明</h3>
+                <table style="font-size:12px;">
+                    <thead><tr><th>HTTP状态码</th><th>错误码</th><th>说明</th></tr></thead>
+                    <tbody>
+                        <tr><td>400</td><td>invalid_request</td><td>请求参数错误</td></tr>
+                        <tr><td>401</td><td>unauthorized</td><td>API密钥无效或未提供</td></tr>
+                        <tr><td>403</td><td>forbidden</td><td>无权访问该资源</td></tr>
+                        <tr><td>404</td><td>not_found</td><td>资源不存在</td></tr>
+                        <tr><td>429</td><td>rate_limit</td><td>请求频率超限</td></tr>
+                        <tr><td>500</td><td>internal_error</td><td>服务器内部错误</td></tr>
+                        <tr><td>503</td><td>service_unavailable</td><td>服务暂时不可用</td></tr>
+                    </tbody>
+                </table>
+
+                <h4 style="font-size:14px;margin:16px 0 8px;">错误响应示例</h4>
+                <pre style="background:var(--bg-card);padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;"><code>{
+  "error": {
+    "code": "invalid_request",
+    "message": "The 'prompt' field is required"
+  }
+}</code></pre>
             </div>
         </div>
     </main>
