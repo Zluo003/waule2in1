@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { apiClient } from '../../../lib/api';
 import { processImageUrl } from '../../../utils/imageUtils';
 import { processTaskResult } from '../../../utils/taskResultHandler';
-import { sliceImageGrid, base64ToBlob } from '../../../utils/imageGridSlicer';
 import { useBillingEstimate } from '../../../hooks/useBillingEstimate';
 
 interface SmartStoryboardNodeData {
@@ -29,7 +28,7 @@ interface SmartStoryboardNodeData {
 const ASPECT_RATIOS = ['16:9', '9:16'];
 
 // 模型ID
-const TEXT_MODEL_ID = 'gemini-3-pro-preview'; // 第一步：文字生成
+const DEFAULT_TEXT_MODEL_ID = 'gemini-3-pro-preview'; // 第一步：文字生成（默认）
 const IMAGE_MODEL_ID = 'gemini-3-pro-image-preview'; // 第二步：图片生成
 const MAX_INPUT_IMAGES = 5; // 最多输入图片数
 
@@ -246,7 +245,8 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       // 从后台获取配置的提示词
       let systemPrompt = '你是一个专业的分镜师，根据用户提供的图片和剧情简述，生成详细的9个分镜描述。每个分镜应包含场景、动作、镜头角度等信息。';
       let imagePrompt = '根据以下分镜描述和参考图片，生成3x3的九宫格分镜图，每个格子展示一个分镜场景，保持角色和风格一致，使用细黑边框分隔每个画面。';
-      
+      let textModelId = DEFAULT_TEXT_MODEL_ID; // 默认文本模型
+
       try {
         const res = await apiClient.get('/node-prompts/type/smartStoryboard');
         if (res.success && res.data) {
@@ -255,6 +255,12 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           }
           if (res.data.userPromptTemplate) {
             imagePrompt = res.data.userPromptTemplate;
+          }
+          // 从 variables 中读取配置的文本模型
+          const vars = res.data.variables || [];
+          const textModelVar = vars.find((v: any) => v.name === '__textModel__');
+          if (textModelVar?.value) {
+            textModelId = textModelVar.value;
           }
         }
       } catch (e) {
@@ -275,7 +281,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
       // ========== 第一步：调用文字模型生成分镜描述 ==========
 
       const textResponse = await apiClient.ai.text.generate({
-        modelId: TEXT_MODEL_ID,
+        modelId: textModelId,
         systemPrompt: systemPrompt,
         prompt: userPrompt,
         imageUrls: processedImages,
@@ -417,81 +423,24 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
   const handleSliceAndCreatePreviews = async (imageUrl: string) => {
     try {
-      // 先将远程图片转换为base64以避免CORS问题
-      let imageToSlice = imageUrl;
-      if (!imageUrl.startsWith('data:')) {
-        try {
-          const proxyResponse = await apiClient.assets.proxyDownload(imageUrl);
-          const blob = new Blob([proxyResponse], { type: 'image/png' });
-          imageToSlice = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        } catch (fetchError) {
-          // 代理下载失败，尝试直接切割
-        }
+      toast.info('正在切割分镜图片...');
+
+      // 调用后端 API 进行图片切割
+      const res = await apiClient.post('/assets/slice-image', {
+        imageUrl,
+        rows: 3,
+        cols: 3,
+      });
+
+      if (!res.success || !res.data?.urls) {
+        throw new Error(res.message || '切割失败');
       }
 
-      // 固定3x3九宫格
-      const result = await sliceImageGrid(imageToSlice, 3, 3);
-
-      // 并行上传所有切片到服务器
-      const TIMEOUT_MS = 30000; // 30秒超时
-
-      toast.info(`开始上传 ${result.slices.length} 个分镜...`);
-
-      // 创建所有上传任务
-      const uploadTasks = result.slices.map(async (base64, i) => {
-        try {
-          const blob = base64ToBlob(base64, 'image/png');
-          const fileName = `storyboard_${id}_slice_${i + 1}_${Date.now()}.png`;
-          const file = new File([blob], fileName, { type: 'image/png' });
-
-          const uploadPromise = apiClient.assets.upload(file);
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('上传超时')), TIMEOUT_MS)
-          );
-
-          const uploadResult = await Promise.race([uploadPromise, timeoutPromise]) as any;
-
-          if (uploadResult.success && uploadResult.data?.url) {
-            return { success: true, url: uploadResult.data.url, index: i + 1 };
-          } else {
-            console.error(`分镜 ${i + 1} 上传失败:`, uploadResult.message);
-            return { success: false, index: i + 1, error: uploadResult.message };
-          }
-        } catch (error: any) {
-          console.error(`分镜 ${i + 1} 处理失败:`, error);
-          return { success: false, index: i + 1, error: error.message };
-        }
-      });
-
-      // 并行执行所有上传任务
-      const results = await Promise.all(uploadTasks);
-
-      // 收集成功上传的URL和失败的索引
-      const savedUrls: string[] = [];
-      const failedIndexes: number[] = [];
-
-      results.forEach(result => {
-        if (result.success && result.url) {
-          savedUrls.push(result.url);
-        } else {
-          failedIndexes.push(result.index);
-        }
-      });
-
+      const savedUrls = res.data.urls as string[];
       updateNodeData({ slicedImages: savedUrls });
+      toast.success(`成功生成 ${savedUrls.length} 个分镜`);
 
-      if (failedIndexes.length > 0) {
-        toast.error(`分镜 ${failedIndexes.join(', ')} 上传失败`);
-      } else {
-        toast.success(`成功生成 ${savedUrls.length} 个分镜`);
-      }
-
-      // 只为成功上传的图片创建预览节点
+      // 创建预览节点
       createAllPreviewNodes(savedUrls, aspectRatio);
     } catch (error: any) {
       toast.error('图片切割失败: ' + error.message);

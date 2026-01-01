@@ -19,6 +19,7 @@ interface Variable {
   name: string;
   desc: string;
   example?: string;
+  value?: string; // 用于存储配置值（如 __textModel__）
 }
 
 // 高清放大节点可用变量
@@ -81,6 +82,7 @@ const NodePromptsPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [textModels, setTextModels] = useState<Array<{ value: string; label: string }>>([]);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     system: true,
     user: true,
@@ -98,6 +100,7 @@ const NodePromptsPage = () => {
     enhancePromptTemplate: '',
     variables: [] as Variable[],
     isActive: true,
+    textModel: '', // 文本模型（智能分镜用）
   });
 
   // 加载模板列表
@@ -115,14 +118,34 @@ const NodePromptsPage = () => {
     }
   };
 
+  // 加载文本模型列表
+  const loadTextModels = async () => {
+    try {
+      const res = await apiClient.admin.getAIModels({ type: 'TEXT_GENERATION' });
+      if (res.success && res.data) {
+        const models = res.data.map((m: any) => ({
+          value: m.modelId,
+          label: m.name || m.modelId,
+        }));
+        setTextModels(models);
+      }
+    } catch (error) {
+      console.log('加载文本模型列表失败');
+    }
+  };
+
   useEffect(() => {
     loadTemplates();
+    loadTextModels();
   }, []);
 
   // 选择模板
   const handleSelectTemplate = (template: NodePromptTemplate) => {
     setSelectedTemplate(template);
     setIsCreating(false);
+    // 从 variables 中提取 textModel（如果有）
+    const vars = template.variables || [];
+    const textModelVar = vars.find((v: any) => v.name === '__textModel__');
     setFormData({
       nodeType: template.nodeType,
       name: template.name,
@@ -130,8 +153,9 @@ const NodePromptsPage = () => {
       systemPrompt: template.systemPrompt || '',
       userPromptTemplate: template.userPromptTemplate,
       enhancePromptTemplate: template.enhancePromptTemplate || '',
-      variables: template.variables || [],
+      variables: vars.filter((v: any) => !v.name?.startsWith('__')),
       isActive: template.isActive,
+      textModel: textModelVar?.value || '',
     });
   };
 
@@ -148,6 +172,7 @@ const NodePromptsPage = () => {
       enhancePromptTemplate: '',
       variables: [],
       isActive: true,
+      textModel: '',
     });
   };
 
@@ -214,17 +239,27 @@ const NodePromptsPage = () => {
       return;
     }
 
+    // 构建保存数据，将 textModel 存入 variables
+    const saveData = {
+      ...formData,
+      variables: [
+        ...formData.variables,
+        // 如果有 textModel，添加到 variables
+        ...(formData.textModel ? [{ name: '__textModel__', desc: '文本模型', value: formData.textModel }] : []),
+      ],
+    };
+
     try {
       setSaving(true);
       if (isCreating) {
-        const res = await apiClient.nodePrompts.create(formData);
+        const res = await apiClient.nodePrompts.create(saveData);
         if (res.success) {
           toast.success('创建成功');
           await loadTemplates();
           handleSelectTemplate(res.data);
         }
       } else if (selectedTemplate) {
-        const res = await apiClient.nodePrompts.update(selectedTemplate.id, formData);
+        const res = await apiClient.nodePrompts.update(selectedTemplate.id, saveData);
         if (res.success) {
           toast.success('保存成功');
           await loadTemplates();
@@ -608,6 +643,26 @@ const NodePromptsPage = () => {
                   </div>
                 ) : formData.nodeType === 'smartStoryboard' ? (
                   <div className="space-y-3">
+                    {/* 文本模型选择 */}
+                    <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+                      <label className="block text-sm font-medium text-purple-300 mb-2">
+                        🤖 第一步文本模型
+                      </label>
+                      <select
+                        value={formData.textModel}
+                        onChange={(e) => setFormData({ ...formData, textModel: e.target.value })}
+                        className="w-full px-3 py-2 bg-black/30 border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                      >
+                        <option value="" className="bg-gray-800">使用默认模型 (gemini-3-pro-preview)</option>
+                        {textModels.map((m) => (
+                          <option key={m.value} value={m.value} className="bg-gray-800">
+                            {m.label}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-purple-400/70 mt-1">用于生成分镜描述文字</p>
+                    </div>
+
                     <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-sm">
                       <p className="font-medium mb-2 text-cyan-300">🎬 智能分镜可用变量（点击复制）</p>
                       <div className="grid grid-cols-1 gap-2">
