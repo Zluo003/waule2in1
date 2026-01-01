@@ -1,4 +1,4 @@
-import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
+import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
@@ -9,24 +9,15 @@ if (!fs.existsSync(DATA_DIR)) {
 
 const DB_PATH = path.join(DATA_DIR, 'gateway.db');
 
-let db: SqlJsDatabase | null = null;
-
-// 保存数据库到文件
-function saveDatabase() {
-  if (db) {
-    const data = db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(DB_PATH, buffer);
-  }
-}
+let db: Database.Database | null = null;
 
 // 初始化默认渠道和模型配置
 function initDefaultChannels() {
   if (!db) return;
 
   // 检查是否已有渠道数据
-  const existingChannels = db.exec('SELECT COUNT(*) FROM channels');
-  if (existingChannels.length > 0 && Number(existingChannels[0].values[0][0]) > 0) {
+  const count = db.prepare('SELECT COUNT(*) as count FROM channels').pluck().get() as number;
+  if (count > 0) {
     return; // 已有数据，跳过初始化
   }
 
@@ -71,19 +62,18 @@ function initDefaultChannels() {
 
   // 插入渠道并记录 ID
   const channelIds: Record<string, number> = {};
+  const insertChannel = db.prepare('INSERT INTO channels (name, provider, channel_type) VALUES (?, ?, ?)');
   for (const ch of defaultChannels) {
-    db.run('INSERT INTO channels (name, provider, channel_type) VALUES (?, ?, ?)',
-      [ch.name, ch.provider, ch.channel_type]);
-    const result = db.exec('SELECT last_insert_rowid()');
-    channelIds[ch.provider] = Number(result[0].values[0][0]);
+    const result = insertChannel.run(ch.name, ch.provider, ch.channel_type);
+    channelIds[ch.provider] = Number(result.lastInsertRowid);
   }
 
   // 插入模型渠道映射
+  const insertModelChannel = db.prepare('INSERT INTO model_channels (model_name, channel_id) VALUES (?, ?)');
   for (const m of defaultModels) {
     const channelId = channelIds[m.provider];
     if (channelId) {
-      db.run('INSERT INTO model_channels (model_name, channel_id) VALUES (?, ?)',
-        [m.model_name, channelId]);
+      insertModelChannel.run(m.model_name, channelId);
     }
   }
 
@@ -94,12 +84,12 @@ function initDefaultChannels() {
 function initTables() {
   if (!db) return;
 
-  db.run(`CREATE TABLE IF NOT EXISTS system_config (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-  db.run(`CREATE TABLE IF NOT EXISTS api_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, name TEXT NOT NULL, api_key TEXT NOT NULL, is_active INTEGER DEFAULT 1, use_count INTEGER DEFAULT 0, success_count INTEGER DEFAULT 0, fail_count INTEGER DEFAULT 0, last_used_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, storage_type TEXT DEFAULT 'forward')`);
-  db.run(`CREATE TABLE IF NOT EXISTS request_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, endpoint TEXT NOT NULL, model TEXT, status TEXT NOT NULL, duration INTEGER, error_message TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+  db.prepare(`CREATE TABLE IF NOT EXISTS system_config (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`).run();
+  db.prepare(`CREATE TABLE IF NOT EXISTS api_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, name TEXT NOT NULL, api_key TEXT NOT NULL, is_active INTEGER DEFAULT 1, use_count INTEGER DEFAULT 0, success_count INTEGER DEFAULT 0, fail_count INTEGER DEFAULT 0, last_used_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, storage_type TEXT DEFAULT 'forward')`).run();
+  db.prepare(`CREATE TABLE IF NOT EXISTS request_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, endpoint TEXT NOT NULL, model TEXT, status TEXT NOT NULL, duration INTEGER, error_message TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`).run();
 
   // 渠道表 - 支持官方和多个中转
-  db.run(`CREATE TABLE IF NOT EXISTS channels (
+  db.prepare(`CREATE TABLE IF NOT EXISTS channels (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     provider TEXT NOT NULL,
@@ -111,10 +101,10 @@ function initTables() {
     success_count INTEGER DEFAULT 0,
     fail_count INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
+  )`).run();
 
   // 渠道密钥表 - 支持一个渠道多个key轮询
-  db.run(`CREATE TABLE IF NOT EXISTS channel_keys (
+  db.prepare(`CREATE TABLE IF NOT EXISTS channel_keys (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     channel_id INTEGER NOT NULL,
     name TEXT NOT NULL,
@@ -127,10 +117,10 @@ function initTables() {
     last_used_at DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (channel_id) REFERENCES channels(id)
-  )`);
+  )`).run();
 
   // 模型渠道映射表 - 每个模型只能配置一个渠道
-  db.run(`CREATE TABLE IF NOT EXISTS model_channels (
+  db.prepare(`CREATE TABLE IF NOT EXISTS model_channels (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     model_name TEXT NOT NULL UNIQUE,
     channel_id INTEGER NOT NULL,
@@ -138,37 +128,37 @@ function initTables() {
     is_active INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (channel_id) REFERENCES channels(id)
-  )`);
+  )`).run();
 
   // 迁移：为旧数据添加 target_models 字段
   try {
-    db.run(`ALTER TABLE model_channels ADD COLUMN target_models TEXT`);
+    db.prepare(`ALTER TABLE model_channels ADD COLUMN target_models TEXT`).run();
   } catch (e) {
     // 字段已存在，忽略
   }
 
-  db.run(`CREATE INDEX IF NOT EXISTS idx_api_keys_provider ON api_keys(provider)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_request_logs_provider ON request_logs(provider)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_channels_provider ON channels(provider)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_channel_keys_channel ON channel_keys(channel_id)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_model_channels_model ON model_channels(model_name)`);
+  db.prepare(`CREATE INDEX IF NOT EXISTS idx_api_keys_provider ON api_keys(provider)`).run();
+  db.prepare(`CREATE INDEX IF NOT EXISTS idx_request_logs_provider ON request_logs(provider)`).run();
+  db.prepare(`CREATE INDEX IF NOT EXISTS idx_channels_provider ON channels(provider)`).run();
+  db.prepare(`CREATE INDEX IF NOT EXISTS idx_channel_keys_channel ON channel_keys(channel_id)`).run();
+  db.prepare(`CREATE INDEX IF NOT EXISTS idx_model_channels_model ON model_channels(model_name)`).run();
 
   // 迁移：为 channels 表添加 storage_type 字段
   try {
-    db.run(`ALTER TABLE channels ADD COLUMN storage_type TEXT DEFAULT 'forward'`);
+    db.prepare(`ALTER TABLE channels ADD COLUMN storage_type TEXT DEFAULT 'forward'`).run();
   } catch (e) {
     // 字段已存在，忽略
   }
 
   // 迁移：为 channel_keys 表添加 consecutive_fails 字段
   try {
-    db.run(`ALTER TABLE channel_keys ADD COLUMN consecutive_fails INTEGER DEFAULT 0`);
+    db.prepare(`ALTER TABLE channel_keys ADD COLUMN consecutive_fails INTEGER DEFAULT 0`).run();
   } catch (e) {
     // 字段已存在，忽略
   }
 
   // Midjourney Discord 账号表
-  db.run(`CREATE TABLE IF NOT EXISTS discord_accounts (
+  db.prepare(`CREATE TABLE IF NOT EXISTS discord_accounts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     user_token TEXT NOT NULL,
@@ -181,10 +171,10 @@ function initTables() {
     last_error TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_token)
-  )`);
+  )`).run();
 
   // Midjourney 任务表
-  db.run(`CREATE TABLE IF NOT EXISTS mj_tasks (
+  db.prepare(`CREATE TABLE IF NOT EXISTS mj_tasks (
     task_id TEXT PRIMARY KEY,
     user_id TEXT,
     account_id INTEGER,
@@ -199,13 +189,13 @@ function initTables() {
     fail_reason TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
+  )`).run();
 
-  db.run(`CREATE INDEX IF NOT EXISTS idx_mj_tasks_status ON mj_tasks(status)`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_mj_tasks_user ON mj_tasks(user_id)`);
+  db.prepare(`CREATE INDEX IF NOT EXISTS idx_mj_tasks_status ON mj_tasks(status)`).run();
+  db.prepare(`CREATE INDEX IF NOT EXISTS idx_mj_tasks_user ON mj_tasks(user_id)`).run();
 
   // Sora 中转 API 配置表
-  db.run(`CREATE TABLE IF NOT EXISTS sora_proxy_config (
+  db.prepare(`CREATE TABLE IF NOT EXISTS sora_proxy_config (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     provider TEXT DEFAULT 'future-api',
     base_url TEXT DEFAULT 'https://future-api.vodeshop.com',
@@ -218,12 +208,12 @@ function initTables() {
     last_error TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
+  )`).run();
 
   // 初始化 Sora 配置（如果不存在）
-  const soraConfig = db.exec('SELECT id FROM sora_proxy_config LIMIT 1');
-  if (soraConfig.length === 0 || soraConfig[0].values.length === 0) {
-    db.run('INSERT INTO sora_proxy_config (provider, base_url) VALUES (?, ?)', ['future-api', 'https://future-api.vodeshop.com']);
+  const soraConfig = db.prepare('SELECT id FROM sora_proxy_config LIMIT 1').get();
+  if (!soraConfig) {
+    db.prepare('INSERT INTO sora_proxy_config (provider, base_url) VALUES (?, ?)').run('future-api', 'https://future-api.vodeshop.com');
   }
 
   // 初始化默认渠道和模型配置（如果不存在）
@@ -238,44 +228,47 @@ function initTables() {
     'mj_version_id': process.env.MJ_VERSION_ID || '',
   };
 
+  const insertConfig = db.prepare('INSERT OR IGNORE INTO system_config (key, value) VALUES (?, ?)');
   for (const [key, value] of Object.entries(defaultConfigs)) {
-    db.run('INSERT OR IGNORE INTO system_config (key, value) VALUES (?, ?)', [key, value]);
+    insertConfig.run(key, value);
   }
 }
 
 // 初始化数据库（必须在应用启动时调用）
+// 初始化数据库（必须在应用启动时调用）
 export async function initDatabase(): Promise<void> {
-  const SQL = await initSqlJs();
-  if (fs.existsSync(DB_PATH)) {
-    const buffer = fs.readFileSync(DB_PATH);
-    db = new SQL.Database(buffer);
-  } else {
-    db = new SQL.Database();
+  // Ensure data directory exists
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
   }
+
+  db = new Database(DB_PATH);
+  db.pragma('journal_mode = WAL');
+
   initTables();
-  saveDatabase();
+  // saveDatabase is no longer needed as better-sqlite3 writes to disk immediately
 }
 
-function getDb(): SqlJsDatabase {
+function getDb(): Database.Database {
   if (!db) throw new Error('Database not initialized. Call initDatabase() first.');
   return db;
 }
 
 // 配置操作
+// 配置操作
 export function getConfig(key: string): string | null {
-  const result = getDb().exec('SELECT value FROM system_config WHERE key = ?', [key]);
-  return result.length > 0 && result[0].values.length > 0 ? String(result[0].values[0][0]) : null;
+  const row = getDb().prepare('SELECT value FROM system_config WHERE key = ?').get(key) as { value: string } | undefined;
+  return row ? row.value : null;
 }
 
 export function setConfig(key: string, value: string): void {
-  getDb().run('INSERT INTO system_config (key, value, updated_at) VALUES (?, ?, datetime("now")) ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = datetime("now")', [key, value, value]);
-  saveDatabase();
+  getDb().prepare('INSERT INTO system_config (key, value, updated_at) VALUES (?, ?, datetime("now")) ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = datetime("now")').run(key, value, value);
 }
 
 export function getAllConfigs(): Record<string, string> {
-  const result = getDb().exec('SELECT key, value FROM system_config');
-  if (result.length === 0) return {};
-  return Object.fromEntries(result[0].values.map(row => [String(row[0]), String(row[1])]));
+  const rows = getDb().prepare('SELECT key, value FROM system_config').all() as { key: string; value: string }[];
+  if (rows.length === 0) return {};
+  return Object.fromEntries(rows.map(row => [row.key, row.value]));
 }
 
 // API密钥操作
@@ -285,32 +278,26 @@ export interface ApiKey {
   storage_type: 'oss' | 'local' | 'forward'; // 存储方式：oss/本地/转发
 }
 
-function rowToApiKey(columns: string[], values: any[]): ApiKey {
-  const obj: any = {};
-  columns.forEach((col, i) => obj[col] = values[i]);
-  return obj as ApiKey;
+function rowToApiKey(row: any): ApiKey {
+  return row as ApiKey;
 }
 
 export function getApiKeys(provider?: string): ApiKey[] {
   const d = getDb();
-  const result = provider
-    ? d.exec('SELECT * FROM api_keys WHERE provider = ? ORDER BY id', [provider])
-    : d.exec('SELECT * FROM api_keys ORDER BY provider, id');
-  if (result.length === 0) return [];
-  return result[0].values.map(row => rowToApiKey(result[0].columns, row as any[]));
+  const rows = provider
+    ? d.prepare('SELECT * FROM api_keys WHERE provider = ? ORDER BY id').all(provider)
+    : d.prepare('SELECT * FROM api_keys ORDER BY provider, id').all();
+  return rows as ApiKey[];
 }
 
 export function getActiveApiKey(provider: string): ApiKey | null {
-  const result = getDb().exec('SELECT * FROM api_keys WHERE provider = ? AND is_active = 1 ORDER BY use_count ASC LIMIT 1', [provider]);
-  if (result.length === 0 || result[0].values.length === 0) return null;
-  return rowToApiKey(result[0].columns, result[0].values[0] as any[]);
+  const row = getDb().prepare('SELECT * FROM api_keys WHERE provider = ? AND is_active = 1 ORDER BY use_count ASC LIMIT 1').get(provider);
+  return (row as ApiKey) || null;
 }
 
 export function addApiKey(provider: string, name: string, apiKey: string): number {
-  getDb().run('INSERT INTO api_keys (provider, name, api_key) VALUES (?, ?, ?)', [provider, name, apiKey]);
-  saveDatabase();
-  const result = getDb().exec('SELECT last_insert_rowid()');
-  return Number(result[0].values[0][0]);
+  const result = getDb().prepare('INSERT INTO api_keys (provider, name, api_key) VALUES (?, ?, ?)').run(provider, name, apiKey);
+  return Number(result.lastInsertRowid);
 }
 
 export function updateApiKey(id: number, data: Partial<Pick<ApiKey, 'name' | 'api_key' | 'is_active' | 'storage_type'>>): void {
@@ -322,77 +309,65 @@ export function updateApiKey(id: number, data: Partial<Pick<ApiKey, 'name' | 'ap
   if (data.storage_type !== undefined) { updates.push('storage_type = ?'); values.push(data.storage_type); }
   if (updates.length === 0) return;
   values.push(id);
-  getDb().run(`UPDATE api_keys SET ${updates.join(', ')} WHERE id = ?`, values);
-  saveDatabase();
+  getDb().prepare(`UPDATE api_keys SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 }
 
 export function deleteApiKey(id: number): void {
-  getDb().run('DELETE FROM api_keys WHERE id = ?', [id]);
-  saveDatabase();
+  getDb().prepare('DELETE FROM api_keys WHERE id = ?').run(id);
 }
 
 export function recordKeyUsage(id: number, success: boolean): void {
   const field = success ? 'success_count' : 'fail_count';
-  getDb().run(`UPDATE api_keys SET use_count = use_count + 1, ${field} = ${field} + 1, last_used_at = datetime('now') WHERE id = ?`, [id]);
-  saveDatabase();
+  getDb().prepare(`UPDATE api_keys SET use_count = use_count + 1, ${field} = ${field} + 1, last_used_at = datetime('now') WHERE id = ?`).run(id);
 }
 
 // 日志操作
 export function addRequestLog(provider: string, endpoint: string, model: string | null, status: string, duration: number, errorMessage?: string): void {
-  getDb().run('INSERT INTO request_logs (provider, endpoint, model, status, duration, error_message) VALUES (?, ?, ?, ?, ?, ?)',
-    [provider, endpoint, model, status, duration, errorMessage || null]);
-  saveDatabase();
+  getDb().prepare('INSERT INTO request_logs (provider, endpoint, model, status, duration, error_message) VALUES (?, ?, ?, ?, ?, ?)').run(
+    provider, endpoint, model, status, duration, errorMessage || null);
 }
 
 export function getRequestLogs(limit = 100, offset = 0, provider?: string): { logs: any[]; total: number } {
   const d = getDb();
-  let countResult, queryResult;
+  let count, logs;
   if (provider) {
-    countResult = d.exec('SELECT COUNT(*) FROM request_logs WHERE provider = ?', [provider]);
-    queryResult = d.exec('SELECT * FROM request_logs WHERE provider = ? ORDER BY created_at DESC LIMIT ? OFFSET ?', [provider, limit, offset]);
+    count = d.prepare('SELECT COUNT(*) as count FROM request_logs WHERE provider = ?').get(provider) as { count: number };
+    logs = d.prepare('SELECT * FROM request_logs WHERE provider = ? ORDER BY created_at DESC LIMIT ? OFFSET ?').all(provider, limit, offset);
   } else {
-    countResult = d.exec('SELECT COUNT(*) FROM request_logs');
-    queryResult = d.exec('SELECT * FROM request_logs ORDER BY created_at DESC LIMIT ? OFFSET ?', [limit, offset]);
+    count = d.prepare('SELECT COUNT(*) as count FROM request_logs').get() as { count: number };
+    logs = d.prepare('SELECT * FROM request_logs ORDER BY created_at DESC LIMIT ? OFFSET ?').all(limit, offset);
   }
-  const total = countResult.length > 0 ? Number(countResult[0].values[0][0]) : 0;
-  const logs = queryResult.length > 0
-    ? queryResult[0].values.map(row => {
-        const obj: any = {};
-        queryResult[0].columns.forEach((col, i) => obj[col] = row[i]);
-        return obj;
-      })
-    : [];
-  return { logs, total };
+  return { logs, total: count ? count.count : 0 };
 }
 
 // 统计
 export function getStats() {
   const d = getDb();
   const today = new Date().toISOString().split('T')[0];
-  const todayRequests = d.exec("SELECT COUNT(*) FROM request_logs WHERE date(created_at) = ?", [today]);
-  const todaySuccess = d.exec("SELECT COUNT(*) FROM request_logs WHERE date(created_at) = ? AND status = 'success'", [today]);
-  const avgDuration = d.exec("SELECT AVG(duration) FROM request_logs WHERE date(created_at) = ? AND status = 'success'", [today]);
+  const todayRequests = d.prepare("SELECT COUNT(*) as count FROM request_logs WHERE date(created_at) = ?").get(today) as { count: number };
+  const todaySuccess = d.prepare("SELECT COUNT(*) as count FROM request_logs WHERE date(created_at) = ? AND status = 'success'").get(today) as { count: number };
+  const avgDuration = d.prepare("SELECT AVG(duration) as avg FROM request_logs WHERE date(created_at) = ? AND status = 'success'").get(today) as { avg: number | null };
 
   // api_keys 表的活跃/总数
-  const activeApiKeys = d.exec('SELECT COUNT(*) FROM api_keys WHERE is_active = 1');
-  const totalApiKeys = d.exec('SELECT COUNT(*) FROM api_keys');
+  const activeApiKeys = d.prepare('SELECT COUNT(*) as count FROM api_keys WHERE is_active = 1').get() as { count: number };
+  const totalApiKeys = d.prepare('SELECT COUNT(*) as count FROM api_keys').get() as { count: number };
   // channel_keys 表的活跃/总数
-  const activeChannelKeys = d.exec('SELECT COUNT(*) FROM channel_keys WHERE is_active = 1');
-  const totalChannelKeys = d.exec('SELECT COUNT(*) FROM channel_keys');
+  const activeChannelKeys = d.prepare('SELECT COUNT(*) as count FROM channel_keys WHERE is_active = 1').get() as { count: number };
+  const totalChannelKeys = d.prepare('SELECT COUNT(*) as count FROM channel_keys').get() as { count: number };
   // discord_accounts 表的活跃/总数 (Midjourney)
-  const activeDiscordAccounts = d.exec('SELECT COUNT(*) FROM discord_accounts WHERE is_active = 1');
-  const totalDiscordAccounts = d.exec('SELECT COUNT(*) FROM discord_accounts');
+  const activeDiscordAccounts = d.prepare('SELECT COUNT(*) as count FROM discord_accounts WHERE is_active = 1').get() as { count: number };
+  const totalDiscordAccounts = d.prepare('SELECT COUNT(*) as count FROM discord_accounts').get() as { count: number };
 
-  const tr = todayRequests.length > 0 ? Number(todayRequests[0].values[0][0]) : 0;
-  const ts = todaySuccess.length > 0 ? Number(todaySuccess[0].values[0][0]) : 0;
-  const ad = avgDuration.length > 0 && avgDuration[0].values[0][0] !== null ? Number(avgDuration[0].values[0][0]) : 0;
+  const tr = todayRequests ? todayRequests.count : 0;
+  const ts = todaySuccess ? todaySuccess.count : 0;
+  const ad = avgDuration && avgDuration.avg !== null ? avgDuration.avg : 0;
 
-  const akActive = (activeApiKeys.length > 0 ? Number(activeApiKeys[0].values[0][0]) : 0) +
-                   (activeChannelKeys.length > 0 ? Number(activeChannelKeys[0].values[0][0]) : 0) +
-                   (activeDiscordAccounts.length > 0 ? Number(activeDiscordAccounts[0].values[0][0]) : 0);
-  const akTotal = (totalApiKeys.length > 0 ? Number(totalApiKeys[0].values[0][0]) : 0) +
-                  (totalChannelKeys.length > 0 ? Number(totalChannelKeys[0].values[0][0]) : 0) +
-                  (totalDiscordAccounts.length > 0 ? Number(totalDiscordAccounts[0].values[0][0]) : 0);
+  const akActive = (activeApiKeys ? activeApiKeys.count : 0) +
+    (activeChannelKeys ? activeChannelKeys.count : 0) +
+    (activeDiscordAccounts ? activeDiscordAccounts.count : 0);
+  const akTotal = (totalApiKeys ? totalApiKeys.count : 0) +
+    (totalChannelKeys ? totalChannelKeys.count : 0) +
+    (totalDiscordAccounts ? totalDiscordAccounts.count : 0);
 
   // 按 provider 统计
   const providerList = ['doubao', 'vidu', 'wanx', 'minimax', 'sora', 'veo', 'gemini', 'midjourney'];
@@ -400,34 +375,34 @@ export function getStats() {
 
   for (const provider of providerList) {
     // 今日调用数
-    const calls = d.exec("SELECT COUNT(*) FROM request_logs WHERE provider = ? AND date(created_at) = ?", [provider, today]);
-    const callCount = calls.length > 0 ? Number(calls[0].values[0][0]) : 0;
+    const calls = d.prepare("SELECT COUNT(*) as count FROM request_logs WHERE provider = ? AND date(created_at) = ?").get(provider, today) as { count: number };
+    const callCount = calls ? calls.count : 0;
 
     // 今日成功数
-    const success = d.exec("SELECT COUNT(*) FROM request_logs WHERE provider = ? AND date(created_at) = ? AND status = 'success'", [provider, today]);
-    const successCount = success.length > 0 ? Number(success[0].values[0][0]) : 0;
+    const success = d.prepare("SELECT COUNT(*) as count FROM request_logs WHERE provider = ? AND date(created_at) = ? AND status = 'success'").get(provider, today) as { count: number };
+    const successCount = success ? success.count : 0;
 
     let providerActiveKeys = 0;
     let providerTotalKeys = 0;
 
     if (provider === 'midjourney') {
       // Midjourney 使用 Discord 账号
-      const activeDA = d.exec('SELECT COUNT(*) FROM discord_accounts WHERE is_active = 1');
-      const totalDA = d.exec('SELECT COUNT(*) FROM discord_accounts');
-      providerActiveKeys = activeDA.length > 0 ? Number(activeDA[0].values[0][0]) : 0;
-      providerTotalKeys = totalDA.length > 0 ? Number(totalDA[0].values[0][0]) : 0;
+      const activeDA = d.prepare('SELECT COUNT(*) as count FROM discord_accounts WHERE is_active = 1').get() as { count: number };
+      const totalDA = d.prepare('SELECT COUNT(*) as count FROM discord_accounts').get() as { count: number };
+      providerActiveKeys = activeDA ? activeDA.count : 0;
+      providerTotalKeys = totalDA ? totalDA.count : 0;
     } else {
       // API密钥数 (api_keys 表)
-      const activeK = d.exec('SELECT COUNT(*) FROM api_keys WHERE provider = ? AND is_active = 1', [provider]);
-      const totalK = d.exec('SELECT COUNT(*) FROM api_keys WHERE provider = ?', [provider]);
-      const activeKCount = activeK.length > 0 ? Number(activeK[0].values[0][0]) : 0;
-      const totalKCount = totalK.length > 0 ? Number(totalK[0].values[0][0]) : 0;
+      const activeK = d.prepare('SELECT COUNT(*) as count FROM api_keys WHERE provider = ? AND is_active = 1').get(provider) as { count: number };
+      const totalK = d.prepare('SELECT COUNT(*) as count FROM api_keys WHERE provider = ?').get(provider) as { count: number };
+      const activeKCount = activeK ? activeK.count : 0;
+      const totalKCount = totalK ? totalK.count : 0;
 
       // channel_keys 通过 channels 表关联
-      const activeCK = d.exec('SELECT COUNT(*) FROM channel_keys ck JOIN channels c ON ck.channel_id = c.id WHERE c.provider = ? AND ck.is_active = 1', [provider]);
-      const totalCK = d.exec('SELECT COUNT(*) FROM channel_keys ck JOIN channels c ON ck.channel_id = c.id WHERE c.provider = ?', [provider]);
-      const activeCKCount = activeCK.length > 0 ? Number(activeCK[0].values[0][0]) : 0;
-      const totalCKCount = totalCK.length > 0 ? Number(totalCK[0].values[0][0]) : 0;
+      const activeCK = d.prepare('SELECT COUNT(*) as count FROM channel_keys ck JOIN channels c ON ck.channel_id = c.id WHERE c.provider = ? AND ck.is_active = 1').get(provider) as { count: number };
+      const totalCK = d.prepare('SELECT COUNT(*) as count FROM channel_keys ck JOIN channels c ON ck.channel_id = c.id WHERE c.provider = ?').get(provider) as { count: number };
+      const activeCKCount = activeCK ? activeCK.count : 0;
+      const totalCKCount = totalCK ? totalCK.count : 0;
 
       providerActiveKeys = activeKCount + activeCKCount;
       providerTotalKeys = totalKCount + totalCKCount;
@@ -464,33 +439,27 @@ export interface Channel {
   created_at: string;
 }
 
-function rowToChannel(columns: string[], values: any[]): Channel {
-  const obj: any = {};
-  columns.forEach((col, i) => obj[col] = values[i]);
-  return obj as Channel;
+function rowToChannel(row: any): Channel {
+  return row as Channel;
 }
 
 export function getChannels(provider?: string): Channel[] {
   const d = getDb();
-  const result = provider
-    ? d.exec('SELECT * FROM channels WHERE provider = ? ORDER BY id', [provider])
-    : d.exec('SELECT * FROM channels ORDER BY provider, id');
-  if (result.length === 0) return [];
-  return result[0].values.map(row => rowToChannel(result[0].columns, row as any[]));
+  const rows = provider
+    ? d.prepare('SELECT * FROM channels WHERE provider = ? ORDER BY id').all(provider)
+    : d.prepare('SELECT * FROM channels ORDER BY provider, id').all();
+  return rows as Channel[];
 }
 
 export function getChannelById(id: number): Channel | null {
-  const result = getDb().exec('SELECT * FROM channels WHERE id = ?', [id]);
-  if (result.length === 0 || result[0].values.length === 0) return null;
-  return rowToChannel(result[0].columns, result[0].values[0] as any[]);
+  const row = getDb().prepare('SELECT * FROM channels WHERE id = ?').get(id);
+  return (row as Channel) || null;
 }
 
 export function addChannel(data: { name: string; provider: string; channel_type: string; base_url?: string }): number {
-  getDb().run('INSERT INTO channels (name, provider, channel_type, base_url) VALUES (?, ?, ?, ?)',
-    [data.name, data.provider, data.channel_type, data.base_url || null]);
-  saveDatabase();
-  const result = getDb().exec('SELECT last_insert_rowid()');
-  return Number(result[0].values[0][0]);
+  const result = getDb().prepare('INSERT INTO channels (name, provider, channel_type, base_url) VALUES (?, ?, ?, ?)').run(
+    data.name, data.provider, data.channel_type, data.base_url || null);
+  return Number(result.lastInsertRowid);
 }
 
 export function updateChannel(id: number, data: Partial<Pick<Channel, 'name' | 'channel_type' | 'base_url' | 'storage_type' | 'is_active'>>): void {
@@ -503,21 +472,18 @@ export function updateChannel(id: number, data: Partial<Pick<Channel, 'name' | '
   if (data.is_active !== undefined) { updates.push('is_active = ?'); values.push(data.is_active); }
   if (updates.length === 0) return;
   values.push(id);
-  getDb().run(`UPDATE channels SET ${updates.join(', ')} WHERE id = ?`, values);
-  saveDatabase();
+  getDb().prepare(`UPDATE channels SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 }
 
 export function deleteChannel(id: number): void {
-  getDb().run('DELETE FROM channel_keys WHERE channel_id = ?', [id]);
-  getDb().run('DELETE FROM model_channels WHERE channel_id = ?', [id]);
-  getDb().run('DELETE FROM channels WHERE id = ?', [id]);
-  saveDatabase();
+  getDb().prepare('DELETE FROM channel_keys WHERE channel_id = ?').run(id);
+  getDb().prepare('DELETE FROM model_channels WHERE channel_id = ?').run(id);
+  getDb().prepare('DELETE FROM channels WHERE id = ?').run(id);
 }
 
 export function recordChannelUsage(id: number, success: boolean): void {
   const field = success ? 'success_count' : 'fail_count';
-  getDb().run(`UPDATE channels SET use_count = use_count + 1, ${field} = ${field} + 1 WHERE id = ?`, [id]);
-  saveDatabase();
+  getDb().prepare(`UPDATE channels SET use_count = use_count + 1, ${field} = ${field} + 1 WHERE id = ?`).run(id);
 }
 
 // 渠道密钥操作
@@ -535,24 +501,19 @@ export interface ChannelKey {
   created_at: string;
 }
 
-function rowToChannelKey(columns: string[], values: any[]): ChannelKey {
-  const obj: any = {};
-  columns.forEach((col, i) => obj[col] = values[i]);
-  return obj as ChannelKey;
+function rowToChannelKey(row: any): ChannelKey {
+  return row as ChannelKey;
 }
 
 export function getChannelKeys(channelId: number): ChannelKey[] {
-  const result = getDb().exec('SELECT * FROM channel_keys WHERE channel_id = ? ORDER BY id', [channelId]);
-  if (result.length === 0) return [];
-  return result[0].values.map(row => rowToChannelKey(result[0].columns, row as any[]));
+  const rows = getDb().prepare('SELECT * FROM channel_keys WHERE channel_id = ? ORDER BY id').all(channelId);
+  return rows as ChannelKey[];
 }
 
 export function addChannelKey(data: { channel_id: number; name: string; api_key: string }): number {
-  getDb().run('INSERT INTO channel_keys (channel_id, name, api_key) VALUES (?, ?, ?)',
-    [data.channel_id, data.name, data.api_key]);
-  saveDatabase();
-  const result = getDb().exec('SELECT last_insert_rowid()');
-  return Number(result[0].values[0][0]);
+  const result = getDb().prepare('INSERT INTO channel_keys (channel_id, name, api_key) VALUES (?, ?, ?)').run(
+    data.channel_id, data.name, data.api_key);
+  return Number(result.lastInsertRowid);
 }
 
 export function updateChannelKey(id: number, data: Partial<Pick<ChannelKey, 'name' | 'api_key' | 'is_active'>>): void {
@@ -563,35 +524,30 @@ export function updateChannelKey(id: number, data: Partial<Pick<ChannelKey, 'nam
   if (data.is_active !== undefined) { updates.push('is_active = ?'); values.push(data.is_active); }
   if (updates.length === 0) return;
   values.push(id);
-  getDb().run(`UPDATE channel_keys SET ${updates.join(', ')} WHERE id = ?`, values);
-  saveDatabase();
+  getDb().prepare(`UPDATE channel_keys SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 }
 
 export function deleteChannelKey(id: number): void {
-  getDb().run('DELETE FROM channel_keys WHERE id = ?', [id]);
-  saveDatabase();
+  getDb().prepare('DELETE FROM channel_keys WHERE id = ?').run(id);
 }
 
 export function recordChannelKeyUsage(id: number, success: boolean): void {
   if (success) {
     // 成功时重置连续失败计数
-    getDb().run(`UPDATE channel_keys SET use_count = use_count + 1, success_count = success_count + 1, consecutive_fails = 0, last_used_at = datetime('now') WHERE id = ?`, [id]);
+    getDb().prepare(`UPDATE channel_keys SET use_count = use_count + 1, success_count = success_count + 1, consecutive_fails = 0, last_used_at = datetime('now') WHERE id = ?`).run(id);
   } else {
     // 失败时增加连续失败计数，达到5次自动禁用
-    getDb().run(`UPDATE channel_keys SET use_count = use_count + 1, fail_count = fail_count + 1, consecutive_fails = consecutive_fails + 1, last_used_at = datetime('now') WHERE id = ?`, [id]);
-    getDb().run(`UPDATE channel_keys SET is_active = 0 WHERE id = ? AND consecutive_fails >= 5`, [id]);
+    getDb().prepare(`UPDATE channel_keys SET use_count = use_count + 1, fail_count = fail_count + 1, consecutive_fails = consecutive_fails + 1, last_used_at = datetime('now') WHERE id = ?`).run(id);
+    getDb().prepare(`UPDATE channel_keys SET is_active = 0 WHERE id = ? AND consecutive_fails >= 5`).run(id);
   }
-  saveDatabase();
 }
 
 // 获取渠道的一个活跃密钥（轮询，选择使用次数最少的）
 export function getActiveKeyForChannel(channelId: number): ChannelKey | null {
-  const result = getDb().exec(
-    'SELECT * FROM channel_keys WHERE channel_id = ? AND is_active = 1 ORDER BY use_count ASC LIMIT 1',
-    [channelId]
-  );
-  if (result.length === 0 || result[0].values.length === 0) return null;
-  return rowToChannelKey(result[0].columns, result[0].values[0] as any[]);
+  const row = getDb().prepare(
+    'SELECT * FROM channel_keys WHERE channel_id = ? AND is_active = 1 ORDER BY use_count ASC LIMIT 1'
+  ).get(channelId);
+  return (row as ChannelKey) || null;
 }
 
 // 模型渠道映射操作
@@ -606,62 +562,54 @@ export interface ModelChannel {
   channel?: Channel;
 }
 
-function rowToModelChannel(columns: string[], values: any[]): ModelChannel {
-  const obj: any = {};
-  columns.forEach((col, i) => {
-    if (col === 'target_models' && values[i]) {
-      try {
-        obj[col] = JSON.parse(values[i]);
-      } catch {
-        obj[col] = null;
-      }
-    } else {
-      obj[col] = values[i];
+function rowToModelChannel(row: any): ModelChannel {
+  const obj = row as ModelChannel;
+  if (typeof obj.target_models === 'string') {
+    try {
+      obj.target_models = JSON.parse(obj.target_models);
+    } catch {
+      obj.target_models = null;
     }
-  });
-  return obj as ModelChannel;
+  }
+  return obj;
 }
 
 export function getModelChannels(modelName?: string): ModelChannel[] {
   const d = getDb();
-  const result = modelName
-    ? d.exec('SELECT * FROM model_channels WHERE model_name = ?', [modelName])
-    : d.exec('SELECT * FROM model_channels ORDER BY model_name');
-  if (result.length === 0) return [];
-  return result[0].values.map((row: any[]) => rowToModelChannel(result[0].columns, row));
+  const rows = modelName
+    ? d.prepare('SELECT * FROM model_channels WHERE model_name = ?').all(modelName)
+    : d.prepare('SELECT * FROM model_channels ORDER BY model_name').all();
+  return rows.map(row => rowToModelChannel(row));
 }
 
 export function getActiveChannelForModel(modelName: string): { channel: Channel; key: ChannelKey; targetModels: string[] | null } | null {
   const d = getDb();
 
   // 调试：先查看 model_channels 表中的数据
-  const mcResult = d.exec('SELECT * FROM model_channels WHERE model_name = ?', [modelName]);
-  if (mcResult.length > 0 && mcResult[0].values.length > 0) {
-    console.log(`[DB] model_channels for ${modelName}:`, JSON.stringify(mcResult[0].values[0]));
+  const mcRow = d.prepare('SELECT * FROM model_channels WHERE model_name = ?').get(modelName);
+  if (mcRow) {
+    console.log(`[DB] model_channels for ${modelName}:`, JSON.stringify(mcRow));
   }
 
-  const result = d.exec(`
+  const row = d.prepare(`
     SELECT c.*, mc.target_models FROM channels c
     JOIN model_channels mc ON c.id = mc.channel_id
     WHERE mc.model_name = ? AND mc.is_active = 1 AND c.is_active = 1
     LIMIT 1
-  `, [modelName]);
-  if (result.length === 0 || result[0].values.length === 0) return null;
+  `).get(modelName) as any;
 
-  const row = result[0].values[0] as any[];
-  const columns = result[0].columns;
-  const targetModelsIndex = columns.indexOf('target_models');
+  if (!row) return null;
+
   let targetModels: string[] | null = null;
-  if (targetModelsIndex >= 0 && row[targetModelsIndex]) {
+  if (row.target_models) {
     try {
-      targetModels = JSON.parse(row[targetModelsIndex] as string);
-    } catch {}
+      targetModels = JSON.parse(row.target_models);
+    } catch { }
   }
 
   // 移除 target_models 列来构建 channel 对象
-  const channelColumns = columns.filter(c => c !== 'target_models');
-  const channelValues = row.filter((_, i) => columns[i] !== 'target_models');
-  const channel = rowToChannel(channelColumns, channelValues);
+  const { target_models, ...channelData } = row;
+  const channel = channelData as Channel;
 
   console.log(`[DB] getActiveChannelForModel result: channel_id=${channel.id}, name=${channel.name}, type=${channel.channel_type}, base_url=${channel.base_url}`);
 
@@ -676,24 +624,21 @@ export function addModelChannel(data: { model_name: string; channel_id: number; 
   const d = getDb();
 
   // 先检查是否已存在
-  const existing = d.exec('SELECT id FROM model_channels WHERE model_name = ?', [data.model_name]);
+  const existing = d.prepare('SELECT id FROM model_channels WHERE model_name = ?').get(data.model_name) as { id: number } | undefined;
 
-  if (existing.length > 0 && existing[0].values.length > 0) {
+  if (existing) {
     // 更新现有记录
-    const existingId = Number(existing[0].values[0][0]);
+    const existingId = existing.id;
     console.log(`[DB] Updating model_channel: model=${data.model_name}, channel_id=${data.channel_id}, id=${existingId}`);
-    d.run('UPDATE model_channels SET channel_id = ?, target_models = ? WHERE id = ?',
-      [data.channel_id, targetModelsJson, existingId]);
-    saveDatabase();
+    d.prepare('UPDATE model_channels SET channel_id = ?, target_models = ? WHERE id = ?').run(
+      data.channel_id, targetModelsJson, existingId);
     return existingId;
   } else {
     // 插入新记录
     console.log(`[DB] Inserting model_channel: model=${data.model_name}, channel_id=${data.channel_id}`);
-    d.run('INSERT INTO model_channels (model_name, channel_id, target_models) VALUES (?, ?, ?)',
-      [data.model_name, data.channel_id, targetModelsJson]);
-    saveDatabase();
-    const result = d.exec('SELECT last_insert_rowid()');
-    return Number(result[0].values[0][0]);
+    const result = d.prepare('INSERT INTO model_channels (model_name, channel_id, target_models) VALUES (?, ?, ?)').run(
+      data.model_name, data.channel_id, targetModelsJson);
+    return Number(result.lastInsertRowid);
   }
 }
 
@@ -705,13 +650,11 @@ export function updateModelChannel(id: number, data: Partial<Pick<ModelChannel, 
   if (data.is_active !== undefined) { updates.push('is_active = ?'); values.push(data.is_active); }
   if (updates.length === 0) return;
   values.push(id);
-  getDb().run(`UPDATE model_channels SET ${updates.join(', ')} WHERE id = ?`, values);
-  saveDatabase();
+  getDb().prepare(`UPDATE model_channels SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 }
 
 export function deleteModelChannel(id: number): void {
-  getDb().run('DELETE FROM model_channels WHERE id = ?', [id]);
-  saveDatabase();
+  getDb().prepare('DELETE FROM model_channels WHERE id = ?').run(id);
 }
 
 // ==================== Midjourney 相关操作 ====================
@@ -760,28 +703,24 @@ function rowToMjTask(columns: string[], values: any[]): MjTask {
 }
 
 // Discord 账号操作
+// Discord 账号操作
 export function getDiscordAccounts(activeOnly = false): DiscordAccount[] {
   const d = getDb();
-  const sql = activeOnly
-    ? 'SELECT * FROM discord_accounts WHERE is_active = 1 ORDER BY id'
-    : 'SELECT * FROM discord_accounts ORDER BY id';
-  const result = d.exec(sql);
-  if (result.length === 0) return [];
-  return result[0].values.map((row: any[]) => rowToDiscordAccount(result[0].columns, row));
+  const rows = activeOnly
+    ? d.prepare('SELECT * FROM discord_accounts WHERE is_active = 1 ORDER BY id').all()
+    : d.prepare('SELECT * FROM discord_accounts ORDER BY id').all();
+  return rows as DiscordAccount[];
 }
 
 export function getDiscordAccountById(id: number): DiscordAccount | null {
-  const result = getDb().exec('SELECT * FROM discord_accounts WHERE id = ?', [id]);
-  if (result.length === 0 || result[0].values.length === 0) return null;
-  return rowToDiscordAccount(result[0].columns, result[0].values[0] as any[]);
+  const row = getDb().prepare('SELECT * FROM discord_accounts WHERE id = ?').get(id);
+  return (row as DiscordAccount) || null;
 }
 
 export function addDiscordAccount(data: { name?: string; user_token: string; guild_id: string; channel_id: string }): number {
-  getDb().run('INSERT INTO discord_accounts (name, user_token, guild_id, channel_id) VALUES (?, ?, ?, ?)',
-    [data.name || null, data.user_token, data.guild_id, data.channel_id]);
-  saveDatabase();
-  const result = getDb().exec('SELECT last_insert_rowid()');
-  return Number(result[0].values[0][0]);
+  const result = getDb().prepare('INSERT INTO discord_accounts (name, user_token, guild_id, channel_id) VALUES (?, ?, ?, ?)').run(
+    data.name || null, data.user_token, data.guild_id, data.channel_id);
+  return Number(result.lastInsertRowid);
 }
 
 export function updateDiscordAccount(id: number, data: Partial<Omit<DiscordAccount, 'id' | 'created_at'>>): void {
@@ -798,32 +737,27 @@ export function updateDiscordAccount(id: number, data: Partial<Omit<DiscordAccou
   if (data.last_error !== undefined) { updates.push('last_error = ?'); values.push(data.last_error); }
   if (updates.length === 0) return;
   values.push(id);
-  getDb().run(`UPDATE discord_accounts SET ${updates.join(', ')} WHERE id = ?`, values);
-  saveDatabase();
+  getDb().prepare(`UPDATE discord_accounts SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 }
 
 export function deleteDiscordAccount(id: number): void {
-  getDb().run('DELETE FROM discord_accounts WHERE id = ?', [id]);
-  saveDatabase();
+  getDb().prepare('DELETE FROM discord_accounts WHERE id = ?').run(id);
 }
 
 export function incrementDiscordAccountUsage(id: number, success: boolean): void {
   const field = success ? 'request_count = request_count + 1' : 'error_count = error_count + 1';
-  getDb().run(`UPDATE discord_accounts SET ${field}, last_used_at = datetime('now') WHERE id = ?`, [id]);
-  saveDatabase();
+  getDb().prepare(`UPDATE discord_accounts SET ${field}, last_used_at = datetime('now') WHERE id = ?`).run(id);
 }
 
 // Midjourney 任务操作
 export function createMjTask(taskId: string, userId?: string, accountId?: number, prompt?: string): void {
-  getDb().run('INSERT INTO mj_tasks (task_id, user_id, account_id, prompt) VALUES (?, ?, ?, ?)',
-    [taskId, userId || null, accountId || null, prompt || null]);
-  saveDatabase();
+  getDb().prepare('INSERT INTO mj_tasks (task_id, user_id, account_id, prompt) VALUES (?, ?, ?, ?)').run(
+    taskId, userId || null, accountId || null, prompt || null);
 }
 
 export function getMjTask(taskId: string): MjTask | null {
-  const result = getDb().exec('SELECT * FROM mj_tasks WHERE task_id = ?', [taskId]);
-  if (result.length === 0 || result[0].values.length === 0) return null;
-  return rowToMjTask(result[0].columns, result[0].values[0] as any[]);
+  const row = getDb().prepare('SELECT * FROM mj_tasks WHERE task_id = ?').get(taskId);
+  return (row as MjTask) || null;
 }
 
 export function updateMjTask(taskId: string, data: Partial<Omit<MjTask, 'task_id' | 'created_at'>>): void {
@@ -841,20 +775,17 @@ export function updateMjTask(taskId: string, data: Partial<Omit<MjTask, 'task_id
   if (data.buttons !== undefined) { updates.push('buttons = ?'); values.push(data.buttons); }
   if (data.fail_reason !== undefined) { updates.push('fail_reason = ?'); values.push(data.fail_reason); }
   values.push(taskId);
-  getDb().run(`UPDATE mj_tasks SET ${updates.join(', ')} WHERE task_id = ?`, values);
-  saveDatabase();
+  getDb().prepare(`UPDATE mj_tasks SET ${updates.join(', ')} WHERE task_id = ?`).run(...values);
 }
 
 export function getMjTasksByStatus(status: string): MjTask[] {
-  const result = getDb().exec('SELECT * FROM mj_tasks WHERE status = ? ORDER BY created_at DESC', [status]);
-  if (result.length === 0) return [];
-  return result[0].values.map((row: any[]) => rowToMjTask(result[0].columns, row));
+  const rows = getDb().prepare('SELECT * FROM mj_tasks WHERE status = ? ORDER BY created_at DESC').all(status);
+  return rows as MjTask[];
 }
 
 export function getMjTaskByMessageId(messageId: string): MjTask | null {
-  const result = getDb().exec('SELECT * FROM mj_tasks WHERE message_id = ? LIMIT 1', [messageId]);
-  if (result.length === 0 || result[0].values.length === 0) return null;
-  return rowToMjTask(result[0].columns, result[0].values[0]);
+  const row = getDb().prepare('SELECT * FROM mj_tasks WHERE message_id = ? LIMIT 1').get(messageId);
+  return (row as MjTask) || null;
 }
 
 export function getPendingMjTasks(accountId?: number): MjTask[] {
@@ -865,9 +796,8 @@ export function getPendingMjTasks(accountId?: number): MjTask[] {
     params.push(accountId);
   }
   sql += " ORDER BY created_at";
-  const result = getDb().exec(sql, params);
-  if (result.length === 0) return [];
-  return result[0].values.map((row: any[]) => rowToMjTask(result[0].columns, row));
+  const rows = getDb().prepare(sql).all(...params);
+  return rows as MjTask[];
 }
 
 // ==================== Sora 中转 API 配置 ====================
@@ -887,16 +817,13 @@ export interface SoraProxyConfig {
   updated_at: string;
 }
 
-function rowToSoraProxyConfig(columns: string[], values: any[]): SoraProxyConfig {
-  const obj: any = {};
-  columns.forEach((col, i) => { obj[col] = values[i]; });
-  return obj as SoraProxyConfig;
+function rowToSoraProxyConfig(row: any): SoraProxyConfig {
+  return row as SoraProxyConfig;
 }
 
 export function getSoraProxyConfig(): SoraProxyConfig | null {
-  const result = getDb().exec('SELECT * FROM sora_proxy_config LIMIT 1');
-  if (result.length === 0 || result[0].values.length === 0) return null;
-  return rowToSoraProxyConfig(result[0].columns, result[0].values[0] as any[]);
+  const row = getDb().prepare('SELECT * FROM sora_proxy_config LIMIT 1').get();
+  return (row as SoraProxyConfig) || null;
 }
 
 export function updateSoraProxyConfig(data: Partial<Pick<SoraProxyConfig, 'provider' | 'base_url' | 'api_key' | 'is_active' | 'channel'>>): boolean {
@@ -908,16 +835,14 @@ export function updateSoraProxyConfig(data: Partial<Pick<SoraProxyConfig, 'provi
   if (data.is_active !== undefined) { updates.push('is_active = ?'); values.push(data.is_active); }
   if (data.channel !== undefined) { updates.push('channel = ?'); values.push(data.channel); }
   if (updates.length === 1) return false;
-  getDb().run(`UPDATE sora_proxy_config SET ${updates.join(', ')} WHERE id = 1`, values);
-  saveDatabase();
+  getDb().prepare(`UPDATE sora_proxy_config SET ${updates.join(', ')} WHERE id = 1`).run(...values);
   return true;
 }
 
 export function recordSoraUsage(success: boolean, error?: string): void {
   const field = success ? 'request_count = request_count + 1' : 'error_count = error_count + 1';
   const errorUpdate = error ? `, last_error = '${error.replace(/'/g, "''")}'` : '';
-  getDb().run(`UPDATE sora_proxy_config SET ${field}, last_used_at = datetime('now')${errorUpdate} WHERE id = 1`);
-  saveDatabase();
+  getDb().prepare(`UPDATE sora_proxy_config SET ${field}, last_used_at = datetime('now')${errorUpdate} WHERE id = 1`).run();
 }
 
 // ==================== Session 管理（使用JSON文件，支持多实例共享） ====================
@@ -929,7 +854,7 @@ function loadSessions(): Record<string, { username: string; expires_at: number }
     if (fs.existsSync(SESSION_FILE)) {
       return JSON.parse(fs.readFileSync(SESSION_FILE, 'utf-8'));
     }
-  } catch (e) {}
+  } catch (e) { }
   return {};
 }
 
