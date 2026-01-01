@@ -18,14 +18,22 @@ class ImageSliceService {
    * @returns 切割后的图片 URL 列表
    */
   async sliceImageGrid(imageUrl: string, rows: number, cols: number): Promise<SliceResult> {
-    logger.info(`[ImageSlice] 开始切割图片: ${imageUrl.substring(0, 80)}... (${rows}x${cols})`);
+    console.log(`[ImageSlice] 开始切割图片: ${imageUrl} (${rows}x${cols})`);
 
     // 下载图片
-    const response = await axios.get(imageUrl, {
-      responseType: 'arraybuffer',
-      timeout: 60000,
-    });
-    const imageBuffer = Buffer.from(response.data);
+    let imageBuffer: Buffer;
+    try {
+      console.log(`[ImageSlice] 开始下载图片: ${imageUrl}`);
+      const response = await axios.get(imageUrl, {
+        responseType: 'arraybuffer',
+        timeout: 120000,
+      });
+      imageBuffer = Buffer.from(response.data);
+      console.log(`[ImageSlice] 图片下载成功，大小: ${imageBuffer.length} bytes`);
+    } catch (downloadErr: any) {
+      console.error(`[ImageSlice] 图片下载失败: ${imageUrl} - ${downloadErr.code || downloadErr.message}`);
+      throw new Error(`图片下载失败: ${downloadErr.code || downloadErr.message}`);
+    }
 
     // 获取图片尺寸
     const metadata = await sharp(imageBuffer).metadata();

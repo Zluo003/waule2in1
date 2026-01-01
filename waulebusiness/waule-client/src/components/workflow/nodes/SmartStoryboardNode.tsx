@@ -331,6 +331,7 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           textModelId: TEXT_MODEL_ID,
           systemPrompt: systemPrompt || undefined,
           imagePrompt: imagePrompt || undefined,
+          autoSlice: autoSlice, // 传递自动切割开关
         },
       });
 
@@ -373,9 +374,24 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             return;
           }
 
+          // 检查是否是 JSON 格式（后端已切割）
+          let slicedUrls: string[] | null = null;
+          let originalUrl = imageUrl;
+          try {
+            if (imageUrl.startsWith('{')) {
+              const parsed = JSON.parse(imageUrl);
+              if (parsed.slicedUrls && Array.isArray(parsed.slicedUrls)) {
+                slicedUrls = parsed.slicedUrls;
+                originalUrl = parsed.originalUrl || imageUrl;
+              }
+            }
+          } catch (e) {
+            // 不是 JSON，使用原始 URL
+          }
+
           const processedResult = await processTaskResult({
             taskId,
-            resultUrl: imageUrl,
+            resultUrl: originalUrl,
             type: 'IMAGE',
           });
 
@@ -387,8 +403,13 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             aspectRatio,
           });
 
-          // 根据自动切割开关决定是否切割
-          if (autoSlice) {
+          // 如果后端已切割，直接使用切片 URL
+          if (slicedUrls && slicedUrls.length > 0) {
+            updateNodeData({ slicedImages: slicedUrls });
+            toast.success(`成功生成 ${slicedUrls.length} 个分镜`);
+            createAllPreviewNodes(slicedUrls, aspectRatio);
+          } else if (autoSlice) {
+            // 后端未切割，前端调用切割 API（兼容旧逻辑）
             await handleSliceAndCreatePreviews(displayUrl);
           } else {
             // 不切割，直接创建单个预览节点

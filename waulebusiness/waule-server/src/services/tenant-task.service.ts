@@ -637,6 +637,23 @@ class TenantTaskService {
     const resultUrl = Array.isArray(imageResult) ? imageResult[0] : imageResult;
     logger.info(`[TenantTaskService] 智能分镜 - 第2步完成`);
 
+    // 根据 autoSlice 参数决定是否切割
+    const autoSlice = metadata?.autoSlice !== false; // 默认开启
+    if (autoSlice && resultUrl) {
+      logger.info(`[TenantTaskService] 智能分镜 - 第3步：自动切割九宫格`);
+      try {
+        const { imageSliceService } = require('./image-slice.service');
+        const sliceResult = await imageSliceService.sliceImageGrid(resultUrl, 3, 3);
+        logger.info(`[TenantTaskService] 智能分镜 - 切割完成，共 ${sliceResult.urls.length} 个切片`);
+        // 返回切片 URL 列表（JSON格式，前端解析）
+        return JSON.stringify({ originalUrl: resultUrl, slicedUrls: sliceResult.urls });
+      } catch (sliceErr: any) {
+        logger.error(`[TenantTaskService] 智能分镜 - 切割失败: ${sliceErr.message}`);
+        // 切割失败时返回原始图片
+        return resultUrl;
+      }
+    }
+
     return resultUrl;
   }
 }

@@ -1856,7 +1856,7 @@ export const sliceImage = asyncHandler(async (req: Request, res: Response) => {
   const { imageSliceService } = require('../services/image-slice.service');
 
   try {
-    logger.info(`[切割] 开始切割图片: ${imageUrl.substring(0, 80)}... (${rows}x${cols})`);
+    logger.info(`[切割] 开始切割图片: ${imageUrl} (${rows}x${cols})`);
     const result = await imageSliceService.sliceImageGrid(imageUrl, rows, cols);
     res.json({ success: true, data: result });
   } catch (error: any) {
