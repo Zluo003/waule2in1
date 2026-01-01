@@ -30,18 +30,6 @@ router.get('/task/:taskId/poll', midjourney_controller_1.pollTask);
  */
 router.post('/action', midjourney_controller_1.action);
 /**
- * @route   POST /api/midjourney/blend
- * @desc    图片混合
- * @body    { base64Array: string[] }
- */
-router.post('/blend', midjourney_controller_1.blend);
-/**
- * @route   POST /api/midjourney/describe
- * @desc    图生文
- * @body    { base64: string }
- */
-router.post('/describe', midjourney_controller_1.describe);
-/**
  * @route   POST /api/midjourney/upload-reference
  * @desc    上传参考图到 Discord 获取 CDN URL（用于 Omni-Reference）
  * @body    { imageUrl: string } 或 { base64: string, filename?: string }

@@ -34,10 +34,10 @@ const updateStorageConfig = async (req, res) => {
     try {
         const { mode, localBaseUrl } = req.body;
         // 验证存储模式
-        if (mode && !['oss', 'local'].includes(mode)) {
+        if (mode && !['oss', 'local', 'original'].includes(mode)) {
             return res.status(400).json({
                 success: false,
-                message: '无效的存储模式，只支持 oss 或 local',
+                message: '无效的存储模式，只支持 oss、local 或 original',
             });
         }
         // 更新存储模式

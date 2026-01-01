@@ -1,4 +1,4 @@
-export type StorageMode = 'oss' | 'local';
+export type StorageMode = 'oss' | 'local' | 'original';
 declare class StorageService {
     private uploadDir;
     /**

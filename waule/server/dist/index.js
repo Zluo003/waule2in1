@@ -36,7 +36,8 @@ const admin_routes_1 = __importDefault(require("./routes/admin.routes"));
 const agent_routes_1 = __importDefault(require("./routes/agent.routes"));
 const agent_role_routes_1 = __importDefault(require("./routes/agent-role.routes"));
 const document_routes_1 = __importDefault(require("./routes/document.routes"));
-const midjourney_routes_1 = __importDefault(require("./routes/midjourney.routes"));
+// import midjourneyRoutes from './routes/midjourney.routes'; // 已迁移到 ai-gateway
+const midjourney_routes_1 = __importDefault(require("./routes/midjourney.routes")); // 通过 waule-api.client 调用 ai-gateway
 const translation_routes_1 = __importDefault(require("./routes/translation.routes"));
 const task_routes_1 = __importDefault(require("./routes/task.routes"));
 const billing_routes_1 = __importDefault(require("./routes/billing.routes"));
@@ -647,7 +648,7 @@ app.use(`${API_PREFIX}/admin`, admin_routes_1.default);
 app.use(`${API_PREFIX}/agents`, agent_routes_1.default);
 app.use(`${API_PREFIX}/agent-roles`, agent_role_routes_1.default);
 app.use(`${API_PREFIX}/documents`, document_routes_1.default);
-app.use(`${API_PREFIX}/midjourney`, midjourney_routes_1.default);
+app.use(`${API_PREFIX}/midjourney`, midjourney_routes_1.default); // 通过 waule-api.client 调用 ai-gateway
 app.use(`${API_PREFIX}/translation`, translation_routes_1.default);
 app.use(`${API_PREFIX}/tasks`, task_routes_1.default);
 app.use(`${API_PREFIX}/billing`, billing_routes_1.default); // 普通用户的billing功能

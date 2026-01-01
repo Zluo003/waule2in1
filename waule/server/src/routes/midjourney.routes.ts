@@ -4,8 +4,6 @@ import {
   fetchTask,
   pollTask,
   action,
-  blend,
-  describe,
   uploadReferenceImage,
 } from '../controllers/midjourney.controller';
 import { getMidjourneySettings } from '../controllers/settings.controller';
@@ -41,20 +39,6 @@ router.get('/task/:taskId/poll', pollTask);
  * @body    { taskId: string, customId: string }
  */
 router.post('/action', action);
-
-/**
- * @route   POST /api/midjourney/blend
- * @desc    图片混合
- * @body    { base64Array: string[] }
- */
-router.post('/blend', blend);
-
-/**
- * @route   POST /api/midjourney/describe
- * @desc    图生文
- * @body    { base64: string }
- */
-router.post('/describe', describe);
 
 /**
  * @route   POST /api/midjourney/upload-reference

@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
 import { getGlobalWauleApiClient } from '../services/waule-api.client';
-import axios from 'axios';
-import { prisma } from '../index';
 import { userLevelService } from '../services/user-level.service';
 import { billingService } from '../services/billing.service';
 
@@ -329,87 +327,6 @@ export const action = async (req: Request, res: Response) => {
 };
 
 /**
- * Blend（图片混合）
- */
-export const blend = async (req: Request, res: Response) => {
-  try {
-    const { base64Array } = req.body;
-    const userId = (req as any).user?.id;
-
-    if (!base64Array || !Array.isArray(base64Array) || base64Array.length < 2) {
-      return res.status(400).json({ error: 'At least 2 images required for blend' });
-    }
-
-    // 权限检查
-    const permissionResult = await userLevelService.checkPermission({
-      userId,
-      moduleType: 'midjourney',
-    });
-
-    if (!permissionResult.allowed) {
-      return res.status(403).json({
-        success: false,
-        error: permissionResult.reason || '您没有权限使用 Midjourney',
-        code: 'PERMISSION_DENIED',
-      });
-    }
-
-    console.log('🎨 [Midjourney Controller] 提交 Blend 任务');
-
-    const response = await getMidjourneyService().blend(base64Array);
-
-    if (response.code !== 1) {
-      return res.status(500).json({ 
-        error: 'Failed to submit blend task', 
-        description: response.description 
-      });
-    }
-
-    res.json({
-      success: true,
-      taskId: response.result,
-      description: response.description,
-    });
-  } catch (error: any) {
-    console.error('❌ [Midjourney Controller] Blend 失败:', error);
-    res.status(500).json({ error: error.message });
-  }
-};
-
-/**
- * Describe（图生文）
- */
-export const describe = async (req: Request, res: Response) => {
-  try {
-    const { base64 } = req.body;
-
-    if (!base64) {
-      return res.status(400).json({ error: 'Base64 image is required' });
-    }
-
-    console.log('📝 [Midjourney Controller] 提交 Describe 任务');
-
-    const response = await getMidjourneyService().describe(base64);
-
-    if (response.code !== 1) {
-      return res.status(500).json({ 
-        error: 'Failed to submit describe task', 
-        description: response.description 
-      });
-    }
-
-    res.json({
-      success: true,
-      taskId: response.result,
-      description: response.description,
-    });
-  } catch (error: any) {
-    console.error('❌ [Midjourney Controller] Describe 失败:', error);
-    res.status(500).json({ error: error.message });
-  }
-};
-
-/**
  * 上传参考图到 Discord（用于 V7 Omni-Reference）
  */
 export const uploadReferenceImage = async (req: Request, res: Response) => {
@@ -420,51 +337,17 @@ export const uploadReferenceImage = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'imageUrl or base64 is required' });
     }
 
-    console.log('🖼️ [Midjourney Controller] 上传参考图到 Discord');
+    console.log('🖼️ [Midjourney Controller] 上传参考图');
 
-    let imageBuffer: Buffer;
-    let imageName: string;
+    // 调用 ai-gateway 上传参考图
+    const apiClient = getApiClient();
+    const result = await apiClient.midjourneyUploadReference({ imageUrl, base64, filename });
 
-    // 处理 imageUrl
-    if (imageUrl) {
-      console.log('📥 [Midjourney Controller] 从 URL 下载图片:', imageUrl);
-      
-      const response = await axios.get(imageUrl, {
-        responseType: 'arraybuffer',
-        timeout: 30000, // 30秒超时
-      });
-      
-      imageBuffer = Buffer.from(response.data);
-      
-      // 从 URL 提取文件名
-      const urlParts = imageUrl.split('/');
-      imageName = urlParts[urlParts.length - 1].split('?')[0] || 'reference.jpg';
-      
-      console.log(`✅ [Midjourney Controller] 图片下载完成: ${imageBuffer.length} bytes`);
-    }
-    // 处理 base64
-    else if (base64) {
-      console.log('🔄 [Midjourney Controller] 转换 base64 为 Buffer');
-      
-      // 移除 data:image/xxx;base64, 前缀（如果存在）
-      const base64Data = base64.replace(/^data:image\/\w+;base64,/, '');
-      imageBuffer = Buffer.from(base64Data, 'base64');
-      
-      imageName = filename || 'reference.jpg';
-      
-      console.log(`✅ [Midjourney Controller] Base64 转换完成: ${imageBuffer.length} bytes`);
-    } else {
-      return res.status(400).json({ error: 'Invalid image data' });
-    }
-
-    // 调用 Discord 服务上传图片
-    const discordUrl = await getMidjourneyService().uploadReferenceImage(imageBuffer, imageName);
-
-    console.log('✅ [Midjourney Controller] 参考图上传成功:', discordUrl);
+    console.log('✅ [Midjourney Controller] 参考图上传成功:', result.discordUrl);
 
     res.json({
       success: true,
-      discordUrl,
+      discordUrl: result.discordUrl,
     });
   } catch (error: any) {
     console.error('❌ [Midjourney Controller] 参考图上传失败:', error);

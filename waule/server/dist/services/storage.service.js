@@ -29,7 +29,7 @@ class StorageService {
             }
             // 2. 从数据库读取
             const mode = await settings_service_1.settingsService.get('storage_mode');
-            const result = (mode === 'local' ? 'local' : 'oss');
+            const result = (mode && ['local', 'original'].includes(mode) ? mode : 'oss');
             // 3. 写入 Redis 缓存
             await index_1.redis.set(STORAGE_MODE_CACHE_KEY, result);
             return result;
@@ -117,6 +117,12 @@ class StorageService {
         if (!url)
             return url;
         const mode = await this.getStorageMode();
+        // 原始URL模式：直接返回原始URL，不做任何转存
+        if (mode === 'original') {
+            const trimmed = url.trim().replace(/^`+|`+$/g, '').replace(/^"+|"+$/g, "");
+            logger_1.logger.info(`[Storage] 原始URL模式，直接返回: ${trimmed.substring(0, 80)}...`);
+            return trimmed;
+        }
         // 如果是 OSS 模式，使用原有的 ensureAliyunOssUrl 逻辑
         if (mode === 'oss') {
             const ossUrl = await (0, oss_1.ensureAliyunOssUrl)(url);

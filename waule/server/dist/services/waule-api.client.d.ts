@@ -79,8 +79,8 @@ export declare class WauleApiClient {
      */
     soraChatCompletions(params: any): Promise<any>;
     /**
-     * Future Sora API：创建角色
-     * POST /future-sora/v1/characters
+     * Sora API：创建角色
+     * POST /v1/sora/characters (ai-gateway)
      */
     futureSoraCreateCharacter(params: {
         url: string;
@@ -158,6 +158,16 @@ export declare class WauleApiClient {
             label?: string;
         }>;
         failReason?: string;
+    }>;
+    /**
+     * Midjourney 上传参考图
+     */
+    midjourneyUploadReference(params: {
+        imageUrl?: string;
+        base64?: string;
+        filename?: string;
+    }): Promise<{
+        discordUrl: string;
     }>;
     /**
      * 广告成片（Vidu ad-one-click）

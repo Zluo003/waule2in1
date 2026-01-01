@@ -43,7 +43,7 @@ interface SoraCharacterResult {
 }
 /**
  * 创建角色（从视频中提取角色信息）
- * 不传prompt，只传视频，API会返回角色名称和头像
+ * 通过 waule-api 网关调用 future-sora-api
  */
 export declare function createCharacter(options: SoraCharacterCreateOptions): Promise<SoraCharacterResult>;
 export {};

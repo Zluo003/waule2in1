@@ -16,14 +16,6 @@ export declare const pollTask: (req: Request, res: Response) => Promise<void>;
  */
 export declare const action: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
 /**
- * Blend（图片混合）
- */
-export declare const blend: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
-/**
- * Describe（图生文）
- */
-export declare const describe: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
-/**
  * 上传参考图到 Discord（用于 V7 Omni-Reference）
  */
 export declare const uploadReferenceImage: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;

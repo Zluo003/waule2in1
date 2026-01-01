@@ -114,12 +114,12 @@ class WauleApiClient {
         return resp.data;
     }
     /**
-     * Future Sora API：创建角色
-     * POST /future-sora/v1/characters
+     * Sora API：创建角色
+     * POST /v1/sora/characters (ai-gateway)
      */
     async futureSoraCreateCharacter(params) {
         const client = this.createClient(true);
-        const resp = await client.post('/future-sora/v1/characters', params);
+        const resp = await client.post('/v1/sora/characters', params);
         return resp.data;
     }
     /**
@@ -173,6 +173,14 @@ class WauleApiClient {
     async midjourneyWaitTask(taskId, timeout) {
         const client = this.createClient(true);
         const resp = await client.post(`/v1/midjourney/task/${taskId}/wait`, { timeout });
+        return resp.data;
+    }
+    /**
+     * Midjourney 上传参考图
+     */
+    async midjourneyUploadReference(params) {
+        const client = this.createClient(true);
+        const resp = await client.post('/v1/midjourney/upload-reference', params);
         return resp.data;
     }
     /**

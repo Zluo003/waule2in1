@@ -266,6 +266,19 @@ export class WauleApiClient {
   }
 
   /**
+   * Midjourney 上传参考图
+   */
+  async midjourneyUploadReference(params: {
+    imageUrl?: string;
+    base64?: string;
+    filename?: string;
+  }): Promise<{ discordUrl: string }> {
+    const client = this.createClient(true);
+    const resp = await client.post('/v1/midjourney/upload-reference', params);
+    return resp.data;
+  }
+
+  /**
    * 广告成片（Vidu ad-one-click）
    * POST /v1/videos/commercial
    */

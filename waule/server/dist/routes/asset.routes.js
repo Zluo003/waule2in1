@@ -10,6 +10,7 @@ const logger_1 = require("../utils/logger");
 const axios_1 = __importDefault(require("axios"));
 const oss_1 = require("../utils/oss");
 const index_1 = require("../index");
+const image_slice_service_1 = require("../services/image-slice.service");
 const router = (0, express_1.Router)();
 // 公开的代理端点（用于跨域/预览，不要求鉴权）
 // Multer 错误处理中间件
@@ -427,6 +428,22 @@ router.post('/upload', asset_controller_1.upload.single('file'), handleMulterErr
 // 前端直传 OSS 相关接口
 router.post('/presigned-url', asset_controller_1.getPresignedUrl);
 router.post('/confirm-upload', asset_controller_1.confirmDirectUpload);
+// 图片切割接口（解决前端CORS问题）
+router.post('/slice-image', async (req, res) => {
+    try {
+        const { imageUrl, rows = 3, cols = 3 } = req.body;
+        if (!imageUrl) {
+            return res.status(400).json({ success: false, message: '缺少 imageUrl 参数' });
+        }
+        logger_1.logger.info(`[切割] 开始切割图片: ${imageUrl.substring(0, 80)}... (${rows}x${cols})`);
+        const result = await image_slice_service_1.imageSliceService.sliceImageGrid(imageUrl, rows, cols);
+        res.json({ success: true, data: result });
+    }
+    catch (error) {
+        logger_1.logger.error('[切割] 失败:', error.message);
+        res.status(500).json({ success: false, message: '图片切割失败: ' + error.message });
+    }
+});
 // 服务器转存接口（前端转存失败时的回退）
 router.post('/transfer-url', async (req, res) => {
     try {

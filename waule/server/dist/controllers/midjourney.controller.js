@@ -1,13 +1,17 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uploadReferenceImage = exports.describe = exports.blend = exports.action = exports.pollTask = exports.fetchTask = exports.imagine = void 0;
-const midjourney_service_1 = require("../services/midjourney.service");
-const axios_1 = __importDefault(require("axios"));
+exports.uploadReferenceImage = exports.action = exports.pollTask = exports.fetchTask = exports.imagine = void 0;
+const waule_api_client_1 = require("../services/waule-api.client");
 const user_level_service_1 = require("../services/user-level.service");
 const billing_service_1 = require("../services/billing.service");
+// 获取 ai-gateway 客户端
+function getApiClient() {
+    const client = (0, waule_api_client_1.getGlobalWauleApiClient)();
+    if (!client) {
+        throw new Error('WAULEAPI_URL 未配置，无法连接 ai-gateway');
+    }
+    return client;
+}
 /**
  * 提交 Imagine 任务
  */
@@ -62,42 +66,23 @@ const imagine = async (req, res) => {
             console.log(`[Midjourney] 用户 ${userId} 使用免费额度 (${mjMode})`);
         }
         console.log('📤 [Midjourney Controller] 提交 Imagine 任务:', { prompt, nodeId, userId, isFree: permissionResult.isFree });
-        // 提交任务到 Midjourney Proxy
-        console.log('🔄 [Midjourney Controller] 调用 getMidjourneyService().imagine...');
-        const response = await (0, midjourney_service_1.getMidjourneyService)().imagine({
-            prompt,
-            userId, // 🔑 传递用户ID
-            base64Array,
-            nodeId, // 🔑 传递节点ID
-        });
+        // 调用 ai-gateway 的 Midjourney API
+        const apiClient = getApiClient();
+        const response = await apiClient.midjourneyImagine({ prompt, userId });
         console.log('📥 [Midjourney Controller] 收到响应:', response);
-        if (response.code !== 1) {
-            console.error('❌ [Midjourney Controller] 响应code不是1:', response);
-            // 特殊处理敏感词错误
-            if (response.code === 24) {
-                const bannedWord = response.properties?.bannedWord;
-                return res.status(400).json({
-                    error: 'Banned word detected',
-                    description: `提示词包含敏感词: "${bannedWord}"，请修改后重试`,
-                    bannedWord: bannedWord,
-                    code: 24
-                });
-            }
+        if (!response.success) {
             return res.status(500).json({
                 error: 'Failed to submit task',
-                description: response.description,
-                code: response.code
+                description: response.message,
             });
         }
-        const taskId = response.result;
+        const taskId = response.taskId;
         // 保存任务到数据库（可选，用于追踪）
         // 这里简化处理，实际应该创建一个 MidjourneyTask 表
         console.log('✅ [Midjourney Controller] 任务已提交:', taskId);
         res.json({
             success: true,
             taskId,
-            description: response.description,
-            finalPrompt: response.properties?.finalPrompt,
             isFreeUsage: permissionResult.isFree,
             creditsCharged,
         });
@@ -123,7 +108,8 @@ const fetchTask = async (req, res) => {
     try {
         const { taskId } = req.params;
         console.log('🔍 [Midjourney Controller] 查询任务:', taskId);
-        const result = await (0, midjourney_service_1.getMidjourneyService)().fetch(taskId);
+        const apiClient = getApiClient();
+        const result = await apiClient.midjourneyGetTask(taskId);
         res.json({
             success: true,
             task: result,
@@ -142,7 +128,8 @@ const pollTask = async (req, res) => {
     try {
         const { taskId } = req.params;
         console.log('⏳ [Midjourney Controller] 开始轮询任务:', taskId);
-        const result = await (0, midjourney_service_1.getMidjourneyService)().pollTask(taskId);
+        const apiClient = getApiClient();
+        const result = await apiClient.midjourneyWaitTask(taskId, 300000);
         console.log('✅ [Midjourney Controller] 任务完成:', taskId);
         res.json({
             success: true,
@@ -201,12 +188,18 @@ const action = async (req, res) => {
         // 获取原任务信息，判断是四宫格还是单张图
         let sourceAction = 'IMAGINE';
         try {
-            const sourceTask = await (0, midjourney_service_1.getMidjourneyService)().fetch(taskId);
-            sourceAction = sourceTask?.action || 'IMAGINE';
+            const apiClient = getApiClient();
+            const sourceTask = await apiClient.midjourneyGetTask(taskId);
+            // ai-gateway 返回的 status 可能是 SUCCESS/IN_PROGRESS 等
+            // 根据 buttons 判断是否是四宫格
+            const hasUpscaleButtons = sourceTask.buttons?.some(b => b.customId?.includes('upsample') || b.label?.includes('U'));
+            if (!hasUpscaleButtons) {
+                sourceAction = 'UPSCALE'; // 单张图
+            }
             console.log(`[Midjourney] 源任务信息:`, {
                 taskId,
-                action: sourceTask?.action,
-                buttons: sourceTask?.buttons?.map(b => b.label).slice(0, 5),
+                status: sourceTask.status,
+                hasUpscaleButtons,
             });
         }
         catch (e) {
@@ -258,30 +251,35 @@ const action = async (req, res) => {
             console.log(`[Midjourney] ${operationType} 操作无需扣费 (源: ${sourceAction}, 点赞: ${isLikeButton})`);
         }
         console.log('🎬 [Midjourney Controller] 执行动作:', { taskId, customId, operationType, messageId, messageHash, nodeId, userId });
-        console.log('   原始taskId:', taskId);
-        const response = await (0, midjourney_service_1.getMidjourneyService)().action({ taskId, customId, userId, messageId, messageHash, nodeId });
-        console.log('📥 [Midjourney Controller] 收到响应:');
-        console.log('   code:', response.code);
-        console.log('   description:', response.description);
-        console.log('   result (新任务ID):', response.result);
-        console.log('   properties:', response.properties);
-        // 根据API文档，code: 1=提交成功, 21=已存在, 22=排队中, other=错误
-        if (response.code === 1 || response.code === 21 || response.code === 22) {
-            // 这些都是正常状态，返回新任务ID
+        // 先查询原任务获取 messageId
+        const apiClient = getApiClient();
+        let actualMessageId = messageId;
+        if (!actualMessageId) {
+            const sourceTask = await apiClient.midjourneyGetTask(taskId);
+            actualMessageId = sourceTask.messageId;
+        }
+        if (!actualMessageId) {
+            return res.status(400).json({
+                error: 'Cannot find messageId for this task',
+            });
+        }
+        const response = await apiClient.midjourneyAction({
+            messageId: actualMessageId,
+            customId,
+            userId,
+        });
+        console.log('📥 [Midjourney Controller] 收到响应:', response);
+        if (response.success) {
             return res.json({
                 success: true,
-                taskId: response.result,
-                description: response.description,
-                code: response.code,
+                taskId: response.taskId,
                 isFreeUsage: permissionResult.isFree,
                 creditsCharged,
             });
         }
-        // 其他错误码
         return res.status(500).json({
             error: 'Failed to submit action',
-            description: response.description,
-            code: response.code,
+            description: response.message,
         });
     }
     catch (error) {
@@ -299,77 +297,6 @@ const action = async (req, res) => {
 };
 exports.action = action;
 /**
- * Blend（图片混合）
- */
-const blend = async (req, res) => {
-    try {
-        const { base64Array } = req.body;
-        const userId = req.user?.id;
-        if (!base64Array || !Array.isArray(base64Array) || base64Array.length < 2) {
-            return res.status(400).json({ error: 'At least 2 images required for blend' });
-        }
-        // 权限检查
-        const permissionResult = await user_level_service_1.userLevelService.checkPermission({
-            userId,
-            moduleType: 'midjourney',
-        });
-        if (!permissionResult.allowed) {
-            return res.status(403).json({
-                success: false,
-                error: permissionResult.reason || '您没有权限使用 Midjourney',
-                code: 'PERMISSION_DENIED',
-            });
-        }
-        console.log('🎨 [Midjourney Controller] 提交 Blend 任务');
-        const response = await (0, midjourney_service_1.getMidjourneyService)().blend(base64Array);
-        if (response.code !== 1) {
-            return res.status(500).json({
-                error: 'Failed to submit blend task',
-                description: response.description
-            });
-        }
-        res.json({
-            success: true,
-            taskId: response.result,
-            description: response.description,
-        });
-    }
-    catch (error) {
-        console.error('❌ [Midjourney Controller] Blend 失败:', error);
-        res.status(500).json({ error: error.message });
-    }
-};
-exports.blend = blend;
-/**
- * Describe（图生文）
- */
-const describe = async (req, res) => {
-    try {
-        const { base64 } = req.body;
-        if (!base64) {
-            return res.status(400).json({ error: 'Base64 image is required' });
-        }
-        console.log('📝 [Midjourney Controller] 提交 Describe 任务');
-        const response = await (0, midjourney_service_1.getMidjourneyService)().describe(base64);
-        if (response.code !== 1) {
-            return res.status(500).json({
-                error: 'Failed to submit describe task',
-                description: response.description
-            });
-        }
-        res.json({
-            success: true,
-            taskId: response.result,
-            description: response.description,
-        });
-    }
-    catch (error) {
-        console.error('❌ [Midjourney Controller] Describe 失败:', error);
-        res.status(500).json({ error: error.message });
-    }
-};
-exports.describe = describe;
-/**
  * 上传参考图到 Discord（用于 V7 Omni-Reference）
  */
 const uploadReferenceImage = async (req, res) => {
@@ -378,40 +305,14 @@ const uploadReferenceImage = async (req, res) => {
         if (!imageUrl && !base64) {
             return res.status(400).json({ error: 'imageUrl or base64 is required' });
         }
-        console.log('🖼️ [Midjourney Controller] 上传参考图到 Discord');
-        let imageBuffer;
-        let imageName;
-        // 处理 imageUrl
-        if (imageUrl) {
-            console.log('📥 [Midjourney Controller] 从 URL 下载图片:', imageUrl);
-            const response = await axios_1.default.get(imageUrl, {
-                responseType: 'arraybuffer',
-                timeout: 30000, // 30秒超时
-            });
-            imageBuffer = Buffer.from(response.data);
-            // 从 URL 提取文件名
-            const urlParts = imageUrl.split('/');
-            imageName = urlParts[urlParts.length - 1].split('?')[0] || 'reference.jpg';
-            console.log(`✅ [Midjourney Controller] 图片下载完成: ${imageBuffer.length} bytes`);
-        }
-        // 处理 base64
-        else if (base64) {
-            console.log('🔄 [Midjourney Controller] 转换 base64 为 Buffer');
-            // 移除 data:image/xxx;base64, 前缀（如果存在）
-            const base64Data = base64.replace(/^data:image\/\w+;base64,/, '');
-            imageBuffer = Buffer.from(base64Data, 'base64');
-            imageName = filename || 'reference.jpg';
-            console.log(`✅ [Midjourney Controller] Base64 转换完成: ${imageBuffer.length} bytes`);
-        }
-        else {
-            return res.status(400).json({ error: 'Invalid image data' });
-        }
-        // 调用 Discord 服务上传图片
-        const discordUrl = await (0, midjourney_service_1.getMidjourneyService)().uploadReferenceImage(imageBuffer, imageName);
-        console.log('✅ [Midjourney Controller] 参考图上传成功:', discordUrl);
+        console.log('🖼️ [Midjourney Controller] 上传参考图');
+        // 调用 ai-gateway 上传参考图
+        const apiClient = getApiClient();
+        const result = await apiClient.midjourneyUploadReference({ imageUrl, base64, filename });
+        console.log('✅ [Midjourney Controller] 参考图上传成功:', result.discordUrl);
         res.json({
             success: true,
-            discordUrl,
+            discordUrl: result.discordUrl,
         });
     }
     catch (error) {
