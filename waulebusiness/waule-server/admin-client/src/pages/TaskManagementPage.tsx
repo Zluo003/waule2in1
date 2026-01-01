@@ -14,8 +14,6 @@ import {
   Image,
   Video,
   DollarSign,
-  Undo2,
-  Ban,
   Filter,
   TrendingUp,
   Activity,
@@ -23,37 +21,33 @@ import {
 
 interface Task {
   id: string;
-  userId: string;
+  tenantId: string;
+  tenantUserId: string;
   type: 'IMAGE' | 'VIDEO';
-  modelId: string;
+  modelId: string | null;
   prompt: string;
-  ratio: string | null;
-  generationType: string | null;
   status: 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILURE';
-  progress: number;
-  resultUrl: string | null;
-  errorMessage: string | null;
-  metadata: any;
+  error: string | null;
+  creditsCost: number;
   sourceNodeId: string | null;
   previewNodeCreated: boolean;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
-  externalTaskId: string | null;
-  user: {
+  tenant: {
     id: string;
+    name: string;
+  } | null;
+  tenantUser: {
     nickname: string | null;
-    phone: string | null;
-    email: string | null;
+    username: string;
   } | null;
   model: {
     id: string;
     name: string;
     provider: string;
+    type: string;
   } | null;
-  creditsCharged: number;
-  usageRecordId: string | null;
-  isFreeUsage: boolean;
 }
 
 interface Pagination {
@@ -114,7 +108,7 @@ const TaskManagementPage = () => {
 
   // 筛选条件
   const [filters, setFilters] = useState({
-    nickname: '',
+    tenantName: '',
     status: '',
     type: '',
     isZombie: false,
@@ -122,9 +116,6 @@ const TaskManagementPage = () => {
     dateTo: '',
   });
   const [showFilters, setShowFilters] = useState(false);
-
-  // 操作状态
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // 加载统计数据
   const fetchStats = useCallback(async () => {
@@ -149,7 +140,7 @@ const TaskManagementPage = () => {
         page: pagination.page,
         limit: pagination.limit,
       };
-      if (filters.nickname) params.nickname = filters.nickname;
+      if (filters.tenantName) params.tenantName = filters.tenantName;
       if (filters.status) params.status = filters.status;
       if (filters.type) params.type = filters.type;
       if (filters.isZombie) params.isZombie = 'true';
@@ -179,62 +170,6 @@ const TaskManagementPage = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPagination((prev) => ({ ...prev, page: 1 }));
-  };
-
-  const handleRefund = async (task: Task) => {
-    if (!task.creditsCharged || task.creditsCharged <= 0) {
-      toast.error('该任务没有扣费记录');
-      return;
-    }
-    if (task.metadata?.refunded) {
-      toast.error('该任务已退款');
-      return;
-    }
-    if (!confirm(`确定要退还 ${task.creditsCharged} 积分给用户「${task.user?.nickname || task.userId}」吗？`)) {
-      return;
-    }
-
-    setActionLoading(task.id);
-    try {
-      const res = await apiClient.admin.tasks.refund(task.id);
-      if (res.success) {
-        toast.success(res.message);
-        fetchTasks();
-        fetchStats();
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || '退款失败');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleCancel = async (task: Task) => {
-    if (task.status === 'SUCCESS' || task.status === 'FAILURE') {
-      toast.error('任务已完成，无法取消');
-      return;
-    }
-    const refund = task.creditsCharged > 0 && !task.metadata?.refunded;
-    const message = refund
-      ? `确定要取消任务并退还 ${task.creditsCharged} 积分吗？`
-      : '确定要取消该任务吗？';
-    if (!confirm(message)) {
-      return;
-    }
-
-    setActionLoading(task.id);
-    try {
-      const res = await apiClient.admin.tasks.cancel(task.id, refund);
-      if (res.success) {
-        toast.success(res.message);
-        fetchTasks();
-        fetchStats();
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || '取消失败');
-    } finally {
-      setActionLoading(null);
-    }
   };
 
   const getStatusBadge = (status: string, progress: number) => {
@@ -272,8 +207,8 @@ const TaskManagementPage = () => {
     }
   };
 
-  const getTypeBadge = (type: string) => {
-    if (type === 'IMAGE') {
+  const getTypeBadge = (modelType: string | undefined) => {
+    if (modelType === 'IMAGE_GENERATION') {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400">
           <Image className="w-3 h-3" />
@@ -281,10 +216,17 @@ const TaskManagementPage = () => {
         </span>
       );
     }
+    if (modelType === 'VIDEO_GENERATION' || modelType === 'VIDEO_EDITING') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-500/20 text-cyan-400">
+          <Video className="w-3 h-3" />
+          视频
+        </span>
+      );
+    }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-500/20 text-cyan-400">
-        <Video className="w-3 h-3" />
-        视频
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400">
+        其他
       </span>
     );
   };
@@ -441,10 +383,10 @@ const TaskManagementPage = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="搜索用户昵称..."
-              value={filters.nickname}
+              placeholder="搜索租户名称..."
+              value={filters.tenantName}
               onChange={(e) =>
-                setFilters((prev) => ({ ...prev, nickname: e.target.value }))
+                setFilters((prev) => ({ ...prev, tenantName: e.target.value }))
               }
               className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-text-light-primary dark:text-text-dark-primary placeholder-gray-400 focus:outline-none focus:border-purple-500"
             />
@@ -535,7 +477,7 @@ const TaskManagementPage = () => {
               type="button"
               onClick={() => {
                 setFilters({
-                  nickname: '',
+                  tenantName: '',
                   status: '',
                   type: '',
                   isZombie: false,
@@ -566,7 +508,7 @@ const TaskManagementPage = () => {
               <thead>
                 <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5">
                   <th className="text-left px-4 py-3 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
-                    用户
+                    租户
                   </th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
                     类型
@@ -585,9 +527,6 @@ const TaskManagementPage = () => {
                   </th>
                   <th className="text-left px-4 py-3 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
                     创建时间
-                  </th>
-                  <th className="text-center px-4 py-3 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary">
-                    操作
                   </th>
                 </tr>
               </thead>
@@ -608,22 +547,19 @@ const TaskManagementPage = () => {
                           )}
                           <div>
                             <div className="font-medium text-text-light-primary dark:text-text-dark-primary">
-                              {task.user?.nickname || '未知用户'}
+                              {task.tenant?.name || '未知租户'}
                             </div>
                             <div className="text-xs text-gray-400">
-                              {task.user?.phone?.replace(
-                                /(\d{3})\d{4}(\d{4})/,
-                                '$1****$2'
-                              ) || task.userId.slice(0, 8)}
+                              {task.tenantUser?.nickname || task.tenantUser?.username || task.tenantUserId.slice(0, 8)}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3">{getTypeBadge(task.type)}</td>
+                      <td className="px-4 py-3">{getTypeBadge(task.model?.type)}</td>
                       <td className="px-4 py-3">
                         <div
                           className="text-sm text-text-light-primary dark:text-text-dark-primary truncate max-w-[120px]"
-                          title={task.model?.name || task.modelId}
+                          title={task.model?.name || task.modelId || ''}
                         >
                           {task.model?.name || '未知模型'}
                         </div>
@@ -632,13 +568,13 @@ const TaskManagementPage = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        {getStatusBadge(task.status, task.progress)}
-                        {task.errorMessage && (
+                        {getStatusBadge(task.status, 0)}
+                        {task.error && (
                           <div
                             className="text-xs text-red-400 mt-1 truncate max-w-[150px]"
-                            title={task.errorMessage}
+                            title={task.error}
                           >
-                            {task.errorMessage}
+                            {task.error}
                           </div>
                         )}
                       </td>
@@ -651,62 +587,16 @@ const TaskManagementPage = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {task.isFreeUsage ? (
-                          <span className="text-xs text-green-500">免费</span>
-                        ) : task.creditsCharged > 0 ? (
-                          <div>
-                            <span className="font-medium text-amber-500">
-                              {task.creditsCharged}
-                            </span>
-                            {task.metadata?.refunded && (
-                              <span className="ml-1 text-xs text-green-500">
-                                (已退)
-                              </span>
-                            )}
-                          </div>
+                        {task.creditsCost > 0 ? (
+                          <span className="font-medium text-amber-500">
+                            {task.creditsCost}
+                          </span>
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-400">
                         {formatDate(task.createdAt)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-2">
-                          {/* 退款按钮 - 只有失败任务且有扣费且未退款时显示 */}
-                          {task.status === 'FAILURE' &&
-                            task.creditsCharged > 0 &&
-                            !task.metadata?.refunded && (
-                              <button
-                                onClick={() => handleRefund(task)}
-                                disabled={actionLoading === task.id}
-                                className="p-1.5 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-colors disabled:opacity-50"
-                                title="退款"
-                              >
-                                {actionLoading === task.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Undo2 className="w-4 h-4" />
-                                )}
-                              </button>
-                            )}
-                          {/* 取消按钮 - 只有 PENDING/PROCESSING 任务显示 */}
-                          {(task.status === 'PENDING' ||
-                            task.status === 'PROCESSING') && (
-                            <button
-                              onClick={() => handleCancel(task)}
-                              disabled={actionLoading === task.id}
-                              className="p-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors disabled:opacity-50"
-                              title="取消任务"
-                            >
-                              {actionLoading === task.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Ban className="w-4 h-4" />
-                              )}
-                            </button>
-                          )}
-                        </div>
                       </td>
                     </tr>
                   );

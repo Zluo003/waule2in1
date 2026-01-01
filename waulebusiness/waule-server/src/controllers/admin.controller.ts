@@ -909,7 +909,7 @@ export const getServerMetrics = asyncHandler(async (req: Request, res: Response)
 });
 
 /**
- * 获取任务列表（支持多重筛选）
+ * 获取租户任务列表（支持多重筛选）
  */
 export const getTasks = asyncHandler(async (req: Request, res: Response) => {
   const {
@@ -918,8 +918,8 @@ export const getTasks = asyncHandler(async (req: Request, res: Response) => {
     status,
     type,
     modelId,
-    userId,
-    nickname,
+    tenantId,
+    tenantName,
     dateFrom,
     dateTo,
     isZombie,
@@ -945,18 +945,17 @@ export const getTasks = asyncHandler(async (req: Request, res: Response) => {
     where.modelId = modelId;
   }
 
-  // 按用户 ID 或昵称筛选
-  if (userId) {
-    where.userId = userId;
-  } else if (nickname) {
-    const user = await prisma.user.findFirst({
-      where: { nickname: { contains: nickname as string, mode: 'insensitive' } },
+  // 按租户 ID 或名称筛选
+  if (tenantId) {
+    where.tenantId = tenantId;
+  } else if (tenantName) {
+    const tenant = await prisma.tenant.findFirst({
+      where: { name: { contains: tenantName as string, mode: 'insensitive' } },
       select: { id: true },
     });
-    if (user) {
-      where.userId = user.id;
+    if (tenant) {
+      where.tenantId = tenant.id;
     } else {
-      // 没找到用户，返回空结果
       return res.json({
         success: true,
         data: [],
@@ -988,62 +987,63 @@ export const getTasks = asyncHandler(async (req: Request, res: Response) => {
   orderBy[sortBy as string] = sortOrder === 'asc' ? 'asc' : 'desc';
 
   const [tasks, total] = await Promise.all([
-    prisma.generationTask.findMany({
+    prisma.tenantTask.findMany({
       where,
       skip,
       take,
       orderBy,
-      select: {
-        id: true,
-        userId: true,
-        type: true,
-        modelId: true,
-        prompt: true,
-        ratio: true,
-        generationType: true,
-        status: true,
-        progress: true,
-        resultUrl: true,
-        errorMessage: true,
-        metadata: true,
-        sourceNodeId: true,
-        previewNodeCreated: true,
-        createdAt: true,
-        updatedAt: true,
-        completedAt: true,
-        externalTaskId: true,
-        // 注意：不选择 referenceImages（大字段）
-      },
     }),
-    prisma.generationTask.count({ where }),
+    prisma.tenantTask.count({ where }),
   ]);
 
-  // 获取关联的用户信息
-  const userIds = [...new Set(tasks.map(t => t.userId))];
-  const users = await prisma.user.findMany({
-    where: { id: { in: userIds } },
-    select: { id: true, nickname: true, phone: true, email: true },
+  // 获取关联的租户信息
+  const tenantIds = [...new Set(tasks.map(t => t.tenantId))];
+  const tenants = await prisma.tenant.findMany({
+    where: { id: { in: tenantIds } },
+    select: { id: true, name: true },
   });
-  const userMap = new Map(users.map(u => [u.id, u]));
+  const tenantMap = new Map(tenants.map(t => [t.id, t]));
+
+  // 获取关联的租户用户信息
+  const tenantUserIds = [...new Set(tasks.map(t => t.tenantUserId))];
+  const tenantUsers = await prisma.tenantUser.findMany({
+    where: { id: { in: tenantUserIds } },
+    select: { id: true, nickname: true, username: true },
+  });
+  const tenantUserMap = new Map(tenantUsers.map(u => [u.id, u]));
 
   // 获取关联的模型信息
-  const modelIds = [...new Set(tasks.map(t => t.modelId).filter(Boolean))];
+  const modelIds = [...new Set(tasks.map(t => t.modelId).filter(Boolean))] as string[];
   const models = await prisma.aIModel.findMany({
     where: { id: { in: modelIds } },
-    select: { id: true, name: true, provider: true },
+    select: { id: true, name: true, provider: true, type: true },
   });
   const modelMap = new Map(models.map(m => [m.id, m]));
 
   // 组装数据
-  const tasksWithInfo = tasks.map(task => ({
-    ...task,
-    user: userMap.get(task.userId) || null,
-    model: modelMap.get(task.modelId) || null,
-    // 提取扣费信息
-    creditsCharged: (task.metadata as any)?.creditsCharged || 0,
-    usageRecordId: (task.metadata as any)?.usageRecordId || null,
-    isFreeUsage: (task.metadata as any)?.isFreeUsage || false,
-  }));
+  const tasksWithInfo = tasks.map(task => {
+    const input = task.input as any;
+    const tenantUser = tenantUserMap.get(task.tenantUserId);
+    return {
+      id: task.id,
+      tenantId: task.tenantId,
+      tenantUserId: task.tenantUserId,
+      type: task.type,
+      modelId: task.modelId,
+      prompt: input?.prompt || '',
+      status: task.status,
+      error: task.error,
+      creditsCost: task.creditsCost,
+      sourceNodeId: task.sourceNodeId,
+      previewNodeCreated: task.previewNodeCreated,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+      completedAt: task.completedAt,
+      tenant: tenantMap.get(task.tenantId) || null,
+      tenantUser: tenantUser ? { nickname: tenantUser.nickname, username: tenantUser.username } : null,
+      model: task.modelId ? modelMap.get(task.modelId) || null : null,
+    };
+  });
 
   res.json({
     success: true,
@@ -1058,7 +1058,7 @@ export const getTasks = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
- * 获取任务统计数据
+ * 获取租户任务统计数据
  */
 export const getTaskStats = asyncHandler(async (req: Request, res: Response) => {
   const now = new Date();
@@ -1068,12 +1068,12 @@ export const getTaskStats = asyncHandler(async (req: Request, res: Response) => 
 
   // 总体统计
   const [totalTasks, pendingTasks, processingTasks, successTasks, failureTasks, zombieTasks] = await Promise.all([
-    prisma.generationTask.count(),
-    prisma.generationTask.count({ where: { status: 'PENDING' } }),
-    prisma.generationTask.count({ where: { status: 'PROCESSING' } }),
-    prisma.generationTask.count({ where: { status: 'SUCCESS' } }),
-    prisma.generationTask.count({ where: { status: 'FAILURE' } }),
-    prisma.generationTask.count({
+    prisma.tenantTask.count(),
+    prisma.tenantTask.count({ where: { status: 'PENDING' } }),
+    prisma.tenantTask.count({ where: { status: 'PROCESSING' } }),
+    prisma.tenantTask.count({ where: { status: 'SUCCESS' } }),
+    prisma.tenantTask.count({ where: { status: 'FAILURE' } }),
+    prisma.tenantTask.count({
       where: {
         status: { in: ['PENDING', 'PROCESSING'] },
         updatedAt: { lt: zombieThreshold },
@@ -1083,9 +1083,9 @@ export const getTaskStats = asyncHandler(async (req: Request, res: Response) => 
 
   // 今日统计
   const [todayTotal, todaySuccess, todayFailure] = await Promise.all([
-    prisma.generationTask.count({ where: { createdAt: { gte: todayStart } } }),
-    prisma.generationTask.count({ where: { createdAt: { gte: todayStart }, status: 'SUCCESS' } }),
-    prisma.generationTask.count({ where: { createdAt: { gte: todayStart }, status: 'FAILURE' } }),
+    prisma.tenantTask.count({ where: { createdAt: { gte: todayStart } } }),
+    prisma.tenantTask.count({ where: { createdAt: { gte: todayStart }, status: 'SUCCESS' } }),
+    prisma.tenantTask.count({ where: { createdAt: { gte: todayStart }, status: 'FAILURE' } }),
   ]);
 
   // 按模型统计（7天）
@@ -1095,13 +1095,13 @@ export const getTaskStats = asyncHandler(async (req: Request, res: Response) => 
     success: bigint;
     failure: bigint;
   }>>`
-    SELECT 
+    SELECT
       "modelId",
       COUNT(*)::bigint as total,
       COUNT(*) FILTER (WHERE status = 'SUCCESS')::bigint as success,
       COUNT(*) FILTER (WHERE status = 'FAILURE')::bigint as failure
-    FROM generation_tasks
-    WHERE "createdAt" >= ${sevenDaysAgo}
+    FROM tenant_tasks
+    WHERE "createdAt" >= ${sevenDaysAgo} AND "modelId" IS NOT NULL
     GROUP BY "modelId"
     ORDER BY total DESC
     LIMIT 20
@@ -1138,12 +1138,12 @@ export const getTaskStats = asyncHandler(async (req: Request, res: Response) => 
     success: bigint;
     failure: bigint;
   }>>`
-    SELECT 
+    SELECT
       type,
       COUNT(*)::bigint as total,
       COUNT(*) FILTER (WHERE status = 'SUCCESS')::bigint as success,
       COUNT(*) FILTER (WHERE status = 'FAILURE')::bigint as failure
-    FROM generation_tasks
+    FROM tenant_tasks
     WHERE "createdAt" >= ${sevenDaysAgo}
     GROUP BY type
   `;
@@ -1161,12 +1161,11 @@ export const getTaskStats = asyncHandler(async (req: Request, res: Response) => 
     };
   });
 
-  // 扣费统计（从 metadata 中提取）
+  // 扣费统计（TenantTask 直接有 creditsCost 字段）
   const chargedTasks = await prisma.$queryRaw<Array<{ total_charged: bigint | null }>>`
-    SELECT SUM((metadata->>'creditsCharged')::int)::bigint as total_charged
-    FROM generation_tasks
+    SELECT SUM("creditsCost")::bigint as total_charged
+    FROM tenant_tasks
     WHERE "createdAt" >= ${sevenDaysAgo}
-      AND metadata->>'creditsCharged' IS NOT NULL
   `;
 
   const totalCreditsCharged = Number(chargedTasks[0]?.total_charged || 0);
