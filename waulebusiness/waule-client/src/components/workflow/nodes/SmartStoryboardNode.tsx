@@ -60,7 +60,7 @@ interface SmartStoryboardNodeData {
 const ASPECT_RATIOS = ['16:9', '9:16'];
 
 // 模型ID
-const TEXT_MODEL_ID = 'gemini-3-pro-preview'; // 第一步：文字生成
+const TEXT_MODEL_ID = 'gemini-3-flash-preview'; // 第一步：文字生成
 const IMAGE_MODEL_ID = 'gemini-3-pro-image-preview'; // 第二步：图片生成
 const MAX_INPUT_IMAGES = 5; // 最多输入图片数
 
