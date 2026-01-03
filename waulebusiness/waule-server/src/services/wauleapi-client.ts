@@ -315,7 +315,7 @@ class WauleApiClient {
 
   /**
    * Future Sora API：创建角色
-   * POST /future-sora/v1/characters
+   * POST /v1/sora/characters
    */
   async futureSoraCreateCharacter(params: {
     url: string;
@@ -323,7 +323,7 @@ class WauleApiClient {
   }, serverConfig?: ServerConfig): Promise<any> {
     const client = this.createClient('sora', serverConfig);
     console.log(`[WauleAPI] Future Sora CreateCharacter: url=${params.url.substring(0, 50)}...`);
-    const response = await client.post('/future-sora/v1/characters', params);
+    const response = await client.post('/v1/sora/characters', params);
     return response.data;
   }
 
