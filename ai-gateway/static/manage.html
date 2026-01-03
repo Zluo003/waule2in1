@@ -338,6 +338,22 @@
             </div>
 
             <div class="card">
+                <h3>Gemini 代理设置</h3>
+                <p style="color:#666;font-size:12px;margin-bottom:15px;">配置 Gemini 官方 API 的代理，用于解决地区限制问题</p>
+                <div class="form-group">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                        <input type="checkbox" id="cfg-gemini-proxy-enabled" style="width:auto;">
+                        <span>启用代理</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>代理地址</label>
+                    <input type="text" id="cfg-gemini-proxy-url" placeholder="socks5://127.0.0.1:40000">
+                </div>
+                <button class="btn btn-primary" onclick="saveGeminiProxyConfig()">保存代理设置</button>
+            </div>
+
+            <div class="card">
                 <h3>修改密码</h3>
                 <div class="form-row">
                     <div class="form-group"><label>原密码</label><input type="password" id="old-password"></div>
@@ -353,7 +369,7 @@
             <div class="card">
                 <div class="table-container">
                     <table>
-                        <thead><tr><th>时间</th><th>提供商</th><th>接口</th><th>模型</th><th>状态</th><th>耗时</th></tr></thead>
+                        <thead><tr><th>时间</th><th>提供商</th><th>通道</th><th>接口</th><th>模型</th><th>状态</th><th>耗时</th></tr></thead>
                         <tbody id="logs-table"></tbody>
                     </table>
                 </div>
@@ -798,6 +814,8 @@
                 document.getElementById('cfg-oss-key-id').value = cfg.oss_access_key_id || '';
                 document.getElementById('cfg-oss-endpoint').value = cfg.oss_endpoint || '';
                 document.getElementById('cfg-oss-cdn').value = cfg.oss_cdn_url || '';
+                document.getElementById('cfg-gemini-proxy-enabled').checked = cfg.gemini_proxy_enabled === 'true';
+                document.getElementById('cfg-gemini-proxy-url').value = cfg.gemini_proxy_url || 'socks5://127.0.0.1:40000';
             } catch (e) { console.error(e); }
         }
 
@@ -809,12 +827,13 @@
                     <tr>
                         <td>${new Date(l.created_at).toLocaleString()}</td>
                         <td>${l.provider}</td>
+                        <td>${l.channel_name || '-'}</td>
                         <td>${l.endpoint}</td>
                         <td>${l.model || '-'}</td>
                         <td><span class="badge ${l.status === 'success' ? 'badge-success' : 'badge-error'}">${l.status}</span></td>
                         <td>${l.duration ? (l.duration / 1000).toFixed(1) + 's' : '-'}</td>
                     </tr>
-                `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">暂无日志</td></tr>';
+                `).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary)">暂无日志</td></tr>';
             } catch (e) { console.error(e); }
         }
 
@@ -850,6 +869,25 @@
                 } else {
                     const data = await res.json().catch(() => ({}));
                     showToast(data.error || '保存失败', 'error');
+                }
+            } catch (e) { showToast('保存失败', 'error'); }
+        }
+
+        async function saveGeminiProxyConfig() {
+            try {
+                const res = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        gemini_proxy_enabled: document.getElementById('cfg-gemini-proxy-enabled').checked ? 'true' : 'false',
+                        gemini_proxy_url: document.getElementById('cfg-gemini-proxy-url').value
+                    })
+                });
+                if (res.ok) {
+                    showToast('Gemini 代理设置已保存', 'success');
+                } else {
+                    showToast('保存失败', 'error');
                 }
             } catch (e) { showToast('保存失败', 'error'); }
         }

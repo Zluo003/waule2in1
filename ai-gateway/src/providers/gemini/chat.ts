@@ -5,10 +5,21 @@
  */
 
 import axios from 'axios';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import { log } from '../../utils/logger';
+import { getGeminiProxyConfig } from '../../config';
 import { getActiveApiKey, recordKeyUsage, addRequestLog, getActiveChannelForModel, recordChannelUsage, recordChannelKeyUsage } from '../../database';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+// 获取代理 agent（如果启用）
+function getProxyAgent() {
+  const config = getGeminiProxyConfig();
+  if (config.enabled && config.proxyUrl) {
+    return new SocksProxyAgent(config.proxyUrl);
+  }
+  return undefined;
+}
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -110,6 +121,7 @@ export async function chatCompletion(params: ChatCompletionParams): Promise<Chat
 
   // Gemini 3 系列模型强制使用温度 1
   const temperature = modelId.includes('gemini-3') ? 1 : (params.temperature ?? 1);
+  const channelName = channelResult?.channel.name || '默认';
 
   try {
     log('gemini', 'Chat completion', { model: modelId, actualModel, messageCount: params.messages.length });
@@ -117,10 +129,10 @@ export async function chatCompletion(params: ChatCompletionParams): Promise<Chat
     // 根据渠道类型选择不同的请求方式
     if (channelResult?.channel.channel_type === 'proxy' && channelResult.channel.base_url) {
       // 中转API - OpenAI兼容格式
-      return await callProxyApi(params, actualModel, apiKey, apiBase, temperature, startTime, channelId!, channelKeyId!);
+      return await callProxyApi(params, actualModel, apiKey, apiBase, temperature, startTime, channelId!, channelKeyId!, channelName);
     } else {
       // 官方API - Gemini原生格式
-      return await callOfficialApi(params, actualModel, apiKey, apiBase, temperature, startTime, channelId, channelKeyId, keyRecordId);
+      return await callOfficialApi(params, actualModel, apiKey, apiBase, temperature, startTime, channelId, channelKeyId, keyRecordId, channelName);
     }
   } catch (error: any) {
     if (channelKeyId) {
@@ -131,7 +143,7 @@ export async function chatCompletion(params: ChatCompletionParams): Promise<Chat
     } else if (keyRecordId) {
       recordKeyUsage(keyRecordId, false);
     }
-    addRequestLog('gemini', '/chat/completions', modelId, 'error', Date.now() - startTime, error.message);
+    addRequestLog('gemini', '/chat/completions', modelId, 'error', Date.now() - startTime, error.message, channelName);
     log('gemini', 'Chat completion failed', { error: error.message });
     throw new Error(`Gemini chat failed: ${error.response?.data?.error?.message || error.message}`);
   }
@@ -146,7 +158,8 @@ async function callProxyApi(
   temperature: number,
   startTime: number,
   channelId: number,
-  channelKeyId: number
+  channelKeyId: number,
+  channelName: string
 ): Promise<ChatCompletionResult> {
   const requestBody: any = {
     model: modelId,
@@ -173,7 +186,7 @@ async function callProxyApi(
 
   recordChannelKeyUsage(channelKeyId, true);
   recordChannelUsage(channelId, true);
-  addRequestLog('gemini', '/chat/completions', modelId, 'success', Date.now() - startTime);
+  addRequestLog('gemini', '/chat/completions', modelId, 'success', Date.now() - startTime, undefined, channelName);
 
   return response.data;
 }
@@ -188,7 +201,8 @@ async function callOfficialApi(
   startTime: number,
   channelId: number | null,
   channelKeyId: number | null,
-  keyRecordId: number | null
+  keyRecordId: number | null,
+  channelName: string
 ): Promise<ChatCompletionResult> {
   // 转换消息格式为 Gemini 格式
   const contents: any[] = [];
@@ -240,10 +254,15 @@ async function callOfficialApi(
     };
   }
 
+  const proxyAgent = getProxyAgent();
   const response = await axios.post(
     `${apiBase}/${modelId}:generateContent?key=${apiKey}`,
     requestBody,
-    { headers: { 'Content-Type': 'application/json' }, timeout: 180000 }
+    {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 180000,
+      ...(proxyAgent && { httpAgent: proxyAgent, httpsAgent: proxyAgent }),
+    }
   );
 
   const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -257,7 +276,7 @@ async function callOfficialApi(
   } else if (keyRecordId) {
     recordKeyUsage(keyRecordId, true);
   }
-  addRequestLog('gemini', '/chat/completions', modelId, 'success', Date.now() - startTime);
+  addRequestLog('gemini', '/chat/completions', modelId, 'success', Date.now() - startTime, undefined, channelName);
 
   return {
     id: `chatcmpl-${Date.now()}`,

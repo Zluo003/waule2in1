@@ -11,6 +11,11 @@ export interface StorageConfig {
   };
 }
 
+export interface GeminiProxyConfig {
+  enabled: boolean;
+  proxyUrl: string;
+}
+
 export function getStorageConfig(): StorageConfig {
   const bucket = getConfig('oss_bucket') || '';
   if (bucket) {
@@ -26,6 +31,13 @@ export function getStorageConfig(): StorageConfig {
     };
   }
   return {};
+}
+
+export function getGeminiProxyConfig(): GeminiProxyConfig {
+  return {
+    enabled: getConfig('gemini_proxy_enabled') === 'true',
+    proxyUrl: getConfig('gemini_proxy_url') || 'socks5://127.0.0.1:40000',
+  };
 }
 
 export function getApiSecret(): string {

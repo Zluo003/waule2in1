@@ -86,7 +86,12 @@ function initTables() {
 
   db.prepare(`CREATE TABLE IF NOT EXISTS system_config (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`).run();
   db.prepare(`CREATE TABLE IF NOT EXISTS api_keys (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, name TEXT NOT NULL, api_key TEXT NOT NULL, is_active INTEGER DEFAULT 1, use_count INTEGER DEFAULT 0, success_count INTEGER DEFAULT 0, fail_count INTEGER DEFAULT 0, last_used_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, storage_type TEXT DEFAULT 'forward')`).run();
-  db.prepare(`CREATE TABLE IF NOT EXISTS request_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, endpoint TEXT NOT NULL, model TEXT, status TEXT NOT NULL, duration INTEGER, error_message TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`).run();
+  db.prepare(`CREATE TABLE IF NOT EXISTS request_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, provider TEXT NOT NULL, endpoint TEXT NOT NULL, model TEXT, status TEXT NOT NULL, duration INTEGER, error_message TEXT, channel_name TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`).run();
+
+  // 添加 channel_name 列（如果不存在）
+  try {
+    db.prepare(`ALTER TABLE request_logs ADD COLUMN channel_name TEXT`).run();
+  } catch (e) { /* 列已存在 */ }
 
   // 渠道表 - 支持官方和多个中转
   db.prepare(`CREATE TABLE IF NOT EXISTS channels (
@@ -322,9 +327,9 @@ export function recordKeyUsage(id: number, success: boolean): void {
 }
 
 // 日志操作
-export function addRequestLog(provider: string, endpoint: string, model: string | null, status: string, duration: number, errorMessage?: string): void {
-  getDb().prepare('INSERT INTO request_logs (provider, endpoint, model, status, duration, error_message) VALUES (?, ?, ?, ?, ?, ?)').run(
-    provider, endpoint, model, status, duration, errorMessage || null);
+export function addRequestLog(provider: string, endpoint: string, model: string | null, status: string, duration: number, errorMessage?: string, channelName?: string): void {
+  getDb().prepare('INSERT INTO request_logs (provider, endpoint, model, status, duration, error_message, channel_name) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
+    provider, endpoint, model, status, duration, errorMessage || null, channelName || null);
 }
 
 export function getRequestLogs(limit = 100, offset = 0, provider?: string): { logs: any[]; total: number } {

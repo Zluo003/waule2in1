@@ -4,11 +4,22 @@
  */
 
 import axios from 'axios';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import { log } from '../../utils/logger';
+import { getGeminiProxyConfig } from '../../config';
 import { getActiveApiKey, recordKeyUsage, addRequestLog, getActiveChannelForModel, recordChannelUsage, recordChannelKeyUsage, Channel } from '../../database';
 import { uploadBufferWithProvider, downloadAndUpload } from '../../services/storage';
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+// 获取代理 agent（如果启用）
+function getProxyAgent() {
+  const config = getGeminiProxyConfig();
+  if (config.enabled && config.proxyUrl) {
+    return new SocksProxyAgent(config.proxyUrl);
+  }
+  return undefined;
+}
 
 export interface ImageGenerationParams {
   model?: string;
@@ -174,9 +185,11 @@ export async function generateImage(params: ImageGenerationParams): Promise<Imag
       const url = `${GEMINI_API_BASE}/${actualModel}:generateContent?key=${apiKey}`;
       log('gemini', 'Calling official API', { model: actualModel });
       try {
+        const proxyAgent = getProxyAgent();
         response = await axios.post(url, requestBody, {
           headers: { 'Content-Type': 'application/json' },
-          timeout: 300000
+          timeout: 300000,
+          ...(proxyAgent && { httpAgent: proxyAgent, httpsAgent: proxyAgent }),
         });
         log('gemini', 'Official API response received', { status: response.status });
       } catch (axiosErr: any) {
