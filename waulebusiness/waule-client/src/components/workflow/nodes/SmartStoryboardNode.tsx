@@ -369,6 +369,9 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           clearTaskState(id); // 清除 localStorage 中的任务状态
           const imageUrl = task.resultUrl;
 
+          console.log('[SmartStoryboardNode] task.resultUrl:', imageUrl);
+          console.log('[SmartStoryboardNode] task.previewNodeData:', task.previewNodeData);
+
           if (!imageUrl) {
             toast.error('生成完成但未找到结果');
             return;
