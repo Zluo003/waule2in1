@@ -355,7 +355,10 @@ class TaskService {
     const meta: any = task.metadata || {};
     const episodeId: string = meta.episodeId;
     const systemPrompt: string = meta.systemPrompt || '';
-    const temperature: number = Number(meta.temperature ?? 0);
+    // 从模型配置读取默认值
+    const modelConfig = (model.config as any) || {};
+    const temperature: number = Number(meta.temperature ?? modelConfig.temperature ?? 0.7);
+    const maxTokens: number = Number(meta.maxTokens ?? modelConfig.maxTokens ?? 8192);
     const attachments = meta.attachments || {};
 
     // 进度更新
@@ -371,7 +374,7 @@ class TaskService {
           systemPrompt: mergedSystem,
           modelId: model.modelId,
           temperature,
-          maxTokens: 32000,
+          maxTokens,
           documentFiles: attachments.documentFiles,
           imageUrls: attachments.imageUrls,
           videoUrls: attachments.videoUrls,

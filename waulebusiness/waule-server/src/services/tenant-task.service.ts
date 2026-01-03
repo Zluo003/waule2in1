@@ -597,10 +597,14 @@ class TenantTaskService {
     const textProvider = (textModel.provider || '').toLowerCase().trim();
 
     if (textProvider === 'google') {
+      // 从模型配置中读取 temperature 和 maxTokens
+      const modelConfig = (textModel.config as any) || {};
       const result = await geminiService.generateText({
         prompt: params.prompt,
         systemPrompt,
         modelId: textModel.modelId,
+        temperature: modelConfig.temperature,
+        maxTokens: modelConfig.maxTokens,
         imageUrls: referenceImages,
         apiKey: textModel.apiKey || undefined,
         apiUrl: textModel.apiUrl || undefined,
