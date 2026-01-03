@@ -97,6 +97,9 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
   const { setNodes, setEdges, getNode, getNodes } = useReactFlow();
 
+  // 使用 useStore 获取 getNodes 函数，用于在异步回调中获取最新节点数据
+  const getNodesFromStore = useStore((state: any) => state.getNodes);
+
   // 监听连接变化，获取输入图片
   const connectedEdges = useStore((state) =>
     state.edges.filter((edge) => edge.target === id)
@@ -463,8 +466,9 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
   // 批量创建所有预览节点（一次性添加，九宫格排列）
   const createAllPreviewNodes = (slices: string[], ratio: string) => {
     console.log('[SmartStoryboardNode] createAllPreviewNodes 被调用, slices:', slices, 'ratio:', ratio);
-    // 使用 getNodes() 查找当前节点，避免闭包问题
-    const allNodes = getNodes();
+    // 使用 getNodesFromStore 获取最新节点数据，避免闭包问题
+    const allNodes = getNodesFromStore();
+    console.log('[SmartStoryboardNode] allNodes count:', allNodes.length, 'looking for id:', id);
     const currentNode = allNodes.find((n: any) => n.id === id);
     console.log('[SmartStoryboardNode] currentNode:', currentNode);
     if (!currentNode) {
