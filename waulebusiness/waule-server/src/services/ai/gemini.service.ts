@@ -308,9 +308,12 @@ export const generateText = async (options: GeminiTextGenerateOptions): Promise<
   // 只有当明确提供了 apiKey 时才直接调用 Google API
   if (!apiKey) {
     console.log('[Gemini] 通过 waule-api 网关调用:', { modelId, temperature, maxTokens });
-    
-    const { wauleApiClient } = await import('../wauleapi-client');
-    
+
+    const { wauleApiClient, getServerConfigByModelId } = await import('../wauleapi-client');
+
+    // 获取服务器配置
+    const serverConfig = await getServerConfigByModelId(modelId);
+
     // 构建消息
     const messages: Array<{ role: string; content: any }> = [];
     
@@ -384,14 +387,14 @@ export const generateText = async (options: GeminiTextGenerateOptions): Promise<
     }
     
     messages.push({ role: 'user', content: userContent });
-    
+
     const result = await wauleApiClient.chat({
       model: modelId,
       messages,
       temperature,
       max_tokens: maxTokens,
-    });
-    
+    }, serverConfig);
+
     const text = result.choices?.[0]?.message?.content || '';
     console.log('[Gemini] waule-api 返回文本长度:', text.length);
     return text;
