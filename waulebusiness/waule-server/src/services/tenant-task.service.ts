@@ -423,10 +423,11 @@ class TenantTaskService {
     }
     
     logger.info(`[TenantTaskService] Sora 角色创建, 视频: ${publicVideoUrl.substring(0, 80)}...`);
-    
+
     const characterResult = await soraService.createCharacter({
       videoUrl: publicVideoUrl,
       modelId: model.modelId,
+      timestamps: params.metadata?.timestamps,
     });
     
     logger.info(`[TenantTaskService] Sora 角色创建成功: ${characterResult.characterName}`);
