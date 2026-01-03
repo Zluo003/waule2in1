@@ -374,19 +374,23 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             return;
           }
 
-          // 检查是否是 JSON 格式（后端已切割）
-          let slicedUrls: string[] | null = null;
+          // 优先从 previewNodeData.allImageUrls 获取切片 URL（后端已解析）
+          let slicedUrls: string[] | null = task.previewNodeData?.allImageUrls || null;
           let originalUrl = imageUrl;
-          try {
-            if (imageUrl.startsWith('{')) {
-              const parsed = JSON.parse(imageUrl);
-              if (parsed.slicedUrls && Array.isArray(parsed.slicedUrls)) {
-                slicedUrls = parsed.slicedUrls;
-                originalUrl = parsed.originalUrl || imageUrl;
+
+          // 兼容旧逻辑：检查 resultUrl 是否是 JSON 格式
+          if (!slicedUrls) {
+            try {
+              if (imageUrl.startsWith('{')) {
+                const parsed = JSON.parse(imageUrl);
+                if (parsed.slicedUrls && Array.isArray(parsed.slicedUrls)) {
+                  slicedUrls = parsed.slicedUrls;
+                  originalUrl = parsed.originalUrl || imageUrl;
+                }
               }
+            } catch (e) {
+              // 不是 JSON，使用原始 URL
             }
-          } catch (e) {
-            // 不是 JSON，使用原始 URL
           }
 
           // 下载原始图片和切片到本地

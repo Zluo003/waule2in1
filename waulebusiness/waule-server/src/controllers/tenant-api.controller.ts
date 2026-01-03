@@ -2976,13 +2976,34 @@ export const getTaskStatus = asyncHandler(async (req: Request, res: Response) =>
 
   // 返回与平台版兼容的格式
   const output = task.output as any;
-  
+
   // 如果已下载到本地且 OSS 已删除，优先返回本地 URL
   // 这确保页面刷新后不会尝试访问已删除的 OSS 文件
-  const finalResultUrl = (output?.localDownloaded && output?.localUrl) 
-    ? output.localUrl 
+  let finalResultUrl = (output?.localDownloaded && output?.localUrl)
+    ? output.localUrl
     : output?.resultUrl;
-  
+
+  // 智能分镜特殊处理：解析 JSON 格式的 resultUrl，提取切片 URL
+  let slicedUrls: string[] | undefined;
+  const rawResultUrl = output?.resultUrl;
+  if (rawResultUrl && typeof rawResultUrl === 'string' && rawResultUrl.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(rawResultUrl);
+      if (parsed.slicedUrls && Array.isArray(parsed.slicedUrls)) {
+        slicedUrls = parsed.slicedUrls;
+        // 如果还没下载到本地，使用原始图片 URL
+        if (!output?.localDownloaded && parsed.originalUrl) {
+          finalResultUrl = parsed.originalUrl;
+        }
+      }
+    } catch (e) {
+      // 解析失败，忽略
+    }
+  }
+
+  // 优先使用已下载的本地切片 URL
+  const finalSlicedUrls = output?.localSlicedUrls || slicedUrls || output?.allImageUrls;
+
   res.json({
     success: true,
     task: {
@@ -2995,7 +3016,7 @@ export const getTaskStatus = asyncHandler(async (req: Request, res: Response) =>
         type: output.type,
         url: finalResultUrl,
         ratio: output.ratio,
-        allImageUrls: output.allImageUrls,
+        allImageUrls: finalSlicedUrls,
       } : undefined,
       errorMessage: task.error,
       metadata: output,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { apiClient } from '../lib/api'
+import { VeoModelsConfig, VEO_MODELS } from './model-configs/VeoModelsConfig'
 
 type ModelType = 'TEXT_GENERATION' | 'IMAGE_GENERATION' | 'VIDEO_GENERATION' | 'VIDEO_EDITING' | 'AUDIO_SYNTHESIS'
 
@@ -69,7 +70,7 @@ const defaultViduApiUrl = 'https://api.vidu.cn/ent/v2'
 const ModelConfigPage = () => {
   const [loading, setLoading] = useState(false)
   const [existingModels, setExistingModels] = useState<AIModel[]>([])
-  const [selectedKey, setSelectedKey] = useState<'google_pro' | 'google_flash_text' | 'google_flash' | 'google_gemini3' | 'google_gemini3_flash' | 'google_gemini3_image' | 'doubao_seedance_pro' | 'doubao_seedance_fast' | 'doubao_seedream' | 'doubao_seedream_45' | 'aliyun_qwen_image_edit' | 'aliyun_animate_move' | 'aliyun_animate_mix' | 'aliyun_video_style' | 'aliyun_videoretalk' | 'minimaxi_hailuo_23' | 'minimaxi_hailuo_23_fast' | 'minimaxi_hailuo_02' | 'minimaxi_speech_26_hd' | 'sora_image' | 'sora_video' | 'vidu_q2_pro' | 'vidu_q2_pro_fast' | 'vidu_q2_turbo' | 'vidu_q2'>('google_pro')
+  const [selectedKey, setSelectedKey] = useState<'google_pro' | 'google_flash_text' | 'google_flash' | 'google_gemini3' | 'google_gemini3_flash' | 'google_gemini3_image' | 'doubao_seedance_pro' | 'doubao_seedance_fast' | 'doubao_seedream' | 'doubao_seedream_45' | 'aliyun_qwen_image_edit' | 'aliyun_animate_move' | 'aliyun_animate_mix' | 'aliyun_video_style' | 'aliyun_videoretalk' | 'minimaxi_hailuo_23' | 'minimaxi_hailuo_23_fast' | 'minimaxi_hailuo_02' | 'minimaxi_speech_26_hd' | 'sora_image' | 'sora_video' | 'vidu_q2_pro' | 'vidu_q2_pro_fast' | 'vidu_q2_turbo' | 'vidu_q2' | 'veo_veo3.1' | 'veo_veo3.1-pro' | 'veo_veo3.1-components'>('google_pro')
   
   // Midjourney 设置
   const [mjFastEnabled, setMjFastEnabled] = useState(true)
@@ -2272,6 +2273,20 @@ const ModelConfigPage = () => {
               </button>
             </div>
           </div>
+          <div className="bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark rounded-xl p-4">
+            <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">Google Veo</div>
+            <div className="space-y-2">
+              {VEO_MODELS.map(model => (
+                <button key={model.id} type="button" onClick={() => setSelectedKey(`veo_${model.id}` as typeof selectedKey)} className={`w-full text-left p-3 rounded-lg border ${selectedKey === `veo_${model.id}` ? 'border-slate-400 dark:border-slate-500 bg-slate-100 dark:bg-slate-700' : 'border-slate-200 dark:border-border-dark'} flex items-center justify-between`}>
+                  <div>
+                    <div className="text-slate-900 dark:text-white">{model.name}</div>
+                    <div className="text-xs text-slate-500 dark:text-gray-500 font-mono">{model.id}</div>
+                  </div>
+                  {existingModels.find(m => m.modelId === model.id) && (<span className="text-xs text-green-400">已配置</span>)}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="md:col-span-2 space-y-8">
@@ -4359,6 +4374,10 @@ const ModelConfigPage = () => {
               </div>
             </div>
           )}
+
+          {VEO_MODELS.map(model => selectedKey === `veo_${model.id}` && (
+            <VeoModelsConfig key={model.id} selectedModel={model.id} existingModels={existingModels} wauleServers={wauleServers} onRefresh={refreshModels} />
+          ))}
 
           {loading && (<div className="text-gray-400">加载中...</div>)}
         </div>

@@ -567,6 +567,60 @@ class TenantTaskService {
           resolution,
         });
       }
+    } else if (provider === 'google' || provider === 'veo') {
+      // Google Veo 视频生成 - 直接调用 waule-api 网关
+      const meta: any = params.metadata || {};
+      const aspectRatio = params.ratio || '16:9';
+
+      // 处理参考图片（需要转为公网URL）
+      const publicImages: string[] = [];
+      for (const img of referenceImages) {
+        const publicUrl = await ensureAliyunOssUrl(img);
+        if (publicUrl) publicImages.push(publicUrl);
+      }
+
+      // 优先使用数据库中模型关联的 WauleApiServer 配置
+      const { getServerConfigByModelId } = await import('./wauleapi-client');
+      const serverConfig = await getServerConfigByModelId(model.modelId);
+      const apiUrl = serverConfig?.url || model.apiUrl || process.env.WAULEAPI_URL || 'http://localhost:9000';
+      const apiSecret = serverConfig?.authToken || process.env.WAULEAPI_SECRET || '';
+
+      logger.info(`[TenantTaskService] Veo 参数:`, {
+        model: model.modelId,
+        aspectRatio,
+        apiUrl,
+        imagesCount: publicImages.length,
+      });
+
+      const response = await fetch(`${apiUrl}/v1/videos/generations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiSecret}`,
+        },
+        body: JSON.stringify({
+          model: model.modelId,
+          prompt: params.prompt || '',
+          aspect_ratio: aspectRatio,
+          reference_images: publicImages.length > 0 ? publicImages : undefined,
+          enhance_prompt: meta.enhancePrompt !== false,
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Veo API 错误: ${response.status} ${errText}`);
+      }
+
+      const result = await response.json() as { data?: { url: string }[] };
+      const videoUrl = result.data?.[0]?.url;
+
+      if (!videoUrl) {
+        throw new Error('Veo API 未返回视频 URL');
+      }
+
+      logger.info(`[TenantTaskService] ✅ Veo 视频生成完成:`, videoUrl);
+      return videoUrl;
     } else {
       throw new Error(`租户版暂不支持的视频生成提供商: ${provider}，请联系管理员`);
     }

@@ -261,10 +261,29 @@ export const ensureAliyunOssUrl = async (u?: string, tenantInfo?: TenantUploadIn
   }
 
   // 纯路径：映射到本地并上传
-  if (!trimmed.startsWith('http')) {
+  if (!trimmed.startsWith('http') && !trimmed.startsWith('data:')) {
     const localRel = trimmed.startsWith('/') ? trimmed.slice(1) : trimmed;
     const fullPath = path.join(process.cwd(), localRel);
     return await uploadPath(fullPath, tenantInfo);
+  }
+
+  // base64 data URL：解码并上传
+  if (trimmed.startsWith('data:')) {
+    const matches = trimmed.match(/^data:([^;]+);base64,(.+)$/);
+    if (matches) {
+      const mimeType = matches[1];
+      const base64Data = matches[2];
+      const buffer = Buffer.from(base64Data, 'base64');
+      const extMap: Record<string, string> = {
+        'image/jpeg': '.jpg',
+        'image/png': '.png',
+        'image/webp': '.webp',
+        'image/gif': '.gif',
+      };
+      const ext = extMap[mimeType] || '.jpg';
+      return await uploadBuffer(buffer, ext, tenantInfo);
+    }
+    throw new Error('无效的 base64 data URL 格式');
   }
 
   // http 链接：外链或内部链接处理
