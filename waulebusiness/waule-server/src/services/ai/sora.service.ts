@@ -448,6 +448,7 @@ interface SoraCharacterCreateOptions {
   videoUrl: string;
   modelId?: string;
   serverConfig?: ServerConfig;
+  timestamps?: string;
 }
 
 /**
@@ -464,7 +465,7 @@ interface SoraCharacterResult {
  * 通过 waule-api 网关调用，不需要 apiKey
  */
 export async function createCharacter(options: SoraCharacterCreateOptions): Promise<SoraCharacterResult> {
-  const { videoUrl, modelId = 'sora-video-landscape-10s', serverConfig } = options;
+  const { videoUrl, modelId = 'sora-video-landscape-10s', serverConfig, timestamps = '1,3' } = options;
 
   // 获取服务器配置
   const finalServerConfig = serverConfig || await getServerConfigByModelId(modelId);
@@ -488,7 +489,7 @@ export async function createCharacter(options: SoraCharacterCreateOptions): Prom
       
       const response = await wauleApiClient.futureSoraCreateCharacter({
         url: videoUrl,
-        timestamps: '1,3',
+        timestamps: timestamps,
       }, finalServerConfig);
       
       logger.info(`[Sora] future-sora-api 响应:`, JSON.stringify(response).substring(0, 300));

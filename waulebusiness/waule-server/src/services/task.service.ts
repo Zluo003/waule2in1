@@ -608,6 +608,7 @@ class TaskService {
           const characterResult = await soraService.createCharacter({
             videoUrl: referenceVideo,
             modelId: model.modelId,
+            timestamps: meta.timestamps,
           });
           
           clearInterval(progressInterval);

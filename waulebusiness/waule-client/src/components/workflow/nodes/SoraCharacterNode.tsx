@@ -90,6 +90,8 @@ interface SoraCharacterNodeData {
     avatarUrl?: string;
     taskId?: string;
     sourceVideoUrl?: string;
+    voiceStartTime?: number;
+    voiceEndTime?: number;
   };
 }
 
@@ -104,6 +106,8 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
   console.log('[SoraCharacterNode] 组件渲染, data.models:', data.models?.length || 0);
   // 移除折叠功能，始终显示内容
   const [customName, setCustomName] = useState(data.config.customName || '');
+  const [voiceStartTime, setVoiceStartTime] = useState(data.config.voiceStartTime ?? 1);
+  const [voiceEndTime, setVoiceEndTime] = useState(data.config.voiceEndTime ?? 3);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [taskId, setTaskId] = useState(data.config.taskId || '');
@@ -476,6 +480,11 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
       return;
     }
 
+    if (voiceStartTime < 0 || voiceEndTime <= 0 || voiceEndTime <= voiceStartTime) {
+      toast.error('请输入有效的语音时间（结束时间需大于开始时间）');
+      return;
+    }
+
     if (!soraModelId) {
       toast.error('Sora模型未配置');
       return;
@@ -529,6 +538,7 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
           customName: customName.trim(),
           referenceType: 'video', // 标记为视频输入
           nodeType: 'sora_character', // 用于节点计费
+          timestamps: `${voiceStartTime},${voiceEndTime}`, // 语音时间
         },
       });
 
@@ -658,6 +668,39 @@ const SoraCharacterNode = ({ data, selected, id }: NodeProps<SoraCharacterNodeDa
               className="nodrag w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-neutral-800 bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-700 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-400/50 transition-colors"
               disabled={isGenerating}
             />
+          </div>
+
+          {/* 语音时间输入 */}
+          <div className="space-y-1">
+            <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 dark:text-neutral-400">
+              语音时间（秒）
+            </label>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <input
+                  type="number"
+                  value={voiceStartTime}
+                  onChange={(e) => setVoiceStartTime(parseInt(e.target.value) || 0)}
+                  placeholder="开始"
+                  min={0}
+                  className="nodrag w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-neutral-800 bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-700 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-400/50 transition-colors"
+                  disabled={isGenerating}
+                />
+                <div className="text-[9px] text-slate-400 dark:text-neutral-500 mt-0.5 text-center">开始时间</div>
+              </div>
+              <div className="flex-1">
+                <input
+                  type="number"
+                  value={voiceEndTime}
+                  onChange={(e) => setVoiceEndTime(parseInt(e.target.value) || 0)}
+                  placeholder="结束"
+                  min={0}
+                  className="nodrag w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-neutral-800 bg-slate-100 dark:bg-[#000000] backdrop-blur-none text-slate-700 dark:text-white placeholder-slate-400 dark:placeholder-neutral-500 focus:outline-none focus:border-neutral-400 dark:focus:border-neutral-400/50 transition-colors"
+                  disabled={isGenerating}
+                />
+                <div className="text-[9px] text-slate-400 dark:text-neutral-500 mt-0.5 text-center">结束时间</div>
+              </div>
+            </div>
           </div>
 
           {/* 已创建的角色信息（生成过程中不显示） */}
