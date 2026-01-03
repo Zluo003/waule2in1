@@ -18,6 +18,11 @@ app.use(express.static(path.join(__dirname, '../static')));
 // 路由
 app.use(routes);
 
+// 健康检查
+app.get('/health', (_req, res) => {
+  res.json({ status: 'healthy', service: 'ai-gateway', timestamp: new Date().toISOString() });
+});
+
 // 页面路由
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, '../static/login.html'));
