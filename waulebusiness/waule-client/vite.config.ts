@@ -55,7 +55,8 @@ export default defineConfig(({ mode }) => {
     chunkSizeWarningLimit: 600,
   },
   esbuild: {
-    drop: ['console', 'debugger'],
+    // 暂时禁用以便调试
+    // drop: ['console', 'debugger'],
   },
   server: {
     port: 8852, // 商业版前端开发服务器端口

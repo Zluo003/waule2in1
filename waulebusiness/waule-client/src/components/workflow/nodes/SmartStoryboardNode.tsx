@@ -374,23 +374,19 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
             return;
           }
 
-          // 优先从 previewNodeData.allImageUrls 获取切片 URL（后端已解析）
-          let slicedUrls: string[] | null = task.previewNodeData?.allImageUrls || null;
+          // 检查是否是 JSON 格式（后端已切割）
+          let slicedUrls: string[] | null = null;
           let originalUrl = imageUrl;
-
-          // 兼容旧逻辑：检查 resultUrl 是否是 JSON 格式
-          if (!slicedUrls) {
-            try {
-              if (imageUrl.startsWith('{')) {
-                const parsed = JSON.parse(imageUrl);
-                if (parsed.slicedUrls && Array.isArray(parsed.slicedUrls)) {
-                  slicedUrls = parsed.slicedUrls;
-                  originalUrl = parsed.originalUrl || imageUrl;
-                }
+          try {
+            if (imageUrl.startsWith('{')) {
+              const parsed = JSON.parse(imageUrl);
+              if (parsed.slicedUrls && Array.isArray(parsed.slicedUrls)) {
+                slicedUrls = parsed.slicedUrls;
+                originalUrl = parsed.originalUrl || imageUrl;
               }
-            } catch (e) {
-              // 不是 JSON，使用原始 URL
             }
+          } catch (e) {
+            // 不是 JSON，使用原始 URL
           }
 
           // 下载原始图片和切片到本地
@@ -410,12 +406,16 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
           });
 
           // 如果后端已切割，使用下载后的本地 URL
+          console.log('[SmartStoryboardNode] slicedUrls:', slicedUrls);
+          console.log('[SmartStoryboardNode] processedResult.allDisplayUrls:', processedResult.allDisplayUrls);
           if (slicedUrls && slicedUrls.length > 0) {
             // 使用下载后的本地 URL（如果有）
             const localSlicedUrls = processedResult.allDisplayUrls || slicedUrls;
+            console.log('[SmartStoryboardNode] 准备创建预览节点, localSlicedUrls:', localSlicedUrls);
             updateNodeData({ slicedImages: localSlicedUrls });
             toast.success(`成功生成 ${localSlicedUrls.length} 个分镜`);
             createAllPreviewNodes(localSlicedUrls, aspectRatio);
+            console.log('[SmartStoryboardNode] createAllPreviewNodes 已调用');
           } else if (autoSlice) {
             // 后端未切割，前端调用切割 API（兼容旧逻辑）
             await handleSliceAndCreatePreviews(displayUrl);
@@ -455,8 +455,13 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
 
   // 批量创建所有预览节点（一次性添加，九宫格排列）
   const createAllPreviewNodes = (slices: string[], ratio: string) => {
+    console.log('[SmartStoryboardNode] createAllPreviewNodes 被调用, slices:', slices, 'ratio:', ratio);
     const currentNode = getNode(id);
-    if (!currentNode) return;
+    console.log('[SmartStoryboardNode] currentNode:', currentNode);
+    if (!currentNode) {
+      console.error('[SmartStoryboardNode] currentNode 不存在，无法创建预览节点');
+      return;
+    }
 
     const cols = 3;
     const gap = 20;
