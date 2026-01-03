@@ -463,7 +463,9 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
   // 批量创建所有预览节点（一次性添加，九宫格排列）
   const createAllPreviewNodes = (slices: string[], ratio: string) => {
     console.log('[SmartStoryboardNode] createAllPreviewNodes 被调用, slices:', slices, 'ratio:', ratio);
-    const currentNode = getNode(id);
+    // 使用 getNodes() 查找当前节点，避免闭包问题
+    const allNodes = getNodes();
+    const currentNode = allNodes.find((n: any) => n.id === id);
     console.log('[SmartStoryboardNode] currentNode:', currentNode);
     if (!currentNode) {
       console.error('[SmartStoryboardNode] currentNode 不存在，无法创建预览节点');
