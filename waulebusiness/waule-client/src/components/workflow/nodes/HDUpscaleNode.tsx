@@ -104,6 +104,17 @@ const HDUpscaleNode = ({ data, selected, id }: NodeProps<HDUpscaleNodeData>) => 
     connectedEdges.forEach((edge) => {
       const sourceNode = nodes.find((n) => n.id === edge.source);
       if (sourceNode) {
+        // 处理上传节点：从 uploadedFiles 数组获取第一张图片
+        if (sourceNode.type === 'upload') {
+          const uploadedFiles = sourceNode.data?.config?.uploadedFiles || [];
+          const imageFile = uploadedFiles.find((f: any) => f.type === 'IMAGE');
+          if (imageFile?.url) {
+            newInputImage = imageFile.url;
+            return;
+          }
+        }
+
+        // 其他节点类型
         const imageUrl =
           sourceNode.data?.imageUrl ||
           sourceNode.data?.config?.generatedImageUrl ||
