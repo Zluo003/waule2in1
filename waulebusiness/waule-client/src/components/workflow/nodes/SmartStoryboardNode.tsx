@@ -469,7 +469,15 @@ const SmartStoryboardNode = ({ data, selected, id }: NodeProps<SmartStoryboardNo
     // 使用 getNodesFromStore 获取最新节点数据，避免闭包问题
     const allNodes = getNodesFromStore();
     console.log('[SmartStoryboardNode] allNodes count:', allNodes.length, 'looking for id:', id);
-    const currentNode = allNodes.find((n: any) => n.id === id);
+    console.log('[SmartStoryboardNode] allNodes ids:', allNodes.map((n: any) => n.id));
+    let currentNode = allNodes.find((n: any) => n.id === id);
+
+    // 如果找不到，尝试查找 smartStoryboard 类型的节点
+    if (!currentNode) {
+      currentNode = allNodes.find((n: any) => n.type === 'smartStoryboard');
+      console.log('[SmartStoryboardNode] 通过类型查找到节点:', currentNode?.id);
+    }
+
     console.log('[SmartStoryboardNode] currentNode:', currentNode);
     if (!currentNode) {
       console.error('[SmartStoryboardNode] currentNode 不存在，无法创建预览节点');
