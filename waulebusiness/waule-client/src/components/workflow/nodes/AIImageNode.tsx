@@ -823,11 +823,6 @@ const AIImageNode = ({ data, selected, id }: NodeProps<AIImageNodeData>) => {
         finalPrompt = `生成一组${maxImages}张图片，${finalPrompt}`;
       }
       
-      // Gemini 3 Pro Image 模型：自动添加比例到提示词末尾
-      const isGemini3Pro = selectedModel.modelId === 'gemini-3-pro-image-preview';
-      if (isGemini3Pro && ratio) {
-        finalPrompt = `${finalPrompt}，生成${ratio}的比例`;
-      }
 
       // 提交任务到后端
       const taskPayload: any = {
